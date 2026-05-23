@@ -24,7 +24,7 @@ SERVICE_SHOW_EMOJI = "show_emoji"
 SHOW_EMOJI_SCHEMA = vol.Schema(
     {
         vol.Required("emoji"): vol.All(str, vol.Length(min=1)),
-        vol.Optional("device_id"): str,
+        vol.Optional("device_id"): vol.Any(None, str, [str]),
         vol.Optional("bg_color"): vol.All(
             [vol.All(int, vol.Range(min=0, max=255))], vol.Length(min=3, max=3)
         ),
