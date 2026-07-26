@@ -4,10 +4,14 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import voluptuous as vol
+
 from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity_platform import AddEntitiesCallback, async_get_current_platform
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -33,6 +37,115 @@ async def async_setup_entry(
     async_add_entities([
         iPIXELTextDisplay(hass, api, entry, address, name),
     ])
+
+    platform = async_get_current_platform()
+    platform.async_register_entity_service(
+        "send_mdi_icon",
+        {
+            vol.Required("icon"): cv.string,
+            vol.Optional("color", default=[255, 255, 255]): vol.All(
+                vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
+            ),
+            vol.Optional("bg_color", default=[0, 0, 0]): vol.All(
+                vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
+            ),
+            vol.Optional("scale", default=100): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=100)
+            ),
+            vol.Optional("save_slot", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=10)
+            ),
+        },
+        "async_send_mdi_icon",
+    )
+    platform.async_register_entity_service(
+        "send_text",
+        {
+            vol.Required("text"): cv.string,
+            vol.Optional("color", default=[255, 255, 255]): vol.All(
+                vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
+            ),
+            vol.Optional("bg_color", default=None): vol.Any(
+                None,
+                vol.All(vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)),
+            ),
+            vol.Optional("font", default="CUSONG"): vol.In(
+                ["CUSONG", "SIMSUN", "VCR_OSD_MONO"]
+            ),
+            vol.Optional("animation", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=7)
+            ),
+            vol.Optional("speed", default=80): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=100)
+            ),
+            vol.Optional("rainbow_mode", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=9)
+            ),
+        },
+        "async_send_text",
+    )
+    platform.async_register_entity_service(
+        "send_test_pattern",
+        {},
+        "async_send_test_pattern",
+    )
+    platform.async_register_entity_service(
+        "send_layout",
+        {
+            vol.Optional("icon"): cv.string,
+            vol.Optional("icon_x", default=0): vol.Coerce(int),
+            vol.Optional("icon_y", default=0): vol.Coerce(int),
+            vol.Optional("icon_size"): vol.Coerce(int),
+            vol.Optional("icon_color", default=[255, 255, 255]): vol.All(
+                vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
+            ),
+            vol.Optional("image_path"): cv.string,
+            vol.Optional("image_x", default=0): vol.Coerce(int),
+            vol.Optional("image_y", default=0): vol.Coerce(int),
+            vol.Optional("image_width"): vol.Coerce(int),
+            vol.Optional("image_height"): vol.Coerce(int),
+            vol.Optional("text"): cv.string,
+            vol.Optional("text_x", default=0): vol.Coerce(int),
+            vol.Optional("text_y", default=0): vol.Coerce(int),
+            vol.Optional("text_size", default=6): vol.Coerce(float),
+            vol.Optional("text_font"): vol.In(
+                ["3x5-de", "5x5", "7x5", "OpenSans-Light", "WP7xn"]
+            ),
+            vol.Optional("text_color", default=[255, 255, 255]): vol.All(
+                vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
+            ),
+            vol.Optional("text_wrap", default=True): cv.boolean,
+            vol.Optional("text_line_spacing", default=1): vol.Coerce(int),
+            vol.Optional("text_scroll", default=False): cv.boolean,
+            vol.Optional("text_scroll_step", default=2): vol.All(
+                vol.Coerce(int), vol.Range(min=1, max=20)
+            ),
+            vol.Optional("text_scroll_frame_ms", default=80): vol.All(
+                vol.Coerce(int), vol.Range(min=20, max=1000)
+            ),
+            vol.Optional("text_scroll_gap", default=16): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=200)
+            ),
+            vol.Optional("bg_color", default=[0, 0, 0]): vol.All(
+                vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
+            ),
+            vol.Optional("save_slot", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=10)
+            ),
+        },
+        "async_send_layout",
+    )
+    platform.async_register_entity_service(
+        "send_image_file",
+        {
+            vol.Required("file_path"): cv.string,
+            vol.Optional("resize_method", default="crop"): vol.In(["crop", "fit"]),
+            vol.Optional("save_slot", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=10)
+            ),
+        },
+        "async_send_image_file",
+    )
 
 
 class iPIXELTextDisplay(TextEntity, RestoreEntity):
@@ -142,6 +255,178 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
         except Exception as err:
             _LOGGER.debug("Could not get auto-update setting: %s", err)
         return False  # Default to manual updates only
+
+    async def async_send_mdi_icon(
+        self,
+        icon: str,
+        color: tuple[int, int, int] = (255, 255, 255),
+        bg_color: tuple[int, int, int] = (0, 0, 0),
+        scale: int = 100,
+        save_slot: int = 0,
+    ) -> None:
+        """Render and display a Home Assistant MDI icon (service: send_mdi_icon).
+
+        Args:
+            icon: MDI icon name, e.g. 'mdi:battery-outline' or 'battery-outline'.
+            color: Icon fill color as an (R, G, B) tuple.
+            bg_color: Canvas background color as an (R, G, B) tuple.
+            scale: Icon size as a percentage of the panel's smaller dimension (1-100).
+            save_slot: If >= 1, saves the icon to that device memory slot.
+        """
+        color_hex = "".join(f"{c:02x}" for c in color)
+        bg_color_hex = "".join(f"{c:02x}" for c in bg_color)
+
+        success = await self._api.send_mdi_icon(
+            icon=icon,
+            color=color_hex,
+            bg_color=bg_color_hex,
+            scale=scale,
+            save_slot=save_slot,
+        )
+        if not success:
+            _LOGGER.error("Failed to send MDI icon '%s'", icon)
+            raise HomeAssistantError(f"Failed to send MDI icon '{icon}' - check the logs for details")
+
+    async def async_send_text(
+        self,
+        text: str,
+        color: tuple[int, int, int] = (255, 255, 255),
+        bg_color: tuple[int, int, int] | None = None,
+        font: str = "CUSONG",
+        animation: int = 0,
+        speed: int = 80,
+        rainbow_mode: int = 0,
+    ) -> None:
+        """Send text using pypixelcolor's native renderer (service: send_text).
+
+        Independent of the entity's stored text/effect/speed/colors (used by
+        the 'Display' text box + auto-update flow) - meant for direct calls
+        from automations/scripts with their own parameters each time.
+
+        Args:
+            text: Text to display (supports emojis).
+            color: Text color as an (R, G, B) tuple.
+            bg_color: Background color as an (R, G, B) tuple, or None for transparent.
+            font: Built-in font name ('CUSONG', 'SIMSUN', 'VCR_OSD_MONO').
+            animation: Animation type (0-7). Note: pypixelcolor itself rejects
+                3 and 4 on panels that aren't 32x32, to avoid a device bootloop.
+            speed: Animation speed (0-100).
+            rainbow_mode: Rainbow color-cycling mode (0-9).
+        """
+        color_hex = "".join(f"{c:02x}" for c in color)
+        bg_color_hex = "".join(f"{c:02x}" for c in bg_color) if bg_color is not None else None
+
+        success = await self._api.display_text_pypixelcolor(
+            text=text,
+            color=color_hex,
+            bg_color=bg_color_hex,
+            font=font,
+            animation=animation,
+            speed=speed,
+            rainbow_mode=rainbow_mode,
+        )
+        if not success:
+            _LOGGER.error("Failed to send text '%s'", text)
+            raise HomeAssistantError(f"Failed to send text '{text}' - check the logs for details")
+
+    async def async_send_test_pattern(self) -> None:
+        """DIAGNOSTIC ONLY: send a 4-quadrant colored test pattern (service: send_test_pattern).
+
+        Used to empirically determine the logical-buffer-to-physical-panel
+        mapping when the device's reported width/height doesn't match the
+        panel's real physical shape.
+        """
+        success = await self._api.send_test_pattern()
+        if not success:
+            _LOGGER.error("Failed to send test pattern")
+            raise HomeAssistantError("Failed to send test pattern - check the logs for details")
+
+    async def async_send_layout(
+        self,
+        icon: str | None = None,
+        icon_x: int = 0,
+        icon_y: int = 0,
+        icon_size: int | None = None,
+        icon_color: tuple[int, int, int] = (255, 255, 255),
+        image_path: str | None = None,
+        image_x: int = 0,
+        image_y: int = 0,
+        image_width: int | None = None,
+        image_height: int | None = None,
+        text: str | None = None,
+        text_x: int = 0,
+        text_y: int = 0,
+        text_size: float = 6,
+        text_font: str | None = None,
+        text_color: tuple[int, int, int] = (255, 255, 255),
+        text_wrap: bool = True,
+        text_line_spacing: int = 1,
+        text_scroll: bool = False,
+        text_scroll_step: int = 2,
+        text_scroll_frame_ms: int = 80,
+        text_scroll_gap: int = 16,
+        bg_color: tuple[int, int, int] = (0, 0, 0),
+        save_slot: int = 0,
+    ) -> None:
+        """Compose an icon and/or text at independent positions (service: send_layout).
+
+        Both are optional; give at least one. Positions are the element's
+        top-left corner in device pixels. '\\n' in text always forces a
+        line break; text_wrap additionally auto-wraps at the panel edge;
+        text_scroll makes text too wide to fit scroll continuously instead.
+        """
+        icon_color_hex = "".join(f"{c:02x}" for c in icon_color)
+        text_color_hex = "".join(f"{c:02x}" for c in text_color)
+        bg_color_hex = "".join(f"{c:02x}" for c in bg_color)
+
+        success = await self._api.send_layout(
+            icon=icon,
+            icon_x=icon_x,
+            icon_y=icon_y,
+            icon_size=icon_size,
+            icon_color=icon_color_hex,
+            image_path=image_path,
+            image_x=image_x,
+            image_y=image_y,
+            image_width=image_width,
+            image_height=image_height,
+            text=text,
+            text_x=text_x,
+            text_y=text_y,
+            text_size=text_size,
+            text_font=text_font,
+            text_color=text_color_hex,
+            text_wrap=text_wrap,
+            text_line_spacing=text_line_spacing,
+            text_scroll=text_scroll,
+            text_scroll_step=text_scroll_step,
+            text_scroll_frame_ms=text_scroll_frame_ms,
+            text_scroll_gap=text_scroll_gap,
+            bg_color=bg_color_hex,
+            save_slot=save_slot,
+        )
+        if not success:
+            _LOGGER.error("Failed to send layout")
+            raise HomeAssistantError("Failed to send layout - check the logs for details")
+
+    async def async_send_image_file(
+        self,
+        file_path: str,
+        resize_method: str = "crop",
+        save_slot: int = 0,
+    ) -> None:
+        """Send an existing image or GIF file from disk (service: send_image_file).
+
+        The file must be readable by Home Assistant (e.g. under /config/www/).
+        """
+        success = await self._api.send_image_file(
+            file_path=file_path,
+            resize_method=resize_method,
+            save_slot=save_slot,
+        )
+        if not success:
+            _LOGGER.error("Failed to send image file '%s'", file_path)
+            raise HomeAssistantError(f"Failed to send image file '{file_path}' - check the logs for details")
 
     async def async_update(self) -> None:
         """Update the entity state."""
