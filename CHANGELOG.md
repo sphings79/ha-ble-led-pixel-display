@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- All `ipixel_color.*` actions (`send_mdi_icon`, `send_text`, `send_layout`, `send_test_pattern`,
+  `send_image_file`) are now registered once at integration setup (`async_setup` in
+  `__init__.py`, via the new `services.py`) instead of per-config-entry inside `text.py`'s
+  `async_setup_entry`, per Home Assistant's own guidance
+  (https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/).
+  Previously, an action only existed in Home Assistant's service registry once a specific
+  device's config entry had finished loading - automations validated before that (typically
+  during Home Assistant startup) could be briefly flagged with "unknown action", even though
+  the action worked correctly moments later once setup completed. The entity methods
+  themselves (`async_send_mdi_icon`, etc.) are unchanged; only where and how they're
+  registered changed, using `homeassistant.helpers.service.async_register_platform_entity_service`.
 - `send_layout`'s word-wrap now falls back to splitting character-by-character when a single
   space-free "word" (e.g. a long digit string or ID with no natural spaces) is wider than the
   available width on its own. Previously such text was kept whole and allowed to overflow
