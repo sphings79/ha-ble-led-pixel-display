@@ -193,9 +193,9 @@ send_test_pattern:
 send_layout:
   name: Send Layout
   description: >-
-    Compone un'icona MDI e/o del testo, ciascuno posizionabile
-    indipendentemente (angolo in alto a sinistra), e li invia come
-    un'unica immagine al pannello.
+    Compone un'icona MDI, un'immagine e/o fino a 4 testi, ciascuno
+    posizionabile indipendentemente (angolo in alto a sinistra), e li
+    invia come un'unica immagine al pannello.
   target:
     entity:
       integration: ipixel_color
@@ -241,11 +241,50 @@ send_layout:
       default: [255, 255, 255]
       selector:
         color_rgb:
+    icon_blink:
+      name: Icon Blink
+      description: Se attivo, l'icona lampeggia (accesa/spenta a intervalli)
+      required: false
+      default: false
+      selector:
+        boolean:
+    icon_blink_interval_ms:
+      name: Icon Blink Interval
+      description: Durata di ogni stato (acceso o spento) del lampeggio, in millisecondi
+      required: false
+      default: 500
+      selector:
+        number:
+          min: 50
+          max: 5000
+    icons:
+      name: Icons (multiple)
+      description: >-
+        Lista di fino a 4 icone MDI indipendenti (ciascuna con la propria
+        posizione/dimensione/colore/lampeggio), utilizzabile solo da
+        YAML. Se presente, ha priorità sui campi icon/icon_x/ecc. sopra.
+        Formato di ogni elemento: icon (obbligatorio), x, y, size,
+        color_hex, blink, blink_interval_ms. Non scorrono mai, ma possono
+        lampeggiare.
+      required: false
+      example: |
+        - icon: "mdi:weather-sunny"
+          x: 0
+          y: 0
+          size: 16
+        - icon: "mdi:water-alert"
+          x: 20
+          y: 0
+          size: 16
+          blink: true
+          blink_interval_ms: 300
+      selector:
+        object:
     image_path:
       name: Image Path
       description: >-
         Percorso assoluto di un file immagine/GIF da inserire (solo il
-        primo frame se \u00e8 animata), leggibile da Home Assistant (es.
+        primo frame se è animata), leggibile da Home Assistant (es.
         sotto /config/www/). Omettere per non inserirne una.
       required: false
       example: "/config/www/logo.png"
@@ -322,7 +361,10 @@ send_layout:
           step: 0.5
     text_font:
       name: Text Font
-      description: Font bundlato. "3x5-de" è il più piccolo disponibile.
+      description: >-
+        Font bundlato. "3x5-de" è il più piccolo disponibile. "Lepidos" è
+        un font pixel 3x7 (CC0/pubblico dominio) - dà risultati migliori
+        a dimensioni multiple di 16 (16, 32...).
       required: false
       selector:
         select:
@@ -330,6 +372,7 @@ send_layout:
             - "3x5-de"
             - "5x5"
             - "7x5"
+            - "Lepidos"
             - "OpenSans-Light"
             - "WP7xn"
     text_color:
@@ -344,11 +387,28 @@ send_layout:
       description: >-
         Se attivo (default), va a capo automaticamente quando il testo
         supera il bordo destro del pannello. "\n" nel testo forza comunque
-        un a-capo indipendentemente da questa opzione.
+        un a-capo indipendentemente da questa opzione. Nota: il wrap
+        ridistribuisce le parole e non preserva spazi esatti - disattivalo
+        se ti servono spazi iniziali/finali/interni precisi (es. per
+        allineamento manuale).
       required: false
       default: true
       selector:
         boolean:
+    text_align:
+      name: Text Align
+      description: >-
+        Allineamento orizzontale del testo entro il proprio blocco:
+        "left" (default), "right" o "center". Conta soprattutto con più
+        righe (separate da "\n") di larghezza diversa.
+      required: false
+      default: "left"
+      selector:
+        select:
+          options:
+            - "left"
+            - "right"
+            - "center"
     text_line_spacing:
       name: Text Line Spacing
       description: Spazio verticale extra tra le righe, in pixel
@@ -363,24 +423,69 @@ send_layout:
       description: >-
         Se attivo, il testo troppo largo per stare nello spazio disponibile
         scorre in loop continuo (GIF animata) invece di essere tagliato.
-        Nessun effetto se il testo entra gi\u00e0. Non ancora testato a fondo
-        su tutti i pannelli - se qualcosa va storto, usa send_test_pattern
-        per verificare.
+        Nessun effetto se il testo entra già. Per ridurre il tempo di
+        trasferimento su GIF pesanti, aumenta scroll_step (meno frame).
       required: false
       default: false
       selector:
         boolean:
-    text_scroll_step:
-      name: Text Scroll Speed
-      description: Pixel di spostamento per frame (pi\u00f9 alto = pi\u00f9 veloce ma meno fluido)
+    text_blink:
+      name: Text Blink
+      description: Se attivo, il testo lampeggia (acceso/spento a intervalli)
+      required: false
+      default: false
+      selector:
+        boolean:
+    text_blink_interval_ms:
+      name: Text Blink Interval
+      description: Durata di ogni stato (acceso o spento) del lampeggio, in millisecondi
+      required: false
+      default: 500
+      selector:
+        number:
+          min: 50
+          max: 5000
+    texts:
+      name: Texts (multipli)
+      description: >-
+        Lista di fino a 4 testi indipendenti (ciascuno con la propria
+        posizione/dimensione/font/colore/wrap/align/scroll/lampeggio),
+        utilizzabile solo da YAML. Se presente, ha priorità sui campi
+        text/text_x/ecc. sopra. Formato di ogni elemento: text
+        (obbligatorio), x, y, size, font, color_hex, wrap, align, scroll,
+        line_spacing, blink, blink_interval_ms.
+      required: false
+      example: |
+        - text: "Salotto"
+          x: 0
+          y: 0
+          size: 6
+        - text: "21°C"
+          x: 0
+          y: 8
+          size: 8
+          scroll: true
+        - text: "ALLARME"
+          x: 0
+          y: 16
+          size: 8
+          blink: true
+          blink_interval_ms: 300
+      selector:
+        object:
+    scroll_step:
+      name: Scroll Speed
+      description: >-
+        Pixel di spostamento per frame, condiviso da tutti i testi in
+        scorrimento (più alto = più veloce ma meno fluido)
       required: false
       default: 2
       selector:
         number:
           min: 1
           max: 20
-    text_scroll_frame_ms:
-      name: Text Scroll Frame Duration
+    scroll_frame_ms:
+      name: Scroll Frame Duration
       description: Durata di ogni frame dell'animazione, in millisecondi
       required: false
       default: 80
@@ -388,8 +493,8 @@ send_layout:
         number:
           min: 20
           max: 1000
-    text_scroll_gap:
-      name: Text Scroll Gap
+    scroll_gap:
+      name: Scroll Gap
       description: Pixel vuoti tra la fine di un giro e l'inizio del successivo
       required: false
       default: 16
@@ -417,9 +522,9 @@ send_layout:
 send_image_file:
   name: Send Image File
   description: >-
-    Invia un file immagine o GIF gi\u00e0 esistente e leggibile da Home
+    Invia un file immagine o GIF già esistente e leggibile da Home
     Assistant (es. sotto /config/www/). Supporta PNG, GIF (incluse GIF
-    animate, inviate cos\u00ec come sono), JPEG, BMP, TIFF, WEBP, HEIC/HEIF.
+    animate, inviate così come sono), JPEG, BMP, TIFF, WEBP, HEIC/HEIF.
   target:
     entity:
       integration: ipixel_color

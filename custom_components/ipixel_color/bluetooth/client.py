@@ -253,7 +253,7 @@ class BluetoothClient:
             if response_handler in self._extra_listeners:
                 self._extra_listeners.remove(response_handler)
 
-    async def send_plan(self, plan) -> bool:
+    async def send_plan(self, plan, ack_timeout: float = 8.0) -> bool:
         """Send a pypixelcolor SendPlan using the library's own transport.
 
         Uses the persistent AckManager created in connect() (no stop/start
@@ -264,6 +264,11 @@ class BluetoothClient:
 
         Args:
             plan: A pypixelcolor SendPlan object (e.g. from send_image_hex).
+            ack_timeout: How long to wait for each window's ACK, in
+                seconds. pypixelcolor's own default (8s) is tuned for small
+                payloads; a complex GIF may need noticeably longer for the
+                device to process before it acks - callers sending images/
+                GIFs should pass a higher value (e.g. 20-30s).
 
         Returns:
             True if the plan was sent and acknowledged successfully.
@@ -280,7 +285,9 @@ class BluetoothClient:
             raise iPIXELConnectionError("AckManager not initialized - not connected?")
 
         try:
-            result = await pypixelcolor_send_plan(self._client, plan, self._ack_mgr)
+            result = await pypixelcolor_send_plan(
+                self._client, plan, self._ack_mgr, ack_timeout=ack_timeout,
+            )
             if not result.success:
                 _LOGGER.error("send_plan '%s' failed: %s", plan.id, result.message)
             return result.success
