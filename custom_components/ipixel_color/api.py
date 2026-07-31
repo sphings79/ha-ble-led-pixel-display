@@ -298,7 +298,7 @@ class iPIXELAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
             if not success:
                 _LOGGER.error("Failed to send MDI icon '%s'", icon)
                 return False
@@ -320,6 +320,9 @@ class iPIXELAPI:
         icon_y: int = 0,
         icon_size: int | None = None,
         icon_color: str = "ffffff",
+        icon_blink: bool = False,
+        icon_blink_interval_ms: int = 500,
+        icons: list[dict] | None = None,
         image_path: str | None = None,
         image_x: int = 0,
         image_y: int = 0,
@@ -333,25 +336,54 @@ class iPIXELAPI:
         text_color: str = "ffffff",
         text_wrap: bool = True,
         text_line_spacing: int = 1,
+        text_align: str = "left",
         text_scroll: bool = False,
-        text_scroll_step: int = 2,
-        text_scroll_frame_ms: int = 80,
-        text_scroll_gap: int = 16,
+        text_blink: bool = False,
+        text_blink_interval_ms: int = 500,
+        texts: list[dict] | None = None,
+        scroll_step: int = 2,
+        scroll_frame_ms: int = 80,
+        scroll_gap: int = 16,
         bg_color: str = "000000",
         save_slot: int = 0,
     ) -> bool:
-        """Compose an MDI icon and/or text at independent positions and display it.
+        """Compose up to 4 MDI icons, an image, and up to 4 text elements, and display it.
 
-        Both icon and text are optional but at least one should be given.
+        All elements are optional but at least one should be given.
         Positions are the top-left corner of each element, in device pixels.
 
+        For a single icon, use the flat icon/icon_x/... parameters (kept
+        for backward compatibility). For more than one icon (up to 4), use
+        `icons` instead - a list of dicts, each with the same shape as the
+        flat parameters (icon, x, y, size, color_hex), e.g.:
+            icons=[
+                {"icon": "mdi:weather-sunny", "x": 0, "y": 0, "size": 16},
+                {"icon": "mdi:water-percent", "x": 20, "y": 0, "size": 16},
+            ]
+        If `icons` is given, the flat icon/icon_x/... parameters are ignored.
+
+        For a single text, use the flat text/text_x/... parameters (kept for
+        backward compatibility). For more than one text (up to 4), use
+        `texts` instead - a list of dicts, each with the same shape as the
+        flat parameters (text, x, y, size, font, color_hex, wrap, scroll,
+        line_spacing). If `texts` is given, the flat text/text_x/...
+        parameters are ignored.
+
         Args:
-            icon: MDI icon name, e.g. 'mdi:battery-outline'. None to skip.
+            icon: Single MDI icon name, e.g. 'mdi:battery-outline'.
+                Ignored if `icons` is given. None to skip.
             icon_x: Icon top-left X position in pixels.
             icon_y: Icon top-left Y position in pixels.
             icon_size: Icon size in pixels (square). Defaults to the panel's
                 smaller dimension if not given.
             icon_color: Icon fill color in hex (with or without '#').
+            icon_blink: If True, the icon blinks on/off (ignored if
+                `icons` is given - set 'blink' per item there instead).
+            icon_blink_interval_ms: Milliseconds each blink state (on or
+                off) lasts.
+            icons: List of up to 4 icon dicts - see above. Takes priority
+                over icon/icon_x/... if given. Icons are always static (no
+                scrolling).
             image_path: Absolute path to an image/GIF file to insert (only
                 its first frame, if animated), readable by Home Assistant
                 (e.g. under /config/www/). None to skip.
@@ -359,8 +391,9 @@ class iPIXELAPI:
             image_y: Image top-left Y position in pixels.
             image_width: If given, resize the image to this width.
             image_height: If given, resize the image to this height.
-            text: Text to display. None to skip. '\\n' always forces a line
-                break regardless of text_wrap.
+            text: Single text to display (ignored if `texts` is given).
+                None to skip. '\n' always forces a line break regardless
+                of text_wrap.
             text_x: Text top-left X position in pixels.
             text_y: Text top-left Y position in pixels.
             text_size: Font size in pixels (can be fractional) - scales the
@@ -370,15 +403,25 @@ class iPIXELAPI:
             text_color: Text color in hex (with or without '#').
             text_wrap: If True (default), automatically word-wrap text that
                 would run past the panel's right edge. If False, only
-                explicit '\\n' breaks lines.
+                explicit '\n' breaks lines.
             text_line_spacing: Extra vertical gap between lines, in pixels.
+            text_align: Horizontal alignment within the text's own block:
+                'left' (default), 'right', or 'center'. Mainly matters with
+                multiple '\\n'-separated lines of different widths.
+            text_blink: If True, the text blinks on/off (ignored if
+                `texts` is given - set 'blink' per item there instead).
+            text_blink_interval_ms: Milliseconds each blink state (on or
+                off) lasts.
             text_scroll: If True, text too wide to fit scrolls continuously
                 (looping GIF) instead of being clipped. No effect if the
                 text already fits. Ignored together with text_wrap - wrap
                 takes priority when both would apply to fitting text.
-            text_scroll_step: Pixels moved per animation frame.
-            text_scroll_frame_ms: Duration of each animation frame, in ms.
-            text_scroll_gap: Blank pixels between consecutive loop passes.
+            texts: List of up to 4 text element dicts - see above. Takes
+                priority over text/text_x/... if given.
+            scroll_step: Pixels moved per animation frame, shared by every
+                scrolling text so their loops can stay in sync.
+            scroll_frame_ms: Duration of each animation frame, in ms.
+            scroll_gap: Blank pixels between consecutive loop passes.
             bg_color: Canvas background color in hex (with or without '#').
             save_slot: If >= 1, saves the image to that device memory slot.
         """
@@ -391,34 +434,38 @@ class iPIXELAPI:
             if image_path:
                 image_bytes = await self._hass.async_add_executor_job(Path(image_path).read_bytes)
 
+            if icons is None and icon:
+                icons = [{
+                    "icon": icon, "x": icon_x, "y": icon_y,
+                    "size": icon_size, "color_hex": icon_color,
+                    "blink": icon_blink, "blink_interval_ms": icon_blink_interval_ms,
+                }]
+
+            if texts is None and text:
+                texts = [{
+                    "text": text, "x": text_x, "y": text_y, "size": text_size,
+                    "font": text_font, "color_hex": text_color, "wrap": text_wrap,
+                    "align": text_align, "scroll": text_scroll,
+                    "line_spacing": text_line_spacing,
+                    "blink": text_blink, "blink_interval_ms": text_blink_interval_ms,
+                }]
+
             session = async_get_clientsession(self._hass)
             png_data, file_ext = await build_layout_media(
                 canvas_width=width,
                 canvas_height=height,
                 session=session,
                 bg_color_hex=bg_color,
-                icon=icon,
-                icon_x=icon_x,
-                icon_y=icon_y,
-                icon_size=icon_size,
-                icon_color_hex=icon_color,
+                icons=icons,
                 image_bytes=image_bytes,
                 image_x=image_x,
                 image_y=image_y,
                 image_width=image_width,
                 image_height=image_height,
-                text=text,
-                text_x=text_x,
-                text_y=text_y,
-                text_size=text_size,
-                text_font=text_font,
-                text_color_hex=text_color,
-                text_wrap=text_wrap,
-                text_line_spacing=text_line_spacing,
-                text_scroll=text_scroll,
-                text_scroll_step=text_scroll_step,
-                text_scroll_frame_ms=text_scroll_frame_ms,
-                text_scroll_gap=text_scroll_gap,
+                texts=texts,
+                scroll_step=scroll_step,
+                scroll_frame_ms=scroll_frame_ms,
+                scroll_gap=scroll_gap,
             )
 
             plan = make_image_command(
@@ -429,12 +476,15 @@ class iPIXELAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
             if not success:
-                _LOGGER.error("Failed to send layout (icon=%s, text=%s)", icon, text)
+                _LOGGER.error("Failed to send layout (icons=%s, texts=%s)", icons, texts)
                 return False
 
-            _LOGGER.info("Layout sent (%dx%d, icon=%s, text=%s)", width, height, icon, text)
+            _LOGGER.info(
+                "Layout sent (%dx%d, n_icons=%d, n_texts=%d)",
+                width, height, len(icons or []), len(texts or []),
+            )
             return True
 
         except Exception as err:
@@ -474,7 +524,7 @@ class iPIXELAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
             if not success:
                 _LOGGER.error("Failed to send image file '%s'", file_path)
                 return False
@@ -531,7 +581,7 @@ class iPIXELAPI:
                 device_info_dict=device_info,
                 save_slot=0,
             )
-            success = await self._bluetooth.send_plan(plan)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
             if not success:
                 _LOGGER.error("Failed to send test pattern")
                 return False

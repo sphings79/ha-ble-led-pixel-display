@@ -89,6 +89,37 @@ async def async_setup_entry(
         {},
         "async_send_test_pattern",
     )
+    ICON_ITEM_SCHEMA = vol.Schema({
+        vol.Required("icon"): cv.string,
+        vol.Optional("x", default=0): vol.Coerce(int),
+        vol.Optional("y", default=0): vol.Coerce(int),
+        vol.Optional("size"): vol.Coerce(int),
+        vol.Optional("color_hex", default="ffffff"): cv.string,
+        vol.Optional("blink", default=False): cv.boolean,
+        vol.Optional("blink_interval_ms", default=500): vol.All(
+            vol.Coerce(int), vol.Range(min=50, max=5000)
+        ),
+    })
+
+    TEXT_ITEM_SCHEMA = vol.Schema({
+        vol.Required("text"): cv.string,
+        vol.Optional("x", default=0): vol.Coerce(int),
+        vol.Optional("y", default=0): vol.Coerce(int),
+        vol.Optional("size", default=6): vol.Coerce(float),
+        vol.Optional("font"): vol.In(
+            ["3x5-de", "5x5", "7x5", "Lepidos", "OpenSans-Light", "WP7xn"]
+        ),
+        vol.Optional("color_hex", default="ffffff"): cv.string,
+        vol.Optional("wrap", default=True): cv.boolean,
+        vol.Optional("align", default="left"): vol.In(["left", "right", "center"]),
+        vol.Optional("scroll", default=False): cv.boolean,
+        vol.Optional("line_spacing", default=1): vol.Coerce(int),
+        vol.Optional("blink", default=False): cv.boolean,
+        vol.Optional("blink_interval_ms", default=500): vol.All(
+            vol.Coerce(int), vol.Range(min=50, max=5000)
+        ),
+    })
+
     platform.async_register_entity_service(
         "send_layout",
         {
@@ -98,6 +129,13 @@ async def async_setup_entry(
             vol.Optional("icon_size"): vol.Coerce(int),
             vol.Optional("icon_color", default=[255, 255, 255]): vol.All(
                 vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
+            ),
+            vol.Optional("icon_blink", default=False): cv.boolean,
+            vol.Optional("icon_blink_interval_ms", default=500): vol.All(
+                vol.Coerce(int), vol.Range(min=50, max=5000)
+            ),
+            vol.Optional("icons"): vol.All(
+                cv.ensure_list, [ICON_ITEM_SCHEMA], vol.Length(max=4)
             ),
             vol.Optional("image_path"): cv.string,
             vol.Optional("image_x", default=0): vol.Coerce(int),
@@ -109,21 +147,29 @@ async def async_setup_entry(
             vol.Optional("text_y", default=0): vol.Coerce(int),
             vol.Optional("text_size", default=6): vol.Coerce(float),
             vol.Optional("text_font"): vol.In(
-                ["3x5-de", "5x5", "7x5", "OpenSans-Light", "WP7xn"]
+                ["3x5-de", "5x5", "7x5", "Lepidos", "OpenSans-Light", "WP7xn"]
             ),
             vol.Optional("text_color", default=[255, 255, 255]): vol.All(
                 vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
             ),
             vol.Optional("text_wrap", default=True): cv.boolean,
             vol.Optional("text_line_spacing", default=1): vol.Coerce(int),
+            vol.Optional("text_align", default="left"): vol.In(["left", "right", "center"]),
             vol.Optional("text_scroll", default=False): cv.boolean,
-            vol.Optional("text_scroll_step", default=2): vol.All(
+            vol.Optional("text_blink", default=False): cv.boolean,
+            vol.Optional("text_blink_interval_ms", default=500): vol.All(
+                vol.Coerce(int), vol.Range(min=50, max=5000)
+            ),
+            vol.Optional("texts"): vol.All(
+                cv.ensure_list, [TEXT_ITEM_SCHEMA], vol.Length(max=4)
+            ),
+            vol.Optional("scroll_step", default=2): vol.All(
                 vol.Coerce(int), vol.Range(min=1, max=20)
             ),
-            vol.Optional("text_scroll_frame_ms", default=80): vol.All(
+            vol.Optional("scroll_frame_ms", default=80): vol.All(
                 vol.Coerce(int), vol.Range(min=20, max=1000)
             ),
-            vol.Optional("text_scroll_gap", default=16): vol.All(
+            vol.Optional("scroll_gap", default=16): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=200)
             ),
             vol.Optional("bg_color", default=[0, 0, 0]): vol.All(
@@ -348,6 +394,9 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
         icon_y: int = 0,
         icon_size: int | None = None,
         icon_color: tuple[int, int, int] = (255, 255, 255),
+        icon_blink: bool = False,
+        icon_blink_interval_ms: int = 500,
+        icons: list[dict] | None = None,
         image_path: str | None = None,
         image_x: int = 0,
         image_y: int = 0,
@@ -361,19 +410,37 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
         text_color: tuple[int, int, int] = (255, 255, 255),
         text_wrap: bool = True,
         text_line_spacing: int = 1,
+        text_align: str = "left",
         text_scroll: bool = False,
-        text_scroll_step: int = 2,
-        text_scroll_frame_ms: int = 80,
-        text_scroll_gap: int = 16,
+        text_blink: bool = False,
+        text_blink_interval_ms: int = 500,
+        texts: list[dict] | None = None,
+        scroll_step: int = 2,
+        scroll_frame_ms: int = 80,
+        scroll_gap: int = 16,
         bg_color: tuple[int, int, int] = (0, 0, 0),
         save_slot: int = 0,
     ) -> None:
-        """Compose an icon and/or text at independent positions (service: send_layout).
+        """Compose up to 4 icons, an image, and up to 4 texts (service: send_layout).
 
-        Both are optional; give at least one. Positions are the element's
-        top-left corner in device pixels. '\\n' in text always forces a
-        line break; text_wrap additionally auto-wraps at the panel edge;
-        text_scroll makes text too wide to fit scroll continuously instead.
+        All optional; give at least one. Positions are each element's
+        top-left corner in device pixels. For a single icon use
+        icon/icon_x/...; for more than one (up to 4), use `icons` instead -
+        a list of dicts with the same shape (icon, x, y, size, color_hex,
+        blink, blink_interval_ms) - which takes priority over the flat
+        icon/icon_x/... fields if given. Icons never scroll, but can blink.
+        For a single text use text/text_x/...; for more than one (up to
+        4), use `texts` instead - a list of dicts with the same shape
+        (text, x, y, size, font, color_hex, wrap, align, scroll,
+        line_spacing, blink, blink_interval_ms) - which takes priority
+        over the flat text/text_x/... fields if given. '\\n' in any text
+        always forces a line break; wrap additionally auto-wraps at the
+        panel edge (word-wrapping reflows text and doesn't preserve exact
+        spacing - leave wrap off if you need leading/trailing/internal
+        spaces exactly as given, e.g. for manual alignment); align sets
+        left/right/center alignment within the text's own block; scroll
+        makes text too wide to fit scroll continuously instead (multiple
+        scrolling and/or blinking elements stay in sync with each other).
         """
         icon_color_hex = "".join(f"{c:02x}" for c in icon_color)
         text_color_hex = "".join(f"{c:02x}" for c in text_color)
@@ -385,6 +452,9 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             icon_y=icon_y,
             icon_size=icon_size,
             icon_color=icon_color_hex,
+            icon_blink=icon_blink,
+            icon_blink_interval_ms=icon_blink_interval_ms,
+            icons=icons,
             image_path=image_path,
             image_x=image_x,
             image_y=image_y,
@@ -398,10 +468,14 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             text_color=text_color_hex,
             text_wrap=text_wrap,
             text_line_spacing=text_line_spacing,
+            text_align=text_align,
             text_scroll=text_scroll,
-            text_scroll_step=text_scroll_step,
-            text_scroll_frame_ms=text_scroll_frame_ms,
-            text_scroll_gap=text_scroll_gap,
+            text_blink=text_blink,
+            text_blink_interval_ms=text_blink_interval_ms,
+            texts=texts,
+            scroll_step=scroll_step,
+            scroll_frame_ms=scroll_frame_ms,
+            scroll_gap=scroll_gap,
             bg_color=bg_color_hex,
             save_slot=save_slot,
         )

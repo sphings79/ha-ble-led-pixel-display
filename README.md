@@ -12,7 +12,7 @@ These displays have been recently available as B.K. Light LED Pixel Board from A
 - **Clock Display**: 9 different clock styles with automatic time synchronization
 - **Rich Text Display**: Custom fonts, sizes, multiline text with `\n`, antialiasing
 - **MDI Icons**: Render and display any Material Design Icon, fetched on demand
-- **Custom Layouts**: Compose an icon, an image/GIF, and/or text at independent positions on the panel, with optional scrolling text and forced/automatic line wrapping
+- **Custom Layouts**: Compose up to 4 MDI icons, an image/GIF, and/or up to 4 independent text elements at independent positions on the panel, with left/right/center alignment, optional (synchronized) scrolling and/or blinking, and forced/automatic line wrapping that preserves exact spacing when disabled
 - **Send Existing Images/GIFs**: Display any image or animated GIF file readable by Home Assistant
 - **Template Support**: Use Home Assistant variables like `{{ states('sensor.temperature') }}°C`
 - **Font Management**: Load TTF/OTF fonts from `fonts/` folder
@@ -169,10 +169,12 @@ data:
 
 ### `ipixel_color.send_layout`
 
-Composes an MDI icon, a static image/GIF-first-frame, and/or text - each positioned
-independently by its top-left (x, y) corner in pixels - onto a single canvas sent as one
-image. Useful for e.g. an icon on the left with a value next to it, or a small logo plus a
-scrolling message.
+Composes up to 4 independent MDI icons, a static image/GIF-first-frame, and/or up to 4
+independent text elements - each positioned by its own top-left (x, y) corner in pixels -
+onto a single canvas sent as one image. Useful for e.g. an icon on the left with a value next
+to it, several status icons in a row, or several labels stacked with their own sizes/fonts/colors.
+
+**Single icon and single text** - use the flat fields, same as before:
 
 ```yaml
 action: ipixel_color.send_layout
@@ -193,7 +195,7 @@ data:
   text_x: 18
   text_y: 4
   text_size: 8           # font size in pixels, can be fractional (e.g. 7.5)
-  text_font: "7x5"        # "3x5-de" (smallest), "5x5", "7x5", "OpenSans-Light", "WP7xn"
+  text_font: "7x5"        # "3x5-de" (smallest), "5x5", "7x5", "Lepidos" (3x7), "OpenSans-Light", "WP7xn"
   text_color: [255, 255, 255]
   text_wrap: true         # auto word-wrap at the panel's right edge
   text_line_spacing: 1    # extra pixels between wrapped/forced lines
@@ -205,12 +207,118 @@ data:
 `icon`, `image_path` and `text` are all optional independently - use any combination, or just
 one of them.
 
-Forcing a line break regardless of `text_wrap`: use `\n` in `text` (works whether typed
-literally into a GUI text field or as a real newline from YAML), e.g. `text: "Living room\n21°C"`.
+**Multiple texts** (up to 4) - use `texts` instead of the flat `text`/`text_x`/... fields
+(YAML-only, not practical from the Developer Tools UI form). If given, `texts` takes priority
+over the flat fields:
 
-**Scrolling text:** set `text_wrap: false` and `text_scroll: true` to make text too wide for
-the available space scroll continuously (looping marquee GIF) instead of being clipped. No
-effect if the text already fits - it's sent as a plain static image in that case.
+```yaml
+action: ipixel_color.send_layout
+target:
+  entity_id: text.living_room_display
+data:
+  texts:
+    - text: "Living room"
+      x: 0
+      y: 0
+      size: 6
+    - text: "21°C"
+      x: 0
+      y: 8
+      size: 8
+      color_hex: "ffcc00"
+      scroll: true   # see below - this one scrolls, the one above stays static
+```
+
+Each item accepts: `text` (required), `x`, `y`, `size`, `font`, `color_hex`, `wrap`, `align`,
+`scroll`, `line_spacing`, `blink`, `blink_interval_ms` - same meaning as the single-text fields
+above (and below), just per item.
+
+**Alignment:** `align` (or `text_align` for the single-text form) changes what `x`/`y` anchor:
+`left` (default) anchors the text's left edge at `x` (unchanged from before); `right` anchors
+its right edge at `x` (the text extends leftward from there); `center` anchors its horizontal
+center at `x`. With multiple `\n`-separated lines of different widths, each line is also
+aligned within the block itself the same way. Only static (non-scrolling) text is anchored
+this way - scrolling text always anchors its left edge at `x` and moves rightward through the
+available space, since a moving block has no fixed edge to anchor mid-scroll.
+
+```yaml
+# Right-align a value so it always ends flush at x=32, regardless of length
+texts:
+  - text: "12345"
+    x: 32
+    y: 4
+    align: "right"
+    wrap: false
+```
+
+**Preserving exact spacing:** word-wrap (`wrap`/`text_wrap: true`) reflows text and does not
+preserve exact spacing between words. If you need leading/trailing/internal spaces exactly as
+given (e.g. for manual alignment via spaces in the text itself), set `wrap: false` -
+`send_layout` measures text by its font advance width, so spaces contribute to the layout
+instead of being invisibly trimmed.
+
+**Blinking:** set `blink: true` (plus optional `blink_interval_ms`, default 500) on any icon or
+text item to make it blink on/off continuously - independent of, and combinable with,
+scrolling text. Multiple blinking and/or scrolling elements are kept in sync with each other
+(same least-common-multiple mechanism as multi-text scrolling, below).
+
+```yaml
+action: ipixel_color.send_layout
+target:
+  entity_id: text.living_room_display
+data:
+  icons:
+    - icon: "mdi:water-alert"
+      x: 0
+      y: 0
+      size: 16
+      blink: true
+      blink_interval_ms: 300
+  texts:
+    - text: "ALARM"
+      x: 16
+      y: 4
+      size: 8
+      blink: true
+      blink_interval_ms: 300
+```
+
+**Multiple icons** (up to 4) - use `icons` instead of the flat `icon`/`icon_x`/... fields
+(YAML-only). If given, `icons` takes priority over the flat fields. Icons are always static
+(no scrolling):
+
+```yaml
+action: ipixel_color.send_layout
+target:
+  entity_id: text.living_room_display
+data:
+  icons:
+    - icon: "mdi:weather-sunny"
+      x: 0
+      y: 0
+      size: 16
+      color_hex: "ffcc00"
+    - icon: "mdi:water-percent"
+      x: 16
+      y: 0
+      size: 16
+      color_hex: "3399ff"
+```
+
+Each item accepts: `icon` (required), `x`, `y`, `size`, `color_hex`, `blink`, `blink_interval_ms`.
+Icons never scroll, but can blink (see below).
+
+Forcing a line break regardless of `wrap`/`text_wrap`: use `\n` in any text (works whether
+typed literally into a GUI text field or as a real newline from YAML), e.g.
+`text: "Living room\n21°C"`.
+
+**Scrolling text:** set `wrap: false` (or `text_wrap: false` for the single-text form) and
+`scroll: true` (or `text_scroll: true`) to make text too wide for the available space scroll
+continuously (looping marquee GIF) instead of being clipped. No effect if the text already
+fits - it's sent as a plain static image in that case. If more than one text in `texts`
+scrolls, they're kept in sync with each other (their loops realign together, computed via the
+least common multiple of their individual cycle lengths, capped to avoid runaway frame
+counts on awkward combinations).
 
 ```yaml
 action: ipixel_color.send_layout
@@ -221,15 +329,31 @@ data:
   text_x: 0
   text_wrap: false
   text_scroll: true
-  text_scroll_step: 2        # pixels moved per animation frame
-  text_scroll_frame_ms: 80   # duration of each frame, in ms
-  text_scroll_gap: 16        # blank pixels between the end of one pass and the next
+  scroll_step: 2        # pixels moved per animation frame, shared by every scrolling text
+  scroll_frame_ms: 80    # duration of each frame, in ms
+  scroll_gap: 16         # blank pixels between the end of one pass and the next
 ```
 
+> **Native vs. composed scrolling:** `ipixel_color.send_text` (below) scrolls text natively
+> on the device - lighter and faster, but it always takes over the *entire* panel as a single
+> string; it cannot be combined with an icon, an image, or other text, because the device
+> protocol has no concept of a sub-region. Scrolling text *within* a `send_layout` composition
+> is only achievable by generating the animation frames ourselves (as above), which is
+> inherently heavier to transfer - expect it to take longer to load than a native
+> `send_text` call, though it plays back smoothly once loaded.
+>
 > GIF sending (used by scrolling text, and by `send_image_file` below) is a newer code path
-> than static images - if you hit `cur12k_no_answer: no ack from device` in the logs, the
-> device likely just needs more time for a large/complex GIF; try a shorter message, a larger
-> `text_scroll_step` (fewer frames), or a smaller source GIF file.
+> than static images - if you hit `cur12k_no_answer: no ack from device` in the logs, or the
+> panel just takes a long time to update, the device needs more time/data than for a static
+> image. In practice, `scroll_step` is the one lever that reliably helps: doubling it roughly
+> halves both the frame count and the transferred bytes (measured: a single long scrolling
+> word at `scroll_step: 2` produced a 69-frame/13KB GIF; at `scroll_step: 4`, ~35 frames/6.4KB)
+> - at the cost of a choppier motion. `send_layout` already merges identical consecutive
+> frames and uses a small quantized color palette to keep GIFs as small as it can, but for a
+> single long word filling most of the available width, there typically aren't any identical
+> frames to merge, so `scroll_step` remains the main thing to adjust if a scroll is too slow
+> to load. The BLE ACK timeout for image/GIF sends is already set higher (25s) than
+> pypixelcolor's small-command default (8s) to give the device room to process bigger GIFs.
 
 ### `ipixel_color.send_image_file`
 
@@ -264,8 +388,13 @@ target:
 - Place `.ttf`/`.otf` files in `fonts/` folder
 - Restart HA to see new fonts in dropdown
 - Recommended: pixel fonts like 5x5.ttf, 7x7.ttf
-- The same bundled fonts (`3x5-de`, `5x5`, `7x5`, `OpenSans-Light`, `WP7xn`) are also available
-  to `send_layout`'s `text_font` field
+- The same bundled fonts (`3x5-de`, `5x5`, `7x5`, `Lepidos`, `OpenSans-Light`, `WP7xn`) are
+  also available to `send_layout`'s `text_font` field
+- `Lepidos` is a 3x7 pixel font (CC0/public domain, by SurrealEmber -
+  https://surrealember.itch.io/lepidos), designed to be rendered at multiples of 16px
+  (`text_size: 16`, `32`, ...) for crisp, correctly-proportioned glyphs
+- Text rendering in `send_layout` thresholds to pure black/white (no anti-aliasing), so pixel
+  fonts stay crisp regardless of size
 
 ## Troubleshooting
 

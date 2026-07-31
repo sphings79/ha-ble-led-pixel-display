@@ -1,28 +1,75 @@
-"""Compose an MDI icon and/or text at arbitrary positions on a single canvas.
+"""Compose an MDI icon, an image, and/or up to 4 text elements on one canvas.
 
 Unlike send_mdi_icon (which centers one icon on the whole panel) or the
-native send_text (device-rendered, no positioning control), this lets you
-place an icon and a text label independently, each at its own top-left
-(x, y) position - then sends the whole composed canvas as a single image,
-reusing the same pipeline as send_mdi_icon.
+native send_text (device-rendered, no positioning control, whole-panel
+only), this lets you place icons, an image, and several text labels
+independently, each at its own top-left (x, y) position - then sends the
+whole composed canvas as a single image (static PNG, or an animated GIF
+if anything scrolls or blinks).
+
+Native device-side text scrolling (pypixelcolor's send_text) is lighter
+and faster, but it replaces the whole panel with one animated string -
+it has no concept of a sub-region, and can't be combined with an icon or
+other text. Scrolling/blinking within a composed layout is only
+achievable by generating the frames ourselves, which is inherently
+heavier to transfer - the single biggest lever to reduce transfer time
+is scroll_step (fewer, bigger jumps = far fewer frames).
 """
 from __future__ import annotations
 
 import io
 import logging
+import math
 
 import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 
 from ..color import hex_to_rgb
 from ..fonts import get_font_locations, get_font_path
-from .mdi_icon import build_mdi_icon_png, fetch_mdi_svg, render_mdi_icon
+from .mdi_icon import fetch_mdi_svg, render_mdi_icon
 
 _LOGGER = logging.getLogger(__name__)
 
 # Smallest bundled bitmap font - use this when no explicit font is requested
 DEFAULT_SMALL_FONT = "3x5-de"
 DEFAULT_SMALL_FONT_SIZE = 6
+
+# Up to 4 independent text elements per layout (same idea as "lines" on the panel)
+MAX_TEXT_ELEMENTS = 4
+
+# Up to 4 independent MDI icons per layout
+MAX_ICON_ELEMENTS = 4
+
+# Hard cap on generated frames, in case multiple independently-looping
+# scroll/blink cycles have a combined length (LCM) that would otherwise be huge
+MAX_ANIMATION_FRAMES = 240
+
+
+def _lcm(a: int, b: int) -> int:
+    """Least common multiple of two positive integers."""
+    return a * b // math.gcd(a, b)
+
+
+def _split_word_to_width(word: str, font_obj: ImageFont.FreeTypeFont, draw: ImageDraw.ImageDraw, max_width: int) -> list[str]:
+    """Split a single space-free word into pieces that each fit max_width.
+
+    Used as a fallback when a whole 'word' (e.g. a long digit string with
+    no spaces) is wider than max_width on its own - breaks it character by
+    character instead of letting it overflow.
+    """
+    pieces: list[str] = []
+    current = ""
+    for ch in word:
+        candidate = current + ch
+        width = draw.textbbox((0, 0), candidate, font=font_obj)[2]
+        if width <= max_width or not current:
+            current = candidate
+        else:
+            pieces.append(current)
+            current = ch
+    if current:
+        pieces.append(current)
+    return pieces
 
 
 def _wrap_line(line: str, font_obj: ImageFont.FreeTypeFont, draw: ImageDraw.ImageDraw, max_width: int) -> list[str]:
@@ -35,8 +82,12 @@ def _wrap_line(line: str, font_obj: ImageFont.FreeTypeFont, draw: ImageDraw.Imag
         max_width: Maximum line width in pixels.
 
     Returns:
-        List of wrapped sub-lines. A single word wider than max_width is
-        kept on its own line rather than being split mid-word.
+        List of wrapped sub-lines. A word wider than max_width even on its
+        own (e.g. a long digit string with no spaces) is split character
+        by character instead of overflowing. Note: word wrapping reflows
+        text and does not preserve exact original spacing between words -
+        if you need exact spacing (e.g. manual alignment via leading/
+        trailing spaces), disable wrap.
     """
     words = line.split(" ")
     wrapped: list[str] = []
@@ -44,11 +95,22 @@ def _wrap_line(line: str, font_obj: ImageFont.FreeTypeFont, draw: ImageDraw.Imag
     for word in words:
         candidate = f"{current} {word}".strip()
         width = draw.textbbox((0, 0), candidate, font=font_obj)[2]
-        if width <= max_width or not current:
+        if width <= max_width:
             current = candidate
-        else:
+            continue
+
+        if current:
             wrapped.append(current)
+            current = ""
+
+        word_width = draw.textbbox((0, 0), word, font=font_obj)[2]
+        if word_width <= max_width:
             current = word
+        else:
+            pieces = _split_word_to_width(word, font_obj, draw, max_width)
+            if pieces:
+                wrapped.extend(pieces[:-1])
+                current = pieces[-1]
     if current:
         wrapped.append(current)
     return wrapped
@@ -61,26 +123,39 @@ def render_text_element(
     color_hex: str = "ffffff",
     max_width: int | None = None,
     line_spacing: int = 1,
+    align: str = "left",
 ) -> Image.Image:
-    """Render text tightly cropped to its own bounding box (no fixed canvas).
+    """Render text sized to its own advance width/height (no fixed canvas).
 
     Explicit '\\n' in the text always forces a line break, regardless of
     max_width. If max_width is given, each resulting line is additionally
     word-wrapped to fit within it (e.g. to avoid running off the edge of
-    the panel).
+    the panel) - but wrapping reflows words and does not preserve exact
+    spacing; leave max_width=None (wrap=False at the caller level) if you
+    need leading/trailing/internal spaces preserved exactly as given (e.g.
+    for manual alignment).
+
+    Width is measured via the font's advance metrics, not the ink bounding
+    box, so leading/trailing spaces contribute to the width instead of
+    being invisibly cropped away.
 
     Args:
         text: Text to render. '\\n' forces a line break.
         font_size: Font size in pixels (can be fractional).
         font_name: Bundled font name (e.g. '3x5-de', '5x5', '7x5',
-            'OpenSans-Light', 'WP7xn'), or None for the smallest bundled font.
+            'Lepidos', 'OpenSans-Light', 'WP7xn'), or None for the
+            smallest bundled font.
         color_hex: Text color in hex, with or without '#'.
         max_width: If given, word-wrap each line to fit within this many
             pixels. None disables automatic wrapping (only '\\n' breaks lines).
         line_spacing: Extra vertical gap between lines, in pixels.
+        align: Horizontal alignment of each line within the block's own
+            width: 'left' (default), 'right', or 'center'. Only matters
+            with multiple lines of different widths, or when the caller
+            positions this block by an edge other than its left.
 
     Returns:
-        RGBA PIL Image sized exactly to the rendered (possibly multi-line) text.
+        RGBA PIL Image sized to the rendered (possibly multi-line) text.
     """
     locations = get_font_locations()
     font_path = get_font_path(font_name or DEFAULT_SMALL_FONT, locations)
@@ -109,22 +184,40 @@ def render_text_element(
     else:
         lines = raw_lines
 
-    # Measure each line
-    line_boxes = [probe_draw.textbbox((0, 0), line, font=font_obj) for line in lines]
+    # Width via advance metrics (preserves leading/trailing spaces); height
+    # via a uniform per-line box so blank/whitespace-only lines still take
+    # up vertical space instead of collapsing to nothing.
+    line_widths = [max(1, round(probe_draw.textlength(line, font=font_obj))) for line in lines]
+    line_boxes = [probe_draw.textbbox((0, 0), line or " ", font=font_obj) for line in lines]
     line_heights = [max(1, box[3] - box[1]) for box in line_boxes]
-    line_widths = [max(1, box[2] - box[0]) for box in line_boxes]
 
     text_w = max(line_widths)
     text_h = sum(line_heights) + line_spacing * (len(lines) - 1)
 
-    img = Image.new("RGBA", (text_w, text_h), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    rgb = hex_to_rgb(color_hex)
+    # Render onto a grayscale mask first, then threshold to pure black/white
+    # (no gray edge pixels). FreeType antialiases outlines by default, which
+    # blurs the crisp square edges a pixel-style font is supposed to have on
+    # an LED matrix - thresholding removes that blur regardless of font size.
+    mask_img = Image.new("L", (text_w, text_h), 0)
+    mask_draw = ImageDraw.Draw(mask_img)
 
     y_offset = 0
-    for line, box, height in zip(lines, line_boxes, line_heights):
-        draw.text((-box[0], y_offset - box[1]), line, font=font_obj, fill=rgb + (255,))
+    for line, box, height, width in zip(lines, line_boxes, line_heights, line_widths):
+        if align == "right":
+            x_offset = text_w - width
+        elif align == "center":
+            x_offset = (text_w - width) // 2
+        else:
+            x_offset = 0
+        mask_draw.text((x_offset - box[0], y_offset - box[1]), line, font=font_obj, fill=255)
         y_offset += height + line_spacing
+
+    mask_img = mask_img.point(lambda p: 255 if p >= 128 else 0)
+
+    rgb = hex_to_rgb(color_hex)
+    img = Image.new("RGBA", (text_w, text_h), (0, 0, 0, 0))
+    solid = Image.new("RGBA", (text_w, text_h), rgb + (255,))
+    img.paste(solid, (0, 0), mask=mask_img)
 
     return img
 
@@ -134,26 +227,51 @@ async def _build_base_canvas(
     canvas_height: int,
     session: aiohttp.ClientSession,
     bg_color_hex: str,
-    icon: str | None,
-    icon_x: int,
-    icon_y: int,
-    icon_size: int | None,
-    icon_color_hex: str,
+    icons: list[dict] | None = None,
     image_bytes: bytes | None = None,
     image_x: int = 0,
     image_y: int = 0,
     image_width: int | None = None,
     image_height: int | None = None,
-) -> Image.Image:
-    """Build the background+icon+image canvas shared by both static and scrolling output."""
+) -> tuple[Image.Image, list[dict]]:
+    """Build the background+non-blinking-icons+image canvas.
+
+    Returns (canvas, blinking_icons) - blinking icons are rendered here
+    (so they're only fetched/rasterized once) but not pasted onto the
+    canvas, since they need to be drawn per-frame in the animation loop.
+
+    Args:
+        icons: List of up to MAX_ICON_ELEMENTS dicts, each with: icon
+            (required, MDI name), x, y, size, color_hex, blink,
+            blink_interval_ms (all optional besides icon). Extra items
+            beyond the limit are ignored (with a warning).
+    """
     bg_rgb = hex_to_rgb(bg_color_hex)
     canvas = Image.new("RGB", (canvas_width, canvas_height), bg_rgb)
 
-    if icon:
-        size_px = icon_size or min(canvas_width, canvas_height)
-        svg_markup = await fetch_mdi_svg(icon, session)
-        icon_img = render_mdi_icon(svg_markup, size_px, icon_color_hex)
-        canvas.paste(icon_img, (icon_x, icon_y), mask=icon_img)
+    icons = [i for i in (icons or []) if i.get("icon")]
+    if len(icons) > MAX_ICON_ELEMENTS:
+        _LOGGER.warning(
+            "%d icons given, only the first %d are used", len(icons), MAX_ICON_ELEMENTS,
+        )
+        icons = icons[:MAX_ICON_ELEMENTS]
+
+    blinking_icons = []
+    for item in icons:
+        x = int(item.get("x", 0))
+        y = int(item.get("y", 0))
+        size_px = item.get("size") or min(canvas_width, canvas_height)
+        color_hex = item.get("color_hex", "ffffff")
+        svg_markup = await fetch_mdi_svg(item["icon"], session)
+        icon_img = render_mdi_icon(svg_markup, size_px, color_hex)
+
+        if item.get("blink"):
+            blinking_icons.append({
+                "x": x, "y": y, "img": icon_img,
+                "blink_interval_ms": int(item.get("blink_interval_ms", 500)),
+            })
+        else:
+            canvas.paste(icon_img, (x, y), mask=icon_img)
 
     if image_bytes is not None:
         img = Image.open(io.BytesIO(image_bytes))
@@ -166,81 +284,107 @@ async def _build_base_canvas(
             img = img.resize((target_w, target_h))
         canvas.paste(img, (image_x, image_y), mask=img)
 
-    return canvas
+    return canvas, blinking_icons
 
 
-def build_scrolling_text_gif(
-    base_canvas: Image.Image,
-    text: str,
-    text_x: int,
-    text_y: int,
-    text_size: float,
-    text_font: str | None,
-    text_color_hex: str,
-    text_line_spacing: int,
-    scroll_step: int = 2,
-    frame_ms: int = 80,
-    gap_px: int = 16,
-) -> bytes:
-    """Build a looping horizontal-scroll (marquee) GIF of text over a static base canvas.
+def _prepare_text_item(
+    canvas_width: int,
+    item: dict,
+    scroll_step: int,
+    scroll_gap: int,
+) -> dict:
+    """Render one text item and decide whether it needs to scroll.
 
-    The text is rendered at its natural (unwrapped) width, then a window of
-    the panel's available width is scrolled across it, looping continuously:
-    once the text has fully scrolled past, a blank gap of gap_px plays before
-    it restarts from the right edge, for a clean, non-jarring loop.
+    `x` is the anchor point according to `align`: for 'left' (default) it's
+    the text block's left edge, for 'right' its right edge, for 'center'
+    its horizontal center - in all cases `x` is where that reference point
+    of the (possibly multi-line) text block ends up on the canvas.
+    Scrolling text always anchors its left edge at `x` and moves rightward
+    through the available space, regardless of `align` (a moving block has
+    no fixed edge to anchor by the time it's mid-scroll).
 
     Args:
-        base_canvas: The static background (already composed with bg/icon),
-            reused unchanged as every frame's backdrop.
-        text: Text to scroll. '\\n' still forces separate lines, each
-            scrolling together as one block.
-        text_x: Left edge of the scroll window, in pixels.
-        text_y: Top of the text block, in pixels.
-        text_size: Font size in pixels (can be fractional).
-        text_font: Bundled font name, or None for the smallest bundled font.
-        text_color_hex: Text color, hex without '#'.
-        text_line_spacing: Extra vertical gap between forced lines, in pixels.
-        scroll_step: Pixels moved per frame (higher = faster, choppier).
-        frame_ms: Duration of each frame in milliseconds.
-        gap_px: Blank pixels between the end of one pass and the next.
+        canvas_width: Device width, used to compute available space for
+            wrapping/scrolling.
+        item: Dict with keys 'text' (required), 'x', 'y', 'size', 'font',
+            'color_hex', 'wrap', 'scroll', 'line_spacing', 'align',
+            'blink', 'blink_interval_ms' (all optional).
+        scroll_step: Pixels moved per animation frame (shared by all
+            scrolling items, so their loops can be kept in sync).
+        scroll_gap: Blank pixels between loop passes (shared).
 
     Returns:
-        GIF-encoded bytes, looping forever (loop=0).
+        A prepared dict ready for static pasting or frame-by-frame scrolling.
     """
-    canvas_width, canvas_height = base_canvas.size
-    visible_width = max(1, canvas_width - text_x)
+    x = int(item.get("x", 0))
+    y = int(item.get("y", 0))
+    size = item.get("size", DEFAULT_SMALL_FONT_SIZE)
+    font = item.get("font")
+    color_hex = item.get("color_hex", "ffffff")
+    wrap = item.get("wrap", True)
+    scroll = item.get("scroll", False)
+    line_spacing = int(item.get("line_spacing", 1))
+    align = item.get("align", "left")
+    blink = bool(item.get("blink", False))
+    blink_interval_ms = int(item.get("blink_interval_ms", 500))
 
-    # Render at full natural width - no wrapping, scrolling makes it moot
-    text_img = render_text_element(
-        text, text_size, text_font, text_color_hex,
-        max_width=None, line_spacing=text_line_spacing,
+    # Scrolling always measures available space to the right of x (its
+    # fixed left-anchor while moving); wrapping/static content measures
+    # available space per the chosen anchor instead.
+    scroll_avail = max(1, canvas_width - x)
+    if align == "right":
+        wrap_avail = max(1, x)
+    elif align == "center":
+        wrap_avail = max(1, 2 * min(x, canvas_width - x))
+    else:
+        wrap_avail = scroll_avail
+
+    natural_img = render_text_element(
+        item["text"], size, font, color_hex, max_width=None,
+        line_spacing=line_spacing, align=align,
     )
 
-    # Build a seamless loop strip: text, then a blank gap, then the text
-    # again - so cropping a sliding window never shows a hard cut.
-    strip_w = text_img.width + gap_px
-    strip = Image.new("RGBA", (strip_w * 2, text_img.height), (0, 0, 0, 0))
-    strip.paste(text_img, (0, 0), mask=text_img)
-    strip.paste(text_img, (strip_w, 0), mask=text_img)
+    if scroll and natural_img.width > scroll_avail:
+        strip_w = natural_img.width + scroll_gap
+        strip = Image.new("RGBA", (strip_w * 2, natural_img.height), (0, 0, 0, 0))
+        strip.paste(natural_img, (0, 0), mask=natural_img)
+        strip.paste(natural_img, (strip_w, 0), mask=natural_img)
+        n_steps = max(1, strip_w // max(1, scroll_step))
+        return {
+            "mode": "scroll", "x": x, "y": y, "avail": scroll_avail,
+            "strip": strip, "strip_w": strip_w, "n_steps": n_steps,
+            "h": natural_img.height, "blink": blink,
+            "blink_interval_ms": blink_interval_ms,
+        }
 
-    frames = []
-    offset = 0
-    while offset < strip_w:
-        frame = base_canvas.copy()
-        window = strip.crop((offset, 0, offset + visible_width, text_img.height))
-        frame.paste(window, (text_x, text_y), mask=window)
-        frames.append(frame)
-        offset += scroll_step
-
-    if not frames:
-        frames = [base_canvas.copy()]
-
-    buf = io.BytesIO()
-    frames[0].save(
-        buf, format="GIF", save_all=True, append_images=frames[1:],
-        duration=frame_ms, loop=0, disposal=2, optimize=False,
+    static_img = render_text_element(
+        item["text"], size, font, color_hex,
+        max_width=(wrap_avail if wrap else None), line_spacing=line_spacing, align=align,
     )
-    return buf.getvalue()
+
+    if align == "right":
+        paste_x = x - static_img.width
+    elif align == "center":
+        paste_x = x - static_img.width // 2
+    else:
+        paste_x = x
+
+    return {
+        "mode": "static", "x": paste_x, "y": y, "img": static_img,
+        "blink": blink, "blink_interval_ms": blink_interval_ms,
+    }
+
+
+def _blink_cycle_frames(blink_interval_ms: int, frame_ms: int) -> int:
+    """Frames for one full on+off blink cycle, at the shared frame cadence."""
+    frames_per_state = max(1, round(blink_interval_ms / max(1, frame_ms)))
+    return 2 * frames_per_state
+
+
+def _is_blink_visible(k: int, blink_interval_ms: int, frame_ms: int) -> bool:
+    """Whether a blinking item is in its 'on' state at frame k."""
+    frames_per_state = max(1, round(blink_interval_ms / max(1, frame_ms)))
+    return (k // frames_per_state) % 2 == 0
 
 
 async def build_layout_media(
@@ -248,139 +392,150 @@ async def build_layout_media(
     canvas_height: int,
     session: aiohttp.ClientSession,
     bg_color_hex: str = "000000",
-    icon: str | None = None,
-    icon_x: int = 0,
-    icon_y: int = 0,
-    icon_size: int | None = None,
-    icon_color_hex: str = "ffffff",
+    icons: list[dict] | None = None,
     image_bytes: bytes | None = None,
     image_x: int = 0,
     image_y: int = 0,
     image_width: int | None = None,
     image_height: int | None = None,
-    text: str | None = None,
-    text_x: int = 0,
-    text_y: int = 0,
-    text_size: float = DEFAULT_SMALL_FONT_SIZE,
-    text_font: str | None = None,
-    text_color_hex: str = "ffffff",
-    text_wrap: bool = True,
-    text_line_spacing: int = 1,
-    text_scroll: bool = False,
-    text_scroll_step: int = 2,
-    text_scroll_frame_ms: int = 80,
-    text_scroll_gap: int = 16,
+    texts: list[dict] | None = None,
+    scroll_step: int = 2,
+    scroll_frame_ms: int = 80,
+    scroll_gap: int = 16,
 ) -> tuple[bytes, str]:
-    """Compose an icon, a static image/GIF-first-frame, and/or text, and return (data, file_extension).
+    """Compose up to 4 MDI icons, a static image/GIF-first-frame, and up to 4 texts.
 
-    Returns a static PNG unless text_scroll is True AND the text is
-    actually wider than the available space (in which case a looping
-    scroll GIF is built instead - a short static text still returns PNG,
-    since there'd be nothing to usefully scroll).
+    Returns a static PNG unless at least one element scrolls (text only)
+    or blinks (text or icons) - in which case a looping animated GIF is
+    built, with every scrolling/blinking element's cycle kept in sync via
+    the least common multiple of their individual cycle lengths (in
+    frames, at the shared scroll_frame_ms cadence), capped at
+    MAX_ANIMATION_FRAMES to avoid runaway frame counts on awkward
+    combinations.
 
-    See build_layout_png's docstring for the shared icon/text parameters. Additional:
+    Args:
+        canvas_width: Device width in pixels.
+        canvas_height: Device height in pixels.
+        session: aiohttp session for fetching MDI icons (if any).
+        bg_color_hex: Canvas background color, hex without '#'.
+        icons: List of up to MAX_ICON_ELEMENTS dicts, each with: icon
+            (required, MDI name with or without 'mdi:'), x, y, size,
+            color_hex, blink, blink_interval_ms (all optional besides
+            icon; size defaults to the canvas's smaller dimension,
+            color_hex to 'ffffff'). Extra items beyond the limit are
+            ignored (with a warning). Icons never scroll.
         image_bytes: Raw bytes of an image/GIF file to insert (only its
             first frame, if animated) at (image_x, image_y). None to skip.
         image_x: Image top-left X position in pixels.
         image_y: Image top-left Y position in pixels.
         image_width: If given, resize the image to this width.
         image_height: If given, resize the image to this height.
-        text_scroll: If True, scroll text too wide to fit instead of
-            clipping it. Ignored if the text already fits.
-        text_scroll_step: Pixels moved per animation frame.
-        text_scroll_frame_ms: Duration of each frame in milliseconds.
-        text_scroll_gap: Blank pixels between loop passes.
+        texts: List of up to MAX_TEXT_ELEMENTS dicts, each with:
+            text (required), x, y, size, font, color_hex, wrap, scroll,
+            line_spacing, align ('left'/'right'/'center'), blink,
+            blink_interval_ms (all optional). Extra items beyond the
+            limit are ignored (with a warning).
+        scroll_step: Pixels moved per animation frame, shared by every
+            scrolling text (keeps them moving at the same rate so their
+            loops can be synchronized). This is the single biggest lever
+            for reducing transfer time - a bigger step means far fewer
+            frames for the same text.
+        scroll_frame_ms: Duration of each animation frame, in ms. Also
+            the timing unit blink_interval_ms is measured against.
+        scroll_gap: Blank pixels between loop passes, shared by every
+            scrolling text.
 
     Returns:
         Tuple of (encoded bytes, ".png" or ".gif").
     """
-    base_canvas = await _build_base_canvas(
+    base_canvas, blinking_icons = await _build_base_canvas(
         canvas_width, canvas_height, session, bg_color_hex,
-        icon, icon_x, icon_y, icon_size, icon_color_hex,
-        image_bytes, image_x, image_y, image_width, image_height,
+        icons, image_bytes, image_x, image_y, image_width, image_height,
     )
 
-    if text and text_scroll:
-        # Only actually scroll if it doesn't already fit - measure first
-        probe_img = render_text_element(
-            text, text_size, text_font, text_color_hex, max_width=None,
+    texts = [t for t in (texts or []) if t.get("text")]
+    if len(texts) > MAX_TEXT_ELEMENTS:
+        _LOGGER.warning(
+            "%d text elements given, only the first %d are used", len(texts), MAX_TEXT_ELEMENTS,
         )
-        if probe_img.width > max(1, canvas_width - text_x):
-            gif_bytes = build_scrolling_text_gif(
-                base_canvas, text, text_x, text_y, text_size, text_font,
-                text_color_hex, text_line_spacing,
-                scroll_step=text_scroll_step, frame_ms=text_scroll_frame_ms,
-                gap_px=text_scroll_gap,
-            )
-            return gif_bytes, ".gif"
+        texts = texts[:MAX_TEXT_ELEMENTS]
 
-    canvas = base_canvas.copy()
-    if text:
-        max_width = max(1, canvas_width - text_x) if text_wrap else None
-        text_img = render_text_element(
-            text, text_size, text_font, text_color_hex,
-            max_width=max_width, line_spacing=text_line_spacing,
+    prepared = [
+        _prepare_text_item(canvas_width, item, scroll_step, scroll_gap)
+        for item in texts
+    ]
+
+    scrolling = [p for p in prepared if p["mode"] == "scroll"]
+    any_blink_text = any(p["blink"] for p in prepared)
+    needs_animation = bool(scrolling) or any_blink_text or bool(blinking_icons)
+
+    if not needs_animation:
+        canvas = base_canvas.copy()
+        for item in prepared:
+            canvas.paste(item["img"], (item["x"], item["y"]), mask=item["img"])
+        buf = io.BytesIO()
+        canvas.save(buf, format="PNG")
+        return buf.getvalue(), ".png"
+
+    total_frames = 1
+    for item in scrolling:
+        total_frames = _lcm(total_frames, item["n_steps"])
+    for item in prepared:
+        if item["blink"]:
+            total_frames = _lcm(total_frames, _blink_cycle_frames(item["blink_interval_ms"], scroll_frame_ms))
+    for item in blinking_icons:
+        total_frames = _lcm(total_frames, _blink_cycle_frames(item["blink_interval_ms"], scroll_frame_ms))
+
+    if total_frames > MAX_ANIMATION_FRAMES:
+        _LOGGER.warning(
+            "Combined animation loop would need %d frames to realign perfectly; "
+            "capping at %d (loops may not perfectly resync at the GIF's own loop point)",
+            total_frames, MAX_ANIMATION_FRAMES,
         )
-        canvas.paste(text_img, (text_x, text_y), mask=text_img)
+        total_frames = MAX_ANIMATION_FRAMES
+
+    frames = []
+    for k in range(total_frames):
+        frame = base_canvas.copy()
+
+        for item in blinking_icons:
+            if _is_blink_visible(k, item["blink_interval_ms"], scroll_frame_ms):
+                frame.paste(item["img"], (item["x"], item["y"]), mask=item["img"])
+
+        for item in prepared:
+            if item["blink"] and not _is_blink_visible(k, item["blink_interval_ms"], scroll_frame_ms):
+                continue
+            if item["mode"] == "static":
+                frame.paste(item["img"], (item["x"], item["y"]), mask=item["img"])
+            else:
+                offset = (k * scroll_step) % item["strip_w"]
+                window = item["strip"].crop((offset, 0, offset + item["avail"], item["h"]))
+                frame.paste(window, (item["x"], item["y"]), mask=window)
+        frames.append(frame)
+
+    # Merge consecutive identical frames (common during the blank gap between
+    # loop passes) into one longer-duration frame instead of repeating
+    # identical image data - shrinks the transferred payload with no visual
+    # difference. Note: for a single long scrolling text with a wide
+    # available width, this typically finds nothing to merge - scroll_step
+    # remains the main lever for reducing size in that case.
+    merged_frames: list[Image.Image] = []
+    durations: list[int] = []
+    for frame in frames:
+        if merged_frames and list(frame.getdata()) == list(merged_frames[-1].getdata()):
+            durations[-1] += scroll_frame_ms
+        else:
+            merged_frames.append(frame)
+            durations.append(scroll_frame_ms)
+
+    quantized = [
+        f.convert("RGB").quantize(colors=32, method=Image.Quantize.MEDIANCUT)
+        for f in merged_frames
+    ]
 
     buf = io.BytesIO()
-    canvas.save(buf, format="PNG")
-    return buf.getvalue(), ".png"
-
-
-async def build_layout_png(
-    canvas_width: int,
-    canvas_height: int,
-    session: aiohttp.ClientSession,
-    bg_color_hex: str = "000000",
-    icon: str | None = None,
-    icon_x: int = 0,
-    icon_y: int = 0,
-    icon_size: int | None = None,
-    icon_color_hex: str = "ffffff",
-    text: str | None = None,
-    text_x: int = 0,
-    text_y: int = 0,
-    text_size: float = DEFAULT_SMALL_FONT_SIZE,
-    text_font: str | None = None,
-    text_color_hex: str = "ffffff",
-    text_wrap: bool = True,
-    text_line_spacing: int = 1,
-) -> bytes:
-    """Compose an icon and/or text at their own positions onto one canvas.
-
-    Args:
-        canvas_width: Device width in pixels.
-        canvas_height: Device height in pixels.
-        session: aiohttp session for fetching the MDI icon (if any).
-        bg_color_hex: Canvas background color, hex without '#'.
-        icon: MDI icon name (with or without 'mdi:'), or None to skip.
-        icon_x: Icon top-left X position in pixels.
-        icon_y: Icon top-left Y position in pixels.
-        icon_size: Icon size in pixels (square). Defaults to the canvas's
-            smaller dimension if not given.
-        icon_color_hex: Icon fill color, hex without '#'.
-        text: Text to render, or None to skip. '\\n' always forces a line
-            break regardless of text_wrap.
-        text_x: Text top-left X position in pixels.
-        text_y: Text top-left Y position in pixels.
-        text_size: Font size in pixels (can be fractional).
-        text_font: Bundled font name, or None for the smallest bundled font.
-        text_color_hex: Text color, hex without '#'.
-        text_wrap: If True (default), automatically word-wrap text that
-            would run past the panel's right edge given text_x. If False,
-            only explicit '\\n' breaks lines.
-        text_line_spacing: Extra vertical gap between wrapped/forced lines, in pixels.
-
-    Returns:
-        PNG-encoded bytes of the composed canvas.
-    """
-    data, _ext = await build_layout_media(
-        canvas_width=canvas_width, canvas_height=canvas_height, session=session,
-        bg_color_hex=bg_color_hex,
-        icon=icon, icon_x=icon_x, icon_y=icon_y, icon_size=icon_size, icon_color_hex=icon_color_hex,
-        text=text, text_x=text_x, text_y=text_y, text_size=text_size,
-        text_font=text_font, text_color_hex=text_color_hex,
-        text_wrap=text_wrap, text_line_spacing=text_line_spacing, text_scroll=False,
+    quantized[0].save(
+        buf, format="GIF", save_all=True, append_images=quantized[1:],
+        duration=durations, loop=0, disposal=2, optimize=True,
     )
-    return data
+    return buf.getvalue(), ".gif"
