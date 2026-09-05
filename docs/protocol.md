@@ -1206,3 +1206,84 @@ its own categories. The category keys are Chinese (`热点` hotspot, `表情` em
 
 This is documented for completeness. The archive contents belong to the
 vendor, so this project neither bundles them nor provides a downloader.
+
+### A.5 Device types, panel geometry and product ids
+
+The device-info response carries a device type byte. It does not map to a
+resolution directly: it maps to an internal LED type, and for three device
+types the mapping additionally depends on the product id, because the same
+resolution ships in more than one hardware generation with different buffer
+sizes.
+
+`pypixelcolor` covers device types 128-147 and LED types 0-19, inherited from
+`go-ipxl`. The app carries device types up to 159 and 36 LED types.
+
+Source: `ChooseActivity.setLedType()` and `AppConfig.ledSizeMap`.
+
+| Device type | LED type | Size | Frame size | Text size | WiFi |
+|---|---|---|---|---|---|
+| 0 | 0 | 64×64 | 12288 | | yes |
+| 128 | 0 | 64×64 | 12288 | | |
+| 129 | 2, or **21** when pid=55 | 32×32 | 12288 | | |
+| 130 | 4, or **22** when pid=56 | 32×16 | | | |
+| 131 | 3 | 64×16 | | | |
+| 132 | 1 | 96×16 | | | |
+| 133 | 5 | 64×20 | | | |
+| 134 | 6 | 128×32 | | 32 | no |
+| 135 | 7 | 144×16 | | | |
+| 136 | 8 | 192×16 | | | |
+| 137 | 9, or **23** when pid=57 | 48×24 | | 24 | |
+| 138–147 | 10–19 | see LED size map | | 32 | |
+| **148** | **20** | **16×16** | | 16 | |
+| **149–158** | **24–33** | **96×64 … 512×64** | | 64 | |
+| **159** | **34/35** | **576×64 / 640×64** | | 64 | |
+
+LED size map, indexed by LED type:
+
+```
+ 0: 64×64    6: 128×32   12: 128×32   18: 384×32   24: 64×64    30: 320×64
+ 1: 96×16    7: 144×16   13: 96×32    19: 448×32   25: 96×64    31: 384×64
+ 2: 32×32    8: 192×16   14: 160×32   20: 16×16    26: 128×64   32: 448×64
+ 3: 64×16    9: 48×24    15: 192×32   21: 32×32    27: 160×64   33: 512×64
+ 4: 32×16   10: 64×32    16: 256×32   22: 32×16    28: 192×64   34: 576×64
+ 5: 64×20   11: 96×32    17: 320×32   23: 48×24    29: 256×64   35: 640×64
+```
+
+Six resolutions appear twice. The device type, not the resolution, identifies
+the hardware.
+
+Frame size defaults to 4096 in the app and rises to 12288 for LED types 0, 2
+and 21. `go-ipxl` assumes 1024 throughout.
+
+### A.6 Product ids and brands
+
+Panels report a `cid` (4 digits) and `pid` (2 digits); together these form the
+`cidpid` the app uses to identify a model. `http://app.heaton.cn/homeConfig.json`
+groups them by brand:
+
+| cidpid | Brand |
+|---|---|
+| `002501`–`002509`, `002513`, `002514` | **HYPERLITE** |
+| `002510`, `002511`, `002512` | **EZYEVY** |
+
+`assets/sucai_define.json` references further ids outside that range:
+`000112`, `000120`, `000145`, `000154`–`000157`, `000701`, `000702`, `000704`,
+`003301`, `003401`. So there are at least four cid groups — `0001`, `0007`,
+`0025` and `0033`/`0034` — behind what is otherwise the same hardware family,
+also sold as BGLight and as the B.K. Light LED Pixel Board.
+
+The `bluetoothFilter` endpoint returns a single entry, `---00`, last changed in
+September 2023. It is an exclusion pattern, not a list of supported prefixes.
+
+### A.7 Firmware updates
+
+`upDataOTA2900Start` (`0x55AA`) and `updateOtaMcuOrWifiStep1` (`0xC0xx`, with
+the OTA target in `CMD_L`) upload firmware over Bluetooth, and
+`https://api.e-toys.cn/api/app/firmwareInfo` reports what is available.
+
+**This integration deliberately implements only the version check, not the
+upload.** The command set is only partially understood — "step 1" implies at
+least one further step that has not been recovered — and these panels have no
+recovery mode anyone has documented. A failed write would likely be
+unrecoverable, and firmware is something one updates once every few years,
+which the vendor app already does reliably.

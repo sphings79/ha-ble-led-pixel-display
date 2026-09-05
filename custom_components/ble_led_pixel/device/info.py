@@ -11,6 +11,8 @@ except ImportError:
     build_get_device_info_command = None
     pypixelcolor_parse_device_info = None
 
+from ..device_types import resolve_panel
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -29,7 +31,7 @@ def build_device_info_command() -> bytes:
     return build_get_device_info_command()
 
 
-def parse_device_response(response: bytes) -> dict[str, Any]:
+def parse_device_response(response: bytes, pid: str | None = None) -> dict[str, Any]:
     """Parse device info response using pypixelcolor.
 
     Args:
@@ -64,8 +66,30 @@ def parse_device_response(response: bytes) -> dict[str, Any]:
         "password_flag": device_info_obj.password_flag,
     }
 
-    _LOGGER.info("Parsed device info: %dx%d (Type %d, LED Type %s)",
+    # Cross-check against the vendor app's own table. pypixelcolor only knows
+    # device types 128-147 and assumes a single frame size, so anything newer
+    # comes back without dimensions. Where the table knows better, it wins.
+    spec = resolve_panel(device_info_obj.device_type, pid)
+    if spec.width and spec.height:
+        if (device_info["width"], device_info["height"]) != (spec.width, spec.height):
+            _LOGGER.info(
+                "Panel reports %dx%d but device type %s resolves to %dx%d; "
+                "using the resolved size",
+                device_info["width"], device_info["height"],
+                device_info["device_type"], spec.width, spec.height,
+            )
+        device_info["width"] = spec.width
+        device_info["height"] = spec.height
+    if spec.led_type is not None:
+        device_info["led_type"] = spec.led_type
+    device_info["frame_size"] = spec.frame_size
+    device_info["text_size"] = spec.text_size
+    if spec.has_wifi is not None:
+        device_info["has_wifi"] = spec.has_wifi
+
+    _LOGGER.info("Parsed device info: %dx%d (Type %d, LED Type %s, frame %d)",
                  device_info["width"], device_info["height"],
-                 device_info["device_type"], device_info["led_type"])
+                 device_info["device_type"], device_info["led_type"],
+                 device_info["frame_size"])
 
     return device_info
