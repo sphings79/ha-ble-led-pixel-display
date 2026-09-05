@@ -1,4 +1,4 @@
-"""Common utilities for iPIXEL Color integration."""
+"""Common utilities for BLE LED Pixel Display integration."""
 from __future__ import annotations
 
 import logging
@@ -101,13 +101,13 @@ async def resolve_template_variables(hass: HomeAssistant, text: str) -> str:
         return text
 
 
-async def update_ipixel_display(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
-    """Update iPIXEL display with current settings - can be called from anywhere.
+async def update_panel_display(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
+    """Update LED panel with current settings - can be called from anywhere.
     
     Args:
         hass: Home Assistant instance
         device_name: Device name for entity ID lookups
-        api: iPIXEL API instance
+        api: LED panel API instance
         text: Text to display, or None to get from text entity
 
     Returns:
@@ -143,7 +143,7 @@ async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, tex
     Args:
         hass: Home Assistant instance
         device_name: Device name for entity ID lookups
-        api: iPIXEL API instance
+        api: LED panel API instance
         text: Text to display, or None to get from text entity
 
     Returns:
@@ -204,7 +204,7 @@ async def _update_clock_mode(hass: HomeAssistant, device_name: str, api) -> bool
     Args:
         hass: Home Assistant instance
         device_name: Device name for entity ID lookups
-        api: iPIXEL API instance
+        api: LED panel API instance
 
     Returns:
         True if update was successful
@@ -255,7 +255,7 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
     Args:
         hass: Home Assistant instance
         device_name: Device name for entity ID lookups
-        api: iPIXEL API instance
+        api: LED panel API instance
         text: Text to display, or None to get from text entity
 
     Returns:

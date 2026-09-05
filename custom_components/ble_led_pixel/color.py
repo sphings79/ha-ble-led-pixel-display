@@ -1,4 +1,4 @@
-"""Base color entity for iPIXEL Color integration."""
+"""Base color entity for BLE LED Pixel Display integration."""
 from __future__ import annotations
 
 import logging
@@ -11,7 +11,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 if TYPE_CHECKING:
-    from .api import iPIXELAPI
+    from .api import BleLedPixelAPI
 
 from .const import DOMAIN
 from .common import get_entity_id_by_unique_id, rgb_to_hex
@@ -60,8 +60,8 @@ def hex_to_rgb_normalized(hex_color: str) -> tuple[float, float, float]:
     return (r / 255.0, g / 255.0, b / 255.0)
 
 
-class iPIXELColorBase(TextEntity, RestoreEntity):
-    """Base class for iPIXEL Color entities (text color, background color, etc.)."""
+class BleLedPixelColorBase(TextEntity, RestoreEntity):
+    """Base class for BLE LED Pixel Display entities (text color, background color, etc.)."""
 
     _attr_mode = TextMode.TEXT
     _attr_native_max = 6  # 6 hex characters for RGB color
@@ -76,7 +76,7 @@ class iPIXELColorBase(TextEntity, RestoreEntity):
     def __init__(
         self,
         hass: HomeAssistant,
-        api: "iPIXELAPI",
+        api: "BleLedPixelAPI",
         entry: ConfigEntry,
         address: str,
         name: str
@@ -95,8 +95,7 @@ class iPIXELColorBase(TextEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -168,7 +167,7 @@ class iPIXELColorBase(TextEntity, RestoreEntity):
             return
 
         try:
-            from .common import update_ipixel_display
+            from .common import update_panel_display
 
             # Check if we're in one of the trigger modes
             mode_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "mode_select", "select")
@@ -180,7 +179,7 @@ class iPIXELColorBase(TextEntity, RestoreEntity):
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
-                    await update_ipixel_display(self.hass, self._name, self._api)
+                    await update_panel_display(self.hass, self._name, self._api)
                     _LOGGER.debug("Auto-update triggered due to %s change", self._color_name.lower())
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)

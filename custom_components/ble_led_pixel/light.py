@@ -1,4 +1,4 @@
-"""Light platform for iPIXEL Color - Color selection entities."""
+"""Light platform for BLE LED Pixel Display - Color selection entities."""
 from __future__ import annotations
 
 import logging
@@ -16,7 +16,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .api import iPIXELAPI
+from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .color import rgb_to_hex
 from .common import get_entity_id_by_unique_id
@@ -29,20 +29,20 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the iPIXEL Color light entities."""
+    """Set up the BLE LED Pixel Display light entities."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
 
     api = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities([
-        iPIXELTextColorLight(hass, api, entry, address, name),
-        iPIXELBackgroundColorLight(hass, api, entry, address, name),
+        BleLedPixelTextColorLight(hass, api, entry, address, name),
+        BleLedPixelBackgroundColorLight(hass, api, entry, address, name),
     ])
 
 
-class iPIXELColorLight(LightEntity, RestoreEntity):
-    """Base class for iPIXEL color selection light entities."""
+class BleLedPixelColorLight(LightEntity, RestoreEntity):
+    """Base class for LED panel color selection light entities."""
 
     _attr_color_mode = ColorMode.RGB
     _attr_supported_color_modes = {ColorMode.RGB}
@@ -56,7 +56,7 @@ class iPIXELColorLight(LightEntity, RestoreEntity):
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -77,8 +77,7 @@ class iPIXELColorLight(LightEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -164,7 +163,7 @@ class iPIXELColorLight(LightEntity, RestoreEntity):
             return
 
         try:
-            from .common import update_ipixel_display
+            from .common import update_panel_display
 
             # Check if we're in one of the trigger modes
             mode_entity_id = get_entity_id_by_unique_id(self.hass, self._address, "mode_select", "select")
@@ -176,13 +175,13 @@ class iPIXELColorLight(LightEntity, RestoreEntity):
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
-                    await update_ipixel_display(self.hass, self._device_name, self._api)
+                    await update_panel_display(self.hass, self._device_name, self._api)
                     _LOGGER.debug("Auto-update triggered due to %s change", self._light_name.lower())
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 
 
-class iPIXELTextColorLight(iPIXELColorLight):
+class BleLedPixelTextColorLight(BleLedPixelColorLight):
     """Light entity for text/foreground color selection."""
 
     _light_name = "Text Color"
@@ -191,7 +190,7 @@ class iPIXELTextColorLight(iPIXELColorLight):
     _trigger_modes = ["text", "textimage"]
 
 
-class iPIXELBackgroundColorLight(iPIXELColorLight):
+class BleLedPixelBackgroundColorLight(BleLedPixelColorLight):
     """Light entity for background color selection."""
 
     _light_name = "Background Color"

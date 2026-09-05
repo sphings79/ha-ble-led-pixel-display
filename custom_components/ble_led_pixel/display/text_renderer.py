@@ -1,4 +1,4 @@
-"""Text rendering for iPIXEL Color displays."""
+"""Text rendering for LED panels."""
 from __future__ import annotations
 
 import io

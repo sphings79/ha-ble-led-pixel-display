@@ -1,4 +1,4 @@
-"""Bluetooth device discovery for iPIXEL Color devices."""
+"""Bluetooth device discovery for BLE LED pixel panels."""
 from __future__ import annotations
 
 import logging
@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-def discover_ipixel_devices_ha(hass: HomeAssistant, return_all: bool = False) -> list[dict[str, Any]]:
-    """Discover iPIXEL devices using Home Assistant's Bluetooth integration.
+def discover_panels(hass: HomeAssistant, return_all: bool = False) -> list[dict[str, Any]]:
+    """Discover LED panels using Home Assistant's Bluetooth integration.
 
     Args:
         hass: Home Assistant instance
@@ -24,7 +24,7 @@ def discover_ipixel_devices_ha(hass: HomeAssistant, return_all: bool = False) ->
     Returns:
         List of discovered device information with is_compatible flag
     """
-    _LOGGER.debug("Starting iPIXEL device discovery using HA bluetooth API, return_all=%s", return_all)
+    _LOGGER.debug("Starting LED panel discovery using HA bluetooth API, return_all=%s", return_all)
     devices = []
 
     try:
@@ -51,7 +51,7 @@ def discover_ipixel_devices_ha(hass: HomeAssistant, return_all: bool = False) ->
             if is_compatible or return_all:
                 devices.append(device_info)
                 if is_compatible:
-                    _LOGGER.info("Found compatible iPIXEL device: %s", device_info)
+                    _LOGGER.info("Found compatible LED panel: %s", device_info)
                 else:
                     _LOGGER.debug("Found other device: %s", device_info)
 

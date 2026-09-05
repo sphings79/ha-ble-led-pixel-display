@@ -1,1 +1,1 @@
-"""Display rendering modules for iPIXEL Color integration."""
+"""Display rendering modules for BLE LED Pixel Display integration."""

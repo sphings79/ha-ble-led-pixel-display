@@ -1,1 +1,1 @@
-"""Device management modules for iPIXEL Color integration."""
+"""Device management modules for BLE LED Pixel Display integration."""

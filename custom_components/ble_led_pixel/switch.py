@@ -1,4 +1,4 @@
-"""Switch platform for iPIXEL Color."""
+"""Switch platform for BLE LED Pixel Display."""
 from __future__ import annotations
 
 import logging
@@ -11,10 +11,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .api import iPIXELAPI, iPIXELConnectionError
+from .api import BleLedPixelAPI, BleLedPixelConnectionError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .common import get_entity_id_by_unique_id
-from .common import update_ipixel_display
+from .common import update_panel_display
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -24,27 +24,27 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the iPIXEL Color switch."""
+    """Set up the BLE LED Pixel Display switch."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
     
     api = hass.data[DOMAIN][entry.entry_id]
     
     async_add_entities([
-        iPIXELSwitch(api, entry, address, name),
-        iPIXELAntialiasingSwitch(api, entry, address, name),
-        iPIXELAutoUpdateSwitch(api, entry, address, name),
-        iPIXELClock24HSwitch(hass, api, entry, address, name),
-        iPIXELClockShowDateSwitch(hass, api, entry, address, name),
+        BleLedPixelSwitch(api, entry, address, name),
+        BleLedPixelAntialiasingSwitch(api, entry, address, name),
+        BleLedPixelAutoUpdateSwitch(api, entry, address, name),
+        BleLedPixelClock24HSwitch(hass, api, entry, address, name),
+        BleLedPixelClockShowDateSwitch(hass, api, entry, address, name),
     ])
 
 
-class iPIXELSwitch(SwitchEntity):
-    """Representation of an iPIXEL Color switch."""
+class BleLedPixelSwitch(SwitchEntity):
+    """Representation of an BLE LED Pixel Display switch."""
 
     def __init__(
         self, 
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -63,8 +63,7 @@ class iPIXELSwitch(SwitchEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -90,11 +89,11 @@ class iPIXELSwitch(SwitchEntity):
             success = await self._api.set_power(True)
             if success:
                 self._is_on = True
-                _LOGGER.debug("Successfully turned on iPIXEL display")
+                _LOGGER.debug("Successfully turned on LED panel")
             else:
-                _LOGGER.error("Failed to turn on iPIXEL display")
+                _LOGGER.error("Failed to turn on LED panel")
                 
-        except iPIXELConnectionError as err:
+        except BleLedPixelConnectionError as err:
             _LOGGER.error("Connection error while turning on: %s", err)
             # Don't set unavailable to allow retry
         except Exception as err:
@@ -110,11 +109,11 @@ class iPIXELSwitch(SwitchEntity):
             success = await self._api.set_power(False)
             if success:
                 self._is_on = False
-                _LOGGER.debug("Successfully turned off iPIXEL display")
+                _LOGGER.debug("Successfully turned off LED panel")
             else:
-                _LOGGER.error("Failed to turn off iPIXEL display")
+                _LOGGER.error("Failed to turn off LED panel")
                 
-        except iPIXELConnectionError as err:
+        except BleLedPixelConnectionError as err:
             _LOGGER.error("Connection error while turning off: %s", err)
             # Don't set unavailable to allow retry
         except Exception as err:
@@ -137,14 +136,14 @@ class iPIXELSwitch(SwitchEntity):
             self._available = False
 
 
-class iPIXELAntialiasingSwitch(SwitchEntity, RestoreEntity):
-    """Representation of an iPIXEL Color antialiasing setting."""
+class BleLedPixelAntialiasingSwitch(SwitchEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display antialiasing setting."""
 
     _attr_icon = "mdi:vector-selection"
 
     def __init__(
         self, 
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -163,8 +162,7 @@ class iPIXELAntialiasingSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -199,14 +197,14 @@ class iPIXELAntialiasingSwitch(SwitchEntity, RestoreEntity):
         _LOGGER.debug("Antialiasing disabled")
 
 
-class iPIXELAutoUpdateSwitch(SwitchEntity, RestoreEntity):
-    """Representation of an iPIXEL Color auto-update setting."""
+class BleLedPixelAutoUpdateSwitch(SwitchEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display auto-update setting."""
 
     _attr_icon = "mdi:auto-fix"
 
     def __init__(
         self, 
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -225,8 +223,7 @@ class iPIXELAutoUpdateSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -261,15 +258,15 @@ class iPIXELAutoUpdateSwitch(SwitchEntity, RestoreEntity):
         _LOGGER.debug("Auto-update disabled - use update button for manual updates")
 
 
-class iPIXELClock24HSwitch(SwitchEntity, RestoreEntity):
-    """Representation of an iPIXEL Color clock 24h format setting."""
+class BleLedPixelClock24HSwitch(SwitchEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display clock 24h format setting."""
 
     _attr_icon = "mdi:clock-time-four-outline"
 
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -289,8 +286,7 @@ class iPIXELClock24HSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -339,21 +335,21 @@ class iPIXELClock24HSwitch(SwitchEntity, RestoreEntity):
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
-                    await update_ipixel_display(self.hass, self._name, self._api)
+                    await update_panel_display(self.hass, self._name, self._api)
                     _LOGGER.debug("Auto-update triggered due to clock 24h change")
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 
 
-class iPIXELClockShowDateSwitch(SwitchEntity, RestoreEntity):
-    """Representation of an iPIXEL Color clock show date setting."""
+class BleLedPixelClockShowDateSwitch(SwitchEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display clock show date setting."""
 
     _attr_icon = "mdi:calendar-clock"
 
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -373,8 +369,7 @@ class iPIXELClockShowDateSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -423,7 +418,7 @@ class iPIXELClockShowDateSwitch(SwitchEntity, RestoreEntity):
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
-                    await update_ipixel_display(self.hass, self._name, self._api)
+                    await update_panel_display(self.hass, self._name, self._api)
                     _LOGGER.debug("Auto-update triggered due to clock show date change")
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)

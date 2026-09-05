@@ -1,4 +1,4 @@
-"""Button entity for iPIXEL Color manual controls."""
+"""Button entity for BLE LED Pixel Display manual controls."""
 from __future__ import annotations
 
 import logging
@@ -10,9 +10,9 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
 
-from .api import iPIXELAPI
+from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
-from .common import update_ipixel_display
+from .common import update_panel_display
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,27 +22,27 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the iPIXEL Color button entities."""
+    """Set up the BLE LED Pixel Display button entities."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
     
     api = hass.data[DOMAIN][entry.entry_id]
     
     async_add_entities([
-        iPIXELUpdateButton(hass, api, entry, address, name),
-        iPIXELSyncTimeButton(hass, api, entry, address, name),
+        BleLedPixelUpdateButton(hass, api, entry, address, name),
+        BleLedPixelSyncTimeButton(hass, api, entry, address, name),
     ])
 
 
-class iPIXELUpdateButton(ButtonEntity):
-    """Representation of an iPIXEL Color update button."""
+class BleLedPixelUpdateButton(ButtonEntity):
+    """Representation of an BLE LED Pixel Display update button."""
 
     _attr_icon = "mdi:refresh"
 
     def __init__(
         self, 
         hass: HomeAssistant,
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -61,15 +61,14 @@ class iPIXELUpdateButton(ButtonEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
     async def async_press(self) -> None:
         """Handle button press to update display."""
         _LOGGER.debug("Manual display update triggered")
-        await update_ipixel_display(self.hass, self._name, self._api)
+        await update_panel_display(self.hass, self._name, self._api)
 
     @property
     def available(self) -> bool:
@@ -77,15 +76,15 @@ class iPIXELUpdateButton(ButtonEntity):
         return True
 
 
-class iPIXELSyncTimeButton(ButtonEntity):
-    """Representation of an iPIXEL Color time sync button."""
+class BleLedPixelSyncTimeButton(ButtonEntity):
+    """Representation of an BLE LED Pixel Display time sync button."""
 
     _attr_icon = "mdi:clock-sync"
 
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -104,8 +103,7 @@ class iPIXELSyncTimeButton(ButtonEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 

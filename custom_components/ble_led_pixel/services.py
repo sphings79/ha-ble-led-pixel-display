@@ -1,4 +1,4 @@
-"""Service (action) registration for iPIXEL Color.
+"""Service (action) registration for BLE LED Pixel Display.
 
 Registered in async_setup() (integration-level), NOT in a platform's
 async_setup_entry, per Home Assistant's own guidance:

@@ -1,4 +1,4 @@
-"""Emoji rendering for iPIXEL Color displays.
+"""Emoji rendering for LED panels.
 
 Downloads Twemoji PNGs asynchronously (cached locally) and composes them
 onto a canvas matching the device dimensions reported by the firmware.
@@ -21,7 +21,7 @@ from ..color import hex_to_rgb
 _LOGGER = logging.getLogger(__name__)
 
 TWEMOJI_CDN = "https://cdn.jsdelivr.net/gh/twitter/twemoji@latest/assets/72x72/{cp}.png"
-CACHE_DIRNAME = "ipixel_emoji_cache"
+CACHE_DIRNAME = "ble_led_pixel_emoji_cache"
 DOWNLOAD_TIMEOUT = 10  # seconds
 
 

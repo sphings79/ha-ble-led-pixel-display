@@ -1,1 +1,1 @@
-"""Bluetooth communication modules for iPIXEL Color integration."""
+"""Bluetooth communication modules for BLE LED Pixel Display integration."""

@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.typing import ConfigType
 
-from .api import iPIXELAPI, iPIXELConnectionError, iPIXELTimeoutError
+from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .services import async_setup_services
 
@@ -21,11 +21,11 @@ PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.TEXT, Platform.SENSOR, Pl
 
 
 
-# Type alias for iPIXEL config entries
+# Type alias for LED panel config entries
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Set up the iPIXEL Color integration (not tied to any config entry).
+    """Set up the BLE LED Pixel Display integration (not tied to any config entry).
 
     Registers all ble_led_pixel.* actions here so they exist in Home
     Assistant's service registry immediately at startup - see
@@ -36,31 +36,31 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up iPIXEL Color from a config entry."""
+    """Set up BLE LED Pixel Display from a config entry."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
     
-    _LOGGER.debug("Setting up iPIXEL Color for %s (%s)", name, address)
+    _LOGGER.debug("Setting up BLE LED Pixel Display for %s (%s)", name, address)
     
     # Create API instance with hass for Bluetooth proxy support
-    api = iPIXELAPI(hass, address, entry=entry)
+    api = BleLedPixelAPI(hass, address, entry=entry)
     
     # Test connection
     try:
         if not await api.connect():
-            raise ConfigEntryNotReady(f"Failed to connect to iPIXEL device at {address}")
+            raise ConfigEntryNotReady(f"Failed to connect to LED panel at {address}")
         
-        _LOGGER.info("Successfully connected to iPIXEL device %s", address)
+        _LOGGER.info("Successfully connected to LED panel %s", address)
         
         # Get device info for sensors
         await api.get_device_info()
         
-    except iPIXELTimeoutError as err:
-        _LOGGER.error("Connection timeout to iPIXEL device %s: %s", address, err)
+    except BleLedPixelTimeoutError as err:
+        _LOGGER.error("Connection timeout to LED panel %s: %s", address, err)
         raise ConfigEntryNotReady(f"Connection timeout: {err}") from err
         
-    except iPIXELConnectionError as err:
-        _LOGGER.error("Failed to connect to iPIXEL device %s: %s", address, err)
+    except BleLedPixelConnectionError as err:
+        _LOGGER.error("Failed to connect to LED panel %s: %s", address, err)
         raise ConfigEntryNotReady(f"Connection failed: {err}") from err
     
     # Store API instance in hass.data
@@ -80,15 +80,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    _LOGGER.debug("Unloading iPIXEL Color integration")
+    _LOGGER.debug("Unloading BLE LED Pixel Display integration")
     
     # Unload platforms
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         # Disconnect from device
-        api: iPIXELAPI = hass.data[DOMAIN].pop(entry.entry_id)
+        api: BleLedPixelAPI = hass.data[DOMAIN].pop(entry.entry_id)
         try:
             await api.disconnect()
-            _LOGGER.debug("Disconnected from iPIXEL device")
+            _LOGGER.debug("Disconnected from LED panel")
         except Exception as err:
             _LOGGER.error("Error disconnecting from device: %s", err)
     

@@ -1,4 +1,4 @@
-"""Config flow for iPIXEL Color integration."""
+"""Config flow for BLE LED Pixel Display integration."""
 from __future__ import annotations
 
 import logging
@@ -11,8 +11,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
-from .api import iPIXELAPI, iPIXELConnectionError, iPIXELTimeoutError
-from .bluetooth.scanner import discover_ipixel_devices_ha
+from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
+from .bluetooth.scanner import discover_panels
 from .const import (
     DOMAIN,
     CONF_ADDRESS,
@@ -40,7 +40,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     address = data[CONF_ADDRESS]
 
     # Create API instance with hass for Bluetooth proxy support
-    api = iPIXELAPI(hass, address)
+    api = BleLedPixelAPI(hass, address)
     
     try:
         # Test connection
@@ -50,20 +50,20 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         # Disconnect after successful test
         await api.disconnect()
         
-    except iPIXELTimeoutError as err:
+    except BleLedPixelTimeoutError as err:
         raise CannotConnect from err
-    except iPIXELConnectionError as err:
+    except BleLedPixelConnectionError as err:
         raise CannotConnect from err
     except Exception as err:
         _LOGGER.exception("Unexpected exception")
         raise CannotConnect from err
 
     # Return info that you want to store in the config entry.
-    return {"title": f"iPIXEL {address[-8:]}", "address": address}
+    return {"title": f"LED panel {address[-8:]}", "address": address}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for iPIXEL Color."""
+    """Handle a config flow for BLE LED Pixel Display."""
 
     VERSION = 1
 
@@ -94,7 +94,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Discover devices using HA's bluetooth API
         try:
             _LOGGER.debug("CONFIG_FLOW: Starting device discovery using HA bluetooth API")
-            discovered = discover_ipixel_devices_ha(self.hass, return_all=True)
+            discovered = discover_panels(self.hass, return_all=True)
             _LOGGER.debug("CONFIG_FLOW: Discovery returned %d devices", len(discovered))
             self._discovered_devices = {
                 device["address"]: device for device in discovered
@@ -203,7 +203,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="manual",
                 data_schema=vol.Schema({
                     vol.Required(CONF_ADDRESS): str,
-                    vol.Optional(CONF_NAME, default="iPIXEL Display"): str,
+                    vol.Optional(CONF_NAME, default="LED panel Display"): str,
                 }),
             )
 
@@ -232,7 +232,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="manual",
             data_schema=vol.Schema({
                 vol.Required(CONF_ADDRESS, default=user_input.get(CONF_ADDRESS, "")): str,
-                vol.Optional(CONF_NAME, default=user_input.get(CONF_NAME, "iPIXEL Display")): str,
+                vol.Optional(CONF_NAME, default=user_input.get(CONF_NAME, "LED panel Display")): str,
             }),
             errors=errors,
         )
@@ -240,7 +240,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_bluetooth(self, discovery_info) -> FlowResult:
         """Handle Bluetooth discovery."""
         address = discovery_info.address
-        name = discovery_info.name or f"iPIXEL {address[-8:]}"
+        name = discovery_info.name or f"LED panel {address[-8:]}"
         
         # Check if already configured
         await self.async_set_unique_id(address)
@@ -291,7 +291,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle an options flow for iPIXEL Color.
+    """Handle an options flow for BLE LED Pixel Display.
 
     NOTE: do NOT define __init__(self, config_entry) and assign to
     self.config_entry — on modern HA (2024.12+), `config_entry` is a

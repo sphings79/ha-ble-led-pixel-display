@@ -1,4 +1,4 @@
-"""Fetch, color and rasterize Home Assistant MDI icons for iPIXEL Color devices.
+"""Fetch, color and rasterize Home Assistant MDI icons for BLE LED pixel panels.
 
 Icons are downloaded on demand from the jsDelivr CDN mirror of the @mdi/svg
 npm package (https://www.jsdelivr.com/package/npm/@mdi/svg), pinned to a

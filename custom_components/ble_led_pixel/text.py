@@ -1,4 +1,4 @@
-"""Text entity for iPIXEL Color."""
+"""Text entity for BLE LED Pixel Display."""
 from __future__ import annotations
 
 import logging
@@ -12,11 +12,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .api import iPIXELAPI, iPIXELConnectionError
+from .api import BleLedPixelAPI, BleLedPixelConnectionError
 from .fonts import resolve_font_for_library
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .common import get_entity_id_by_unique_id
-from .common import resolve_template_variables, update_ipixel_display
+from .common import resolve_template_variables, update_panel_display
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,22 +26,22 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the iPIXEL Color text input."""
+    """Set up the BLE LED Pixel Display text input."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
     
     api = hass.data[DOMAIN][entry.entry_id]
     
     async_add_entities([
-        iPIXELTextDisplay(hass, api, entry, address, name),
+        BleLedPixelTextDisplay(hass, api, entry, address, name),
     ])
     # Actions (send_mdi_icon, send_text, send_layout, etc.) are registered
     # once at integration setup in services.py, not here - see
     # https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/
 
 
-class iPIXELTextDisplay(TextEntity, RestoreEntity):
-    """Representation of an iPIXEL Color text display."""
+class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display text display."""
 
     _attr_mode = TextMode.TEXT
     _attr_native_max = 500  # Maximum 500 characters per protocol
@@ -49,7 +49,7 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
     def __init__(
         self, 
         hass: HomeAssistant,
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -75,8 +75,7 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -121,7 +120,7 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             # Auto-update is enabled, proceed with display update
             await self._update_display(processed_text)
                 
-        except iPIXELConnectionError as err:
+        except BleLedPixelConnectionError as err:
             _LOGGER.error("Connection error while displaying text: %s", err)
             # Don't set unavailable to allow retry
         except Exception as err:
@@ -134,7 +133,7 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             text: Pre-processed text to display, or None to use stored text
         """
         # Use the common update function
-        await update_ipixel_display(self.hass, self._name, self._api, text)
+        await update_panel_display(self.hass, self._name, self._api, text)
 
     async def _get_auto_update_setting(self) -> bool:
         """Get the current auto-update setting from the switch entity."""

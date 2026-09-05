@@ -1,4 +1,4 @@
-"""Sensor platform for iPIXEL Color device information."""
+"""Sensor platform for BLE LED pixel panel information."""
 from __future__ import annotations
 
 import logging
@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo, EntityCategory
 
-from .api import iPIXELAPI, iPIXELConnectionError
+from .api import BleLedPixelAPI, BleLedPixelConnectionError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the iPIXEL Color sensors."""
+    """Set up the BLE LED Pixel Display sensors."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
     
@@ -69,17 +69,17 @@ async def async_setup_entry(
     # Create sensor entities
     sensors = []
     for description in SENSOR_DESCRIPTIONS:
-        sensors.append(iPIXELSensor(api, entry, address, name, description))
+        sensors.append(BleLedPixelSensor(api, entry, address, name, description))
     
     async_add_entities(sensors)
 
 
-class iPIXELSensor(SensorEntity):
-    """Representation of an iPIXEL Color sensor."""
+class BleLedPixelSensor(SensorEntity):
+    """Representation of an BLE LED Pixel Display sensor."""
 
     def __init__(
         self, 
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str,
@@ -101,8 +101,7 @@ class iPIXELSensor(SensorEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -125,7 +124,7 @@ class iPIXELSensor(SensorEntity):
             else:
                 self._available = False
                 
-        except iPIXELConnectionError:
+        except BleLedPixelConnectionError:
             _LOGGER.debug("Device not connected, marking sensor as unavailable")
             self._available = False
         except Exception as err:

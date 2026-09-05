@@ -1,4 +1,4 @@
-"""Command building for iPIXEL Color devices."""
+"""Command building for BLE LED pixel panels."""
 from __future__ import annotations
 
 

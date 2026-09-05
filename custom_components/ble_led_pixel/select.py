@@ -1,4 +1,4 @@
-"""Select entity for iPIXEL Color font selection."""
+"""Select entity for BLE LED Pixel Display font selection."""
 from __future__ import annotations
 
 import logging
@@ -13,10 +13,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .api import iPIXELAPI
+from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, AVAILABLE_MODES, DEFAULT_MODE
 from .common import get_entity_id_by_unique_id
-from .common import update_ipixel_display
+from .common import update_panel_display
 from .fonts import get_available_fonts
 
 _LOGGER = logging.getLogger(__name__)
@@ -27,26 +27,26 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the iPIXEL Color select entities."""
+    """Set up the BLE LED Pixel Display select entities."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
     
     api = hass.data[DOMAIN][entry.entry_id]
     
     async_add_entities([
-        iPIXELFontSelect(hass, api, entry, address, name),
-        iPIXELModeSelect(hass, api, entry, address, name),
-        iPIXELClockStyleSelect(hass, api, entry, address, name),
+        BleLedPixelFontSelect(hass, api, entry, address, name),
+        BleLedPixelModeSelect(hass, api, entry, address, name),
+        BleLedPixelClockStyleSelect(hass, api, entry, address, name),
     ])
 
 
-class iPIXELFontSelect(SelectEntity, RestoreEntity):
-    """Representation of an iPIXEL Color font selection."""
+class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display font selection."""
 
     def __init__(
         self, 
         hass: HomeAssistant,
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -69,8 +69,7 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -109,7 +108,7 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
             
             if auto_update_state and auto_update_state.state == "on":
                 # Use common update function directly
-                await update_ipixel_display(self.hass, self._name, self._api)
+                await update_panel_display(self.hass, self._name, self._api)
                 _LOGGER.debug("Auto-update triggered display refresh due to font change")
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
@@ -120,13 +119,13 @@ class iPIXELFontSelect(SelectEntity, RestoreEntity):
         return True
 
 
-class iPIXELModeSelect(SelectEntity, RestoreEntity):
-    """Representation of an iPIXEL Color mode selection."""
+class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display mode selection."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -149,8 +148,7 @@ class iPIXELModeSelect(SelectEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -189,7 +187,7 @@ class iPIXELModeSelect(SelectEntity, RestoreEntity):
 
             if auto_update_state and auto_update_state.state == "on":
                 # Use common update function directly
-                await update_ipixel_display(self.hass, self._name, self._api)
+                await update_panel_display(self.hass, self._name, self._api)
                 _LOGGER.debug("Auto-update triggered display refresh due to mode change")
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
@@ -200,13 +198,13 @@ class iPIXELModeSelect(SelectEntity, RestoreEntity):
         return True
 
 
-class iPIXELClockStyleSelect(SelectEntity, RestoreEntity):
-    """Representation of an iPIXEL Color clock style selection."""
+class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display clock style selection."""
 
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -229,8 +227,7 @@ class iPIXELClockStyleSelect(SelectEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -274,7 +271,7 @@ class iPIXELClockStyleSelect(SelectEntity, RestoreEntity):
 
                 if auto_update_state and auto_update_state.state == "on":
                     # Use common update function directly
-                    await update_ipixel_display(self.hass, self._name, self._api)
+                    await update_panel_display(self.hass, self._name, self._api)
                     _LOGGER.debug("Auto-update triggered display refresh due to clock style change")
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)

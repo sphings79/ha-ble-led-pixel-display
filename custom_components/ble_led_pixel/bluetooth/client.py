@@ -1,4 +1,4 @@
-"""Bluetooth client management for iPIXEL Color devices."""
+"""Bluetooth client management for BLE LED pixel panels."""
 from __future__ import annotations
 
 import asyncio
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 from homeassistant.components import bluetooth
 
 from ..const import WRITE_UUID, NOTIFY_UUID
-from ..exceptions import iPIXELConnectionError
+from ..exceptions import BleLedPixelConnectionError
 
 try:
     from pypixelcolor.lib.transport.send_plan import send_plan as pypixelcolor_send_plan
@@ -63,7 +63,7 @@ class BluetoothClient:
 
     def _disconnected_callback(self, client: BleakClientWithServiceCache) -> None:
         """Called when device disconnects."""
-        _LOGGER.warning("iPIXEL device %s disconnected", self._address)
+        _LOGGER.warning("LED panel %s disconnected", self._address)
         self._connected = False
 
     def _dispatch_notification(self, sender: Any, data: bytearray) -> None:
@@ -93,7 +93,7 @@ class BluetoothClient:
                 _LOGGER.debug("Notification handler error: %s", err)
 
     async def connect(self, notification_handler: Callable[[Any, bytearray], None]) -> bool:
-        """Connect to the iPIXEL device.
+        """Connect to the LED panel.
 
         Args:
             notification_handler: Callback for device notifications
@@ -102,9 +102,9 @@ class BluetoothClient:
             True if connected successfully
 
         Raises:
-            iPIXELConnectionError: If connection fails
+            BleLedPixelConnectionError: If connection fails
         """
-        _LOGGER.debug("Connecting to iPIXEL device at %s", self._address)
+        _LOGGER.debug("Connecting to LED panel at %s", self._address)
 
         try:
             # Get BLEDevice from Home Assistant's Bluetooth integration
@@ -113,7 +113,7 @@ class BluetoothClient:
             )
 
             if not ble_device:
-                raise iPIXELConnectionError(
+                raise BleLedPixelConnectionError(
                     f"Device {self._address} not found. "
                     "Ensure the device is powered on and in range."
                 )
@@ -124,7 +124,7 @@ class BluetoothClient:
             self._client = await establish_connection(
                 BleakClientWithServiceCache,
                 ble_device,
-                ble_device.name or "iPIXEL Display",
+                ble_device.name or "LED panel Display",
                 disconnected_callback=self._disconnected_callback,
                 max_attempts=3,
             )
@@ -139,15 +139,15 @@ class BluetoothClient:
                 self._ack_mgr = AckManager()
 
             await self._client.start_notify(NOTIFY_UUID, self._dispatch_notification)
-            _LOGGER.info("Successfully connected to iPIXEL device")
+            _LOGGER.info("Successfully connected to LED panel")
             return True
 
         except BleakError as err:
             _LOGGER.error("Failed to connect to %s: %s", self._address, err)
-            raise iPIXELConnectionError(f"Connection failed: {err}") from err
+            raise BleLedPixelConnectionError(f"Connection failed: {err}") from err
         except Exception as err:
             _LOGGER.error("Unexpected error connecting to %s: %s", self._address, err)
-            raise iPIXELConnectionError(f"Connection failed: {err}") from err
+            raise BleLedPixelConnectionError(f"Connection failed: {err}") from err
 
     async def disconnect(self) -> None:
         """Disconnect from the device."""
@@ -155,7 +155,7 @@ class BluetoothClient:
             try:
                 await self._client.stop_notify(NOTIFY_UUID)
                 await self._client.disconnect()
-                _LOGGER.debug("Disconnected from iPIXEL device")
+                _LOGGER.debug("Disconnected from LED panel")
             except BleakError as err:
                 _LOGGER.error("Error during disconnect: %s", err)
             finally:
@@ -178,10 +178,10 @@ class BluetoothClient:
             True if command was sent successfully
 
         Raises:
-            iPIXELConnectionError: If not connected
+            BleLedPixelConnectionError: If not connected
         """
         if not self._connected or not self._client:
-            raise iPIXELConnectionError("Device not connected")
+            raise BleLedPixelConnectionError("Device not connected")
 
         response_data = []
         response_received = asyncio.Event()
@@ -228,10 +228,10 @@ class BluetoothClient:
             The response bytes, or None if no response arrived in time.
 
         Raises:
-            iPIXELConnectionError: If not connected.
+            BleLedPixelConnectionError: If not connected.
         """
         if not self._connected or not self._client:
-            raise iPIXELConnectionError("Device not connected")
+            raise BleLedPixelConnectionError("Device not connected")
 
         response_data = []
         response_received = asyncio.Event()
@@ -274,15 +274,15 @@ class BluetoothClient:
             True if the plan was sent and acknowledged successfully.
 
         Raises:
-            iPIXELConnectionError: If not connected.
+            BleLedPixelConnectionError: If not connected.
             ImportError: If pypixelcolor is not available.
         """
         if pypixelcolor_send_plan is None:
             raise ImportError("pypixelcolor library is not installed")
         if not self._connected or not self._client:
-            raise iPIXELConnectionError("Device not connected")
+            raise BleLedPixelConnectionError("Device not connected")
         if self._ack_mgr is None:
-            raise iPIXELConnectionError("AckManager not initialized - not connected?")
+            raise BleLedPixelConnectionError("AckManager not initialized - not connected?")
 
         try:
             result = await pypixelcolor_send_plan(

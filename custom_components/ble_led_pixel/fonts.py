@@ -1,4 +1,4 @@
-"""Font location utilities for iPIXEL Color integration."""
+"""Font location utilities for BLE LED Pixel Display integration."""
 from __future__ import annotations
 
 import logging

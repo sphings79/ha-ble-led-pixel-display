@@ -1,4 +1,4 @@
-"""Device information management for iPIXEL Color devices."""
+"""Device information management for BLE LED pixel panels."""
 from __future__ import annotations
 
 import logging

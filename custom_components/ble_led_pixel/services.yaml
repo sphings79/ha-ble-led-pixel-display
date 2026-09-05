@@ -1,7 +1,7 @@
 show_emoji:
   name: Show Emoji
   description: >
-    Display an emoji (Twemoji) on the iPIXEL device. The PNG is downloaded
+    Display an emoji (Twemoji) on the panel. The PNG is downloaded
     once from the Twemoji CDN, cached locally, and rendered at the device
     dimensions. Useful for HA notifications (doorbell, alerts, etc.).
   target:
@@ -50,7 +50,7 @@ show_emoji:
 
 send_mdi_icon:
   name: Send MDI Icon
-  description: Renders a Home Assistant MDI icon (fetched from @mdi/svg) and displays it on the iPIXEL panel.
+  description: Renders a Home Assistant MDI icon (fetched from @mdi/svg) and displays it on the panel panel.
   target:
     entity:
       integration: ble_led_pixel

@@ -1,4 +1,4 @@
-"""Clock mode commands for iPIXEL Color devices using pypixelcolor."""
+"""Clock mode commands for BLE LED pixel panels using pypixelcolor."""
 from __future__ import annotations
 
 from typing import Optional

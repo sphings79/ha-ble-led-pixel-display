@@ -1,4 +1,4 @@
-"""iPIXEL Color Bluetooth API client - Refactored version."""
+"""BLE LED Pixel Display Bluetooth API client - Refactored version."""
 from __future__ import annotations
 
 import asyncio
@@ -27,7 +27,7 @@ from .device.mdi_icon import build_mdi_icon_png
 from .device.composer import build_layout_media
 from .display.text_renderer import render_text_to_png
 from .display.emoji_renderer import render_emoji_to_png
-from .exceptions import iPIXELConnectionError
+from .exceptions import BleLedPixelConnectionError
 from .const import OPT_OVERRIDE_DIMENSIONS, OPT_PANEL_WIDTH, OPT_PANEL_HEIGHT
 
 try:
@@ -38,8 +38,8 @@ except ImportError:
 _LOGGER = logging.getLogger(__name__)
 
 
-class iPIXELAPI:
-    """iPIXEL Color device API client - simplified facade."""
+class BleLedPixelAPI:
+    """BLE LED pixel panel API client - simplified facade."""
 
     def __init__(
         self,
@@ -74,7 +74,7 @@ class iPIXELAPI:
         return width, height
         
     async def connect(self) -> bool:
-        """Connect to the iPIXEL device."""
+        """Connect to the LED panel."""
         return await self._bluetooth.connect(self._notification_handler)
     
     async def disconnect(self) -> None:
@@ -727,7 +727,7 @@ class iPIXELAPI:
         Unlike display_text_pypixelcolor (which delegates emoji handling to
         pypixelcolor and currently triggers a blocking HTTP call inside the
         event loop), this method downloads the Twemoji PNG asynchronously,
-        caches it under hass.config.path(".storage/ipixel_emoji_cache"), and
+        caches it under hass.config.path(".storage/ble_led_pixel_emoji_cache"), and
         composes it onto a canvas matching the device dimensions.
 
         Args:
@@ -799,5 +799,5 @@ class iPIXELAPI:
 
 
 # Export at module level for convenience
-__all__ = ["iPIXELAPI", "iPIXELError", "iPIXELConnectionError", "iPIXELTimeoutError"]
-from .exceptions import iPIXELError, iPIXELConnectionError, iPIXELTimeoutError
+__all__ = ["BleLedPixelAPI", "BleLedPixelError", "BleLedPixelConnectionError", "BleLedPixelTimeoutError"]
+from .exceptions import BleLedPixelError, BleLedPixelConnectionError, BleLedPixelTimeoutError

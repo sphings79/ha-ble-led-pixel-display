@@ -1,4 +1,4 @@
-"""Number entity for iPIXEL Color numeric settings."""
+"""Number entity for BLE LED Pixel Display numeric settings."""
 from __future__ import annotations
 
 import logging
@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .api import iPIXELAPI
+from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .common import get_entity_id_by_unique_id
 
@@ -23,24 +23,24 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the iPIXEL Color number entities."""
+    """Set up the BLE LED Pixel Display number entities."""
     address = entry.data[CONF_ADDRESS]
     name = entry.data[CONF_NAME]
     
     api = hass.data[DOMAIN][entry.entry_id]
     
     async_add_entities([
-        iPIXELFontSize(api, entry, address, name),
-        iPIXELLineSpacing(api, entry, address, name),
-        iPIXELBrightness(api, entry, address, name),
-        iPIXELTextAnimation(hass, api, entry, address, name),
-        iPIXELTextSpeed(hass, api, entry, address, name),
-        iPIXELTextRainbow(hass, api, entry, address, name),
+        BleLedPixelFontSize(api, entry, address, name),
+        BleLedPixelLineSpacing(api, entry, address, name),
+        BleLedPixelBrightness(api, entry, address, name),
+        BleLedPixelTextAnimation(hass, api, entry, address, name),
+        BleLedPixelTextSpeed(hass, api, entry, address, name),
+        BleLedPixelTextRainbow(hass, api, entry, address, name),
     ])
 
 
-class iPIXELFontSize(NumberEntity, RestoreEntity):
-    """Representation of an iPIXEL Color font size setting."""
+class BleLedPixelFontSize(NumberEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display font size setting."""
 
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0.0  # 0 = auto-sizing
@@ -51,7 +51,7 @@ class iPIXELFontSize(NumberEntity, RestoreEntity):
 
     def __init__(
         self, 
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -70,8 +70,7 @@ class iPIXELFontSize(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -112,8 +111,8 @@ class iPIXELFontSize(NumberEntity, RestoreEntity):
         return True
 
 
-class iPIXELLineSpacing(NumberEntity, RestoreEntity):
-    """Representation of an iPIXEL Color line spacing setting."""
+class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display line spacing setting."""
 
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0  # No extra spacing
@@ -124,7 +123,7 @@ class iPIXELLineSpacing(NumberEntity, RestoreEntity):
 
     def __init__(
         self, 
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -143,8 +142,7 @@ class iPIXELLineSpacing(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -182,8 +180,8 @@ class iPIXELLineSpacing(NumberEntity, RestoreEntity):
         return True
 
 
-class iPIXELBrightness(NumberEntity, RestoreEntity):
-    """Representation of an iPIXEL Color brightness setting."""
+class BleLedPixelBrightness(NumberEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display brightness setting."""
 
     _attr_mode = NumberMode.SLIDER
     _attr_native_min_value = 1  # Minimum brightness (0 is invalid)
@@ -194,7 +192,7 @@ class iPIXELBrightness(NumberEntity, RestoreEntity):
 
     def __init__(
         self, 
-        api: iPIXELAPI, 
+        api: BleLedPixelAPI, 
         entry: ConfigEntry, 
         address: str, 
         name: str
@@ -213,8 +211,7 @@ class iPIXELBrightness(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -265,8 +262,8 @@ class iPIXELBrightness(NumberEntity, RestoreEntity):
         return True
 
 
-class iPIXELTextAnimation(NumberEntity, RestoreEntity):
-    """Representation of an iPIXEL Color text animation setting."""
+class BleLedPixelTextAnimation(NumberEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display text animation setting."""
 
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0
@@ -277,7 +274,7 @@ class iPIXELTextAnimation(NumberEntity, RestoreEntity):
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -295,8 +292,7 @@ class iPIXELTextAnimation(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -326,7 +322,7 @@ class iPIXELTextAnimation(NumberEntity, RestoreEntity):
     async def _trigger_auto_update(self) -> None:
         """Trigger display update if auto-update is enabled and in text mode."""
         try:
-            from .common import update_ipixel_display
+            from .common import update_panel_display
 
             mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
             mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
@@ -336,7 +332,7 @@ class iPIXELTextAnimation(NumberEntity, RestoreEntity):
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
-                    await update_ipixel_display(self.hass, self._name, self._api)
+                    await update_panel_display(self.hass, self._name, self._api)
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 
@@ -346,8 +342,8 @@ class iPIXELTextAnimation(NumberEntity, RestoreEntity):
         return True
 
 
-class iPIXELTextSpeed(NumberEntity, RestoreEntity):
-    """Representation of an iPIXEL Color text speed setting."""
+class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display text speed setting."""
 
     _attr_mode = NumberMode.SLIDER
     _attr_native_min_value = 0
@@ -358,7 +354,7 @@ class iPIXELTextSpeed(NumberEntity, RestoreEntity):
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -376,8 +372,7 @@ class iPIXELTextSpeed(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -407,7 +402,7 @@ class iPIXELTextSpeed(NumberEntity, RestoreEntity):
     async def _trigger_auto_update(self) -> None:
         """Trigger display update if auto-update is enabled and in text mode."""
         try:
-            from .common import update_ipixel_display
+            from .common import update_panel_display
 
             mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
             mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
@@ -417,7 +412,7 @@ class iPIXELTextSpeed(NumberEntity, RestoreEntity):
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
-                    await update_ipixel_display(self.hass, self._name, self._api)
+                    await update_panel_display(self.hass, self._name, self._api)
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 
@@ -427,8 +422,8 @@ class iPIXELTextSpeed(NumberEntity, RestoreEntity):
         return True
 
 
-class iPIXELTextRainbow(NumberEntity, RestoreEntity):
-    """Representation of an iPIXEL Color text rainbow mode setting."""
+class BleLedPixelTextRainbow(NumberEntity, RestoreEntity):
+    """Representation of an BLE LED Pixel Display text rainbow mode setting."""
 
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0
@@ -439,7 +434,7 @@ class iPIXELTextRainbow(NumberEntity, RestoreEntity):
     def __init__(
         self,
         hass: HomeAssistant,
-        api: iPIXELAPI,
+        api: BleLedPixelAPI,
         entry: ConfigEntry,
         address: str,
         name: str
@@ -457,8 +452,7 @@ class iPIXELTextRainbow(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
-            manufacturer="iPIXEL",
-            model="LED Matrix Display",
+            model="LED Pixel Panel",
             sw_version="1.0",
         )
 
@@ -488,7 +482,7 @@ class iPIXELTextRainbow(NumberEntity, RestoreEntity):
     async def _trigger_auto_update(self) -> None:
         """Trigger display update if auto-update is enabled and in text mode."""
         try:
-            from .common import update_ipixel_display
+            from .common import update_panel_display
 
             mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
             mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
@@ -498,7 +492,7 @@ class iPIXELTextRainbow(NumberEntity, RestoreEntity):
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":
-                    await update_ipixel_display(self.hass, self._name, self._api)
+                    await update_panel_display(self.hass, self._name, self._api)
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 

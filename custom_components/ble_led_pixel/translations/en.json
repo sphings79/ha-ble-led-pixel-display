@@ -2,30 +2,30 @@
   "config": {
     "step": {
       "user": {
-        "title": "Select iPIXEL Device",
-        "description": "Choose your iPIXEL Color display from the discovered devices, or select manual entry.",
+        "title": "Select LED panel",
+        "description": "Choose your panel from the discovered devices, or select manual entry. Panels advertise as LED_BLE_*.",
         "data": {
           "device": "Device"
         }
       },
       "manual": {
         "title": "Manual Setup",
-        "description": "Enter the Bluetooth address of your iPIXEL Color display manually.",
+        "description": "Enter the Bluetooth address of your panel manually.",
         "data": {
           "address": "Bluetooth Address",
           "name": "Device Name"
         }
       },
       "bluetooth_confirm": {
-        "title": "Confirm iPIXEL Device",
-        "description": "Do you want to add the iPIXEL device {name} ({address}) to Home Assistant?"
+        "title": "Add LED panel",
+        "description": "Add the panel {name} ({address}) to Home Assistant?"
       }
     },
     "error": {
       "cannot_connect": "Failed to connect to the device. Make sure the device is powered on and in range.",
       "invalid_address": "Invalid Bluetooth address format.",
       "discovery_failed": "Failed to discover devices. Make sure Bluetooth is enabled.",
-      "no_devices_found": "No iPIXEL devices found. Make sure your device is powered on and in pairing mode.",
+      "no_devices_found": "No panels found. Make sure the panel is powered on and not connected to a phone app - a connected panel stops advertising.",
       "device_not_found": "Selected device not found.",
       "unknown": "Unexpected error occurred."
     },
@@ -41,7 +41,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "iPIXEL Color options",
+        "title": "BLE LED Pixel Display options",
         "description": "Some panels (e.g. the 32x32 B.K. Light sold at Action) advertise wrong dimensions over Bluetooth. Enable the override and provide the actual physical dimensions if your panel renders incorrectly.",
         "data": {
           "override_dimensions": "Override panel dimensions",
@@ -66,7 +66,7 @@
   "services": {
     "display_text": {
       "name": "Display Text",
-      "description": "Display text on the iPIXEL device with custom effects and colors",
+      "description": "Display text on the panel with custom effects and colors",
       "fields": {
         "text": {
           "name": "Text",
