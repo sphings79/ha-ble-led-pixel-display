@@ -70,7 +70,7 @@ whose product id nobody has reported yet:
 | Brand | Seen as |
 | --- | --- |
 | **Fockety** | 32×32, 5×5 inch, "for iPixel Color APP" (Amazon `B0DQJWBCPV`) |
-| **CHICIRIS** | Flexible IP65 panel, 1280 RGB LEDs — that is 64×20 (Amazon `B0DNFPDCKP`) |
+| **CHICIRIS** | Model `CHICIRISy9830bntme`, flexible IP65 panel, 1280 RGB LEDs at 20×64, 34.8 × 10.16 cm (Amazon `B0DNFPDCKP`) |
 | **LUXONIC** | 32×32 car and shop sign (Amazon `B0BCYBRP84`) |
 
 These are listed separately on purpose. For B.K. Light the id came from actual
@@ -323,6 +323,10 @@ This continues [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-
 ## Troubleshooting
 
 **The panel is not discovered.** Disconnect the vendor app first — a connected panel stops advertising. Check that Home Assistant's Bluetooth integration is set up and the panel is within range of the host or a Bluetooth proxy.
+
+**The panel advertises but will not connect.** Check its power supply before anything else. The vendor manual requires **5 V / 2 A** and warns that an inadequate supply causes "screen shutdown, Bluetooth connection errors, or a yellowish color" — it explicitly rules out computer USB ports, car USB media ports and non-standard phone chargers. A panel that is visible in the device list but refuses every connection attempt is the exact symptom this produces. Range is the second suspect: advertising needs far less signal than a held connection, so a panel can be seen through a wall it cannot be reached through.
+
+**The panel asks for a password, or refuses to connect after one was set.** The device can be reset without the app: power it on and, the moment the white light appears, switch it off again. Repeat five times in a row. The timing matters — too slow or too fast and it will not trigger. The `password_flag` in the device info shows whether one is set; `255` means none.
 
 **Wrong width or height.** The dimensions come from the device. Some firmware reports them incorrectly; check the Display Width and Display Height sensors against reality.
 

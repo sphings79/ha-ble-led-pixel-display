@@ -70,7 +70,7 @@ Produkt-ID aber noch niemand gemeldet hat:
 | Marke | Gesehen als |
 | --- | --- |
 | **Fockety** | 32×32, 5×5 Zoll, „for iPixel Color APP" (Amazon `B0DQJWBCPV`) |
-| **CHICIRIS** | Flexibles IP65-Panel, 1280 RGB-LEDs — das entspricht 64×20 (Amazon `B0DNFPDCKP`) |
+| **CHICIRIS** | Modell `CHICIRISy9830bntme`, flexibles IP65-Panel, 1280 RGB-LEDs bei 20×64, 34,8 × 10,16 cm (Amazon `B0DNFPDCKP`) |
 | **LUXONIC** | 32×32 Auto- und Ladenschild (Amazon `B0BCYBRP84`) |
 
 Die Trennung ist Absicht. Bei B.K. Light stammt die Kennung von echter Hardware,
@@ -323,6 +323,10 @@ Er führt [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color
 ## Fehlersuche
 
 **Das Panel wird nicht gefunden.** Zuerst die Hersteller-App trennen — ein verbundenes Panel sendet keine Werbepakete mehr. Prüfen, ob die Bluetooth-Integration von Home Assistant eingerichtet ist und das Panel in Reichweite des Hosts oder eines Bluetooth-Proxys steht.
+
+**Das Panel sendet, lässt sich aber nicht verbinden.** Zuerst die Stromversorgung prüfen. Das Hersteller-Handbuch verlangt **5 V / 2 A** und warnt, dass eine unzureichende Versorgung „screen shutdown, Bluetooth connection errors, or a yellowish color" verursacht — ausdrücklich ausgeschlossen sind USB-Anschlüsse von Computern, USB-Medienanschlüsse im Auto und Nicht-Standard-Handynetzteile. Ein Panel, das in der Geräteliste auftaucht, aber jeden Verbindungsversuch abweist, zeigt genau dieses Bild. Zweiter Verdächtiger ist die Reichweite: Werbepakete brauchen viel weniger Signal als eine stehende Verbindung, ein Panel kann also durch eine Wand sichtbar sein, durch die es nicht erreichbar ist.
+
+**Das Panel verlangt ein Passwort oder verweigert die Verbindung, nachdem eines gesetzt wurde.** Das Gerät lässt sich ohne App zurücksetzen: einschalten und in dem Moment, in dem das weiße Licht erscheint, sofort wieder ausschalten. Fünfmal hintereinander wiederholen. Das Timing ist entscheidend — zu langsam oder zu schnell löst nicht aus. Ob eines gesetzt ist, zeigt `password_flag` in der Geräteabfrage; `255` bedeutet keines.
 
 **Falsche Breite oder Höhe.** Die Maße kommen vom Gerät. Manche Firmware meldet sie falsch; die Sensoren Display Width und Display Height mit der Realität abgleichen.
 
