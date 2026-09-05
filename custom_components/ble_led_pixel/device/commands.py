@@ -103,3 +103,49 @@ def make_stopwatch_command(running: bool) -> bytes:
     elapsed time back.
     """
     return bytes([5, 0, 9, 0x80, 1 if running else 0])
+
+
+# Panels whose password is four digits rather than six. Everything else uses
+# six -- from BaseSend.getCurrentPwdLength in the vendor app.
+FOUR_DIGIT_PASSWORD_MODELS: frozenset[tuple[str, str]] = frozenset({
+    ("0035", "01"),
+    ("0001", "130"),
+})
+
+
+def password_length(cid: str | None, pid: str | None) -> int:
+    """How many digits this model's password has."""
+    if cid is not None and pid is not None:
+        if (str(cid), str(pid)) in FOUR_DIGIT_PASSWORD_MODELS:
+            return 4
+    return 6
+
+
+def make_verify_password_command(password: str, digits: int = 6) -> bytes:
+    """Build the command that unlocks a password-protected panel.
+
+    The password is not sent as text. It is split into pairs of decimal
+    digits, and each pair travels as one byte holding that number: "123456"
+    becomes 12, 34, 56. A four-digit password fills the third byte with zero.
+
+    Frame: [7, 0, 5, 2, p1, p2, p3]
+
+    Args:
+        password: The password, digits only, `digits` characters long.
+        digits: Expected length, 4 or 6. See password_length().
+
+    Raises:
+        ValueError: When the password is not exactly `digits` decimal digits.
+            Sending a malformed one would just fail silently on the panel.
+    """
+    if digits not in (4, 6):
+        raise ValueError(f"Password length must be 4 or 6 digits, not {digits}")
+    if len(password) != digits or not password.isdigit():
+        raise ValueError(
+            f"This panel expects a password of exactly {digits} digits"
+        )
+
+    pairs = [int(password[i:i + 2]) for i in range(0, digits, 2)]
+    while len(pairs) < 3:
+        pairs.append(0)
+    return bytes([7, 0, 5, 2, *pairs])

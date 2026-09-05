@@ -22,6 +22,8 @@ from .device.commands import (
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.commands import (
     make_countdown_command,
+    make_verify_password_command,
+    password_length,
     make_preset_command,
     make_scoreboard_command,
     make_stopwatch_command,
@@ -50,6 +52,7 @@ from .const import RECONNECT_BACKOFF_START, RECONNECT_BACKOFF_MAX
 from .exceptions import BleLedPixelConnectionError, BleLedPixelFeatureUnsupported
 from .const import (
     OPT_FORCE_FEATURES,
+    OPT_PASSWORD,
     OPT_OVERRIDE_DIMENSIONS,
     OPT_PANEL_HEIGHT,
     OPT_PANEL_WIDTH,
@@ -111,7 +114,10 @@ class BleLedPixelAPI:
         
     async def connect(self) -> bool:
         """Connect to the LED panel."""
-        return await self._bluetooth.connect(self._notification_handler)
+        connected = await self._bluetooth.connect(self._notification_handler)
+        if connected:
+            await self._unlock_if_needed()
+        return connected
     
     async def disconnect(self) -> None:
         """Disconnect from the device."""
@@ -119,7 +125,82 @@ class BleLedPixelAPI:
     
     async def ensure_connected(self) -> bool:
         """Reconnect if the link dropped. Never raises."""
-        return await self._bluetooth.ensure_connected()
+        connected = await self._bluetooth.ensure_connected()
+        if connected:
+            await self._unlock_if_needed()
+        return connected
+
+    @property
+    def password(self) -> str | None:
+        """The configured password, if the panel is locked."""
+        if self._entry is None:
+            return None
+        password = self._entry.options.get(OPT_PASSWORD)
+        return password or None
+
+    @property
+    def is_locked(self) -> bool | None:
+        """Whether the panel is password protected.
+
+        None until the device info has been read once. The flag is byte 10 of
+        that response; the vendor app treats 1 as protected.
+        """
+        if self._device_info is None:
+            return None
+        flag = self._device_info.get("password_flag")
+        if flag is None:
+            return None
+        return flag == 1
+
+    async def _unlock_if_needed(self) -> None:
+        """Send the password after connecting, when one is configured.
+
+        A panel forgets the unlock when the link drops, so this has to happen
+        on every connect rather than once at setup. It runs before anything
+        else is sent, because a locked panel silently discards content.
+
+        Never raises: a failure here should leave the entry loaded with a log
+        line, not break setup.
+        """
+        password = self.password
+        if password is None:
+            return
+        # is_locked is None before the first device-info read. Send anyway in
+        # that case - the user configured a password, which is a stronger
+        # signal than a flag we have not read yet.
+        if self.is_locked is False:
+            return
+        try:
+            identity = self.identity
+            command = make_verify_password_command(
+                password, password_length(identity.cid, identity.pid)
+            )
+        except ValueError as err:
+            _LOGGER.error("Cannot unlock %s: %s", self._address, err)
+            return
+        try:
+            # Deliberately not _send_with_reconnect: that calls back into
+            # ensure_connected, which calls this method.
+            if await self._bluetooth.send_command(command):
+                _LOGGER.debug("Sent the password to %s", self._address)
+            else:
+                _LOGGER.warning(
+                    "Could not send the password to %s; the panel will "
+                    "ignore anything sent to it", self._address,
+                )
+        except Exception as err:  # noqa: BLE001 - unlocking must not break setup
+            _LOGGER.warning("Error sending the password to %s: %s", self._address, err)
+
+    async def unlock(self) -> bool:
+        """Send the configured password now.
+
+        Returns:
+            True when a password was configured and the command went out.
+        """
+        if self.password is None:
+            return False
+        await self._unlock_if_needed()
+        return True
 
     def _schedule_reconnect(self) -> None:
         """Start the reconnect loop, unless one is already running."""

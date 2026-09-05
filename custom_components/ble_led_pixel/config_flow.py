@@ -10,6 +10,11 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.selector import (
+    TextSelector,
+    TextSelectorConfig,
+    TextSelectorType,
+)
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
 from .advertisement import PanelIdentity, parse_identity
@@ -21,6 +26,7 @@ from .const import (
     OPT_PANEL_WIDTH,
     OPT_PANEL_HEIGHT,
     OPT_FORCE_FEATURES,
+    OPT_PASSWORD,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -347,6 +353,14 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     OPT_FORCE_FEATURES,
                     default=current.get(OPT_FORCE_FEATURES, False),
                 ): bool,
+                # Only needed for a panel that was locked from the vendor app.
+                # Masked, because it is a secret even if a short one.
+                vol.Optional(
+                    OPT_PASSWORD,
+                    default=current.get(OPT_PASSWORD, ""),
+                ): TextSelector(
+                    TextSelectorConfig(type=TextSelectorType.PASSWORD)
+                ),
             }
         )
 

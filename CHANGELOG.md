@@ -127,6 +127,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [1.5.0] - 2026-09-05
+
+### Added
+
+- **Password-protected panels can be used again.** A panel locked from the
+  vendor app connects normally and then discards everything sent to it without
+  an error, which is close to impossible to diagnose. Put the password in the
+  integration options and it is sent after every connect -- the panel forgets
+  it whenever the link drops. Six digits for most models, four for the two
+  that use four, picked from the product id.
+- **A "Password protection" diagnostic sensor**, reading `none`,
+  `locked, password set` or `locked, no password set`.
+
+Setting or clearing a password is deliberately not offered: locking yourself
+out is easy and undoing it needs physical access to the power supply.
+
+### Fixed
+
+- **`docs/password_reset.md` claimed that a `password_flag` of 255 means no
+  password is set.** It does not. 255 is the value pypixelcolor substitutes
+  when the device-info response was too short to contain the flag, so it means
+  "not reported"; the flag itself is `1` for protected. A panel reporting `0`
+  would have been read as locked and sent through a pointless reset.
+- The same page now says which parts of the reset procedure are actually
+  confirmed. The reset happens in firmware, so the vendor app cannot
+  corroborate it -- its only text on the subject is "If you forget your
+  password, reset your device", with no procedure and no number of cycles.
+
 ## [1.4.0] - 2026-09-05
 
 ### Added

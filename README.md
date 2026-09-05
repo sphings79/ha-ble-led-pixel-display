@@ -73,10 +73,14 @@ whose product id nobody has reported yet:
 | **Fockety** | 32×32, 5×5 inch, "for iPixel Color APP" (Amazon `B0DQJWBCPV`) |
 | **CHICIRIS** | Model `CHICIRISy9830bntme`, flexible IP65 panel, 1280 RGB LEDs at 20×64, 34.8 × 10.16 cm (Amazon `B0DNFPDCKP`) |
 | **LUXONIC** | 32×32 car and shop sign (Amazon `B0BCYBRP84`) |
+| **Monster** (Jem Accessories) | 32×32, 6×6 inch car panel, model `MAM7-1001-ICM` (Amazon `B0DC7KY83V`, also Walmart and Home Depot). Ships under its own app name, *Monster Pixel Light* — a rebranded build of iPixel Color: every screen label in its store screenshots appears verbatim in the iPixel Color APK's string table. |
 
 These are listed separately on purpose. For B.K. Light the id came from actual
 hardware, for HYPERLITE and EZYEVY from the vendor's own configuration; for
-these three only from a seller's description. If you own one, the [reporting
+Fockety, CHICIRIS and LUXONIC only from a seller's description, and for Monster
+from the vendor's app rather than the panel. None of them has been confirmed on
+real hardware, and a rebranded app does not prove the advertised name matches
+`LED_BLE_*`. If you own one, the [reporting
 flow](#your-panel-is-not-listed) turns that into a confirmed entry.
 
 Panel resolution is read from the device itself; 64×16 is the usual size. Sizes seen in the wild so far are 32×32, 64×16, 64×20 and 96×16. If your panel reports the wrong dimensions, see [Troubleshooting](#troubleshooting).
@@ -133,6 +137,22 @@ with the Product ID sensor's value, so the table can be corrected.
 
 Neither the elapsed stopwatch time nor the remaining countdown can be read
 back — the protocol has no command for it.
+
+### Password-protected panels
+
+A panel can be locked with a password from the vendor app. A locked panel still
+connects and still shows up normally — it just discards everything sent to it,
+without an error. The **Password protection** diagnostic sensor tells you
+whether that is what you are looking at.
+
+Put the password into the integration options and it is sent after every
+connect, because the panel forgets it as soon as the link drops. Most models
+use six digits; two known models use four, and the integration picks the right
+length from the product id.
+
+Forgot it? [docs/password_reset.md](docs/password_reset.md) describes the
+power-cycle reset. This integration cannot set or clear a password — only use
+one — which is deliberate: locking yourself out is easy, and undoing it is not.
 
 ## Installation
 

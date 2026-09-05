@@ -73,11 +73,15 @@ Produkt-ID aber noch niemand gemeldet hat:
 | **Fockety** | 32×32, 5×5 Zoll, „for iPixel Color APP" (Amazon `B0DQJWBCPV`) |
 | **CHICIRIS** | Modell `CHICIRISy9830bntme`, flexibles IP65-Panel, 1280 RGB-LEDs bei 20×64, 34,8 × 10,16 cm (Amazon `B0DNFPDCKP`) |
 | **LUXONIC** | 32×32 Auto- und Ladenschild (Amazon `B0BCYBRP84`) |
+| **Monster** (Jem Accessories) | 32×32-Autopanel, 6×6 Zoll, Modell `MAM7-1001-ICM` (Amazon `B0DC7KY83V`, außerdem Walmart und Home Depot). Läuft unter eigenem App-Namen, *Monster Pixel Light* — ein umbenannter Build von iPixel Color: Jede Beschriftung aus dessen Store-Screenshots steht wörtlich in der String-Tabelle der iPixel-Color-APK. |
 
 Die Trennung ist Absicht. Bei B.K. Light stammt die Kennung von echter Hardware,
-bei HYPERLITE und EZYEVY aus der Konfiguration des Herstellers — bei diesen drei
-dagegen nur aus einer Händlerbeschreibung. Wer so ein Panel besitzt, macht über
-den [Meldeweg](#dein-panel-steht-nicht-in-der-liste) einen bestätigten Eintrag daraus.
+bei HYPERLITE und EZYEVY aus der Konfiguration des Herstellers — bei Fockety,
+CHICIRIS und LUXONIC dagegen nur aus einer Händlerbeschreibung und bei Monster
+aus der App des Herstellers statt vom Panel. Bestätigt ist keines davon an echter
+Hardware, und ein umbenannter App-Build beweist nicht, dass der Werbename dem
+Muster `LED_BLE_*` folgt. Wer so ein Panel besitzt, macht über den
+[Meldeweg](#dein-panel-steht-nicht-in-der-liste) einen bestätigten Eintrag daraus.
 
 Die Auflösung wird vom Gerät selbst gemeldet, üblich ist 64×16. Tatsächlich beobachtet wurden bisher 32×32, 64×16, 64×20 und 96×16. Meldet dein Panel falsche Maße, siehe [Fehlersuche](#fehlersuche).
 
@@ -134,6 +138,23 @@ mit dem Wert des Produkt-ID-Sensors, damit die Tabelle korrigiert werden kann.
 
 Weder die verstrichene Zeit der Stoppuhr noch die Restzeit des Countdowns lassen
 sich auslesen — dafür hat das Protokoll kein Kommando.
+
+### Passwortgeschützte Panels
+
+Ein Panel lässt sich in der Hersteller-App mit einem Passwort sperren. Ein
+gesperrtes Panel verbindet sich weiterhin und wirkt normal — es verwirft nur
+alles, was man ihm schickt, kommentarlos. Der Diagnosesensor **Password
+protection** zeigt, ob genau das der Fall ist.
+
+Trag das Passwort in die Optionen der Integration ein; es wird nach jedem
+Verbindungsaufbau gesendet, denn das Panel vergisst es, sobald die Verbindung
+abreißt. Die meisten Modelle nutzen sechs Ziffern, zwei bekannte vier — die
+richtige Länge wird anhand der Produkt-ID gewählt.
+
+Vergessen? [docs/password_reset.md](docs/password_reset.md) beschreibt den
+Reset über die Stromversorgung. Setzen oder Löschen eines Passworts kann diese
+Integration bewusst nicht — nur verwenden: Sich auszusperren ist leicht, es
+rückgängig zu machen nicht.
 
 ## Installation
 

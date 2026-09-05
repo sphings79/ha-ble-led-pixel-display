@@ -47,7 +47,8 @@
           "override_dimensions": "Override panel dimensions",
           "panel_width": "Panel width (pixels, 0 = use firmware-reported)",
           "panel_height": "Panel height (pixels, 0 = use firmware-reported)",
-          "force_features": "Offer presets, scoreboard, countdown and stopwatch anyway"
+          "force_features": "Offer presets, scoreboard, countdown and stopwatch anyway",
+          "password": "Password (only for a panel locked from the vendor app)"
         }
       }
     }

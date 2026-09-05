@@ -77,6 +77,14 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:feature-search",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    # A locked panel accepts a connection and then quietly ignores everything
+    # sent to it, which is otherwise very hard to tell from a broken one.
+    SensorEntityDescription(
+        key="lock_state",
+        name="Password protection",
+        icon="mdi:lock",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 ]
 
 # These come from the advertisement, so they are known whether or not a link
@@ -85,7 +93,7 @@ ADVERTISED_KEYS = frozenset({"cidpid", "brand"})
 
 # Resolved from the panel model rather than read from it, so it needs no
 # connection either.
-DERIVED_KEYS = frozenset({"features"})
+DERIVED_KEYS = frozenset({"features", "lock_state"})
 
 
 async def async_setup_entry(
@@ -141,6 +149,19 @@ class BleLedPixelSensor(SensorEntity):
     async def async_update(self) -> None:
         """Update the sensor state."""
         try:
+            if self.entity_description.key == "lock_state":
+                locked = self._api.is_locked
+                if locked is None:
+                    self._attr_native_value = "unknown"
+                elif not locked:
+                    self._attr_native_value = "none"
+                elif self._api.password:
+                    self._attr_native_value = "locked, password set"
+                else:
+                    self._attr_native_value = "locked, no password set"
+                self._available = True
+                return
+
             if self.entity_description.key in DERIVED_KEYS:
                 features = sorted(self._api.features)
                 self._attr_native_value = ", ".join(features) if features else "none"

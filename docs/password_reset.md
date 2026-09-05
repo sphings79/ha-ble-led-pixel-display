@@ -7,11 +7,18 @@ connection attempt fails — and nothing in the error says why.
 The reset needs no app and no tools. It is done entirely through the power
 switch.
 
+If you still know the password, you do not need any of this: put it into the
+integration options and it is sent automatically after every connect. See
+[the README](../README.md#password-protected-panels).
+
 ## Is a password even set?
 
-The device info the panel returns carries a `password_flag`. The integration
-reads it, and `255` means no password is set. You will see it in the debug log
-when the device info is queried:
+Look at the **Password protection** diagnostic sensor on the device. It reads
+`none`, `locked, password set`, or `locked, no password set`.
+
+Under the hood that is byte 10 of the device-info response, which the vendor
+app treats as `1` for protected. The same value appears as `password_flag` in
+the debug log:
 
 ```yaml
 logger:
@@ -19,9 +26,14 @@ logger:
     custom_components.ble_led_pixel: debug
 ```
 
-Look for the `Parsed device info` line. If `password_flag` is `255`, a password
-is not your problem — check the [troubleshooting section](../README.md#troubleshooting)
+Look for the `Parsed device info` line. A `password_flag` of `0` means no
+password — check the [troubleshooting section](../README.md#troubleshooting)
 instead.
+
+> **Note:** a `password_flag` of `255` does not mean "no password". It is the
+> value pypixelcolor substitutes when the response was too short to contain
+> the flag at all, so it means "not reported". Earlier versions of this page
+> said otherwise.
 
 ## The reset
 
@@ -54,3 +66,10 @@ The procedure is documented in the manual shipped with these panels, which is
 the same across brands — unsurprising, since they are white-label goods from
 one manufacturer. See the [supported devices section](../README.md#supported-devices)
 for what that means in practice.
+
+It is worth being clear about what is *not* confirmed. The reset happens in
+the panel's firmware, so the vendor app plays no part in it and cannot
+corroborate the details. The app's own text for a forgotten password reads
+only "If you forget your password, reset your device" — it names no procedure
+and no number of power cycles. The five cycles and the timing come from the
+printed manual alone, and the count may well differ between models.

@@ -26,6 +26,9 @@ OPT_PANEL_HEIGHT = "panel_height"
 # Turns on the presets, scoreboard, countdown and stopwatch actions for a
 # panel the feature table does not know. See capabilities.py.
 OPT_FORCE_FEATURES = "force_features"
+# Password for a panel that was locked from the vendor app. Sent after
+# every connect, because the panel forgets it when the link drops.
+OPT_PASSWORD = "password"
 
 # Update interval
 SCAN_INTERVAL = 30

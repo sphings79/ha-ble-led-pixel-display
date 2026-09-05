@@ -14,7 +14,8 @@
           "override_dimensions": "Panelmaße überschreiben",
           "panel_width": "Breite in Pixeln (0 = Angabe der Firmware verwenden)",
           "panel_height": "Höhe in Pixeln (0 = Angabe der Firmware verwenden)",
-          "force_features": "Presets, Anzeigetafel, Countdown und Stoppuhr trotzdem anbieten"
+          "force_features": "Presets, Anzeigetafel, Countdown und Stoppuhr trotzdem anbieten",
+          "password": "Passwort (nur für ein in der Hersteller-App gesperrtes Panel)"
         }
       }
     }
