@@ -32,9 +32,11 @@ _LOGGER = logging.getLogger(__name__)
 # "TR\0r" -- marks the vendor's payload inside the advertisement.
 SIGNATURE = bytes([0x54, 0x52, 0x00, 0x72])
 
-# 0x5452, the company id the app matches on for panels that do not use the
-# LED_BLE name.
-COMPANY_ID = 21586
+# The app matches company id 0x5452 ("TR"). Home Assistant reports the same
+# field byte-swapped, as 0x5254, because it reads the id little-endian per the
+# BLE spec. Accept both rather than depend on which way round a given stack
+# hands it over.
+COMPANY_IDS = (0x5452, 0x5254)
 
 # cidpid prefixes to brand, from http://app.heaton.cn/homeConfig.json
 BRANDS: dict[str, str] = {
@@ -49,6 +51,7 @@ class PanelIdentity(NamedTuple):
     cid: str | None
     pid: str | None
     around: int | None
+    device_type: int | None = None
 
     @property
     def cidpid(self) -> str | None:
@@ -92,7 +95,7 @@ def parse_identity(manufacturer_data: dict[int, bytes] | None) -> PanelIdentity:
         callers can carry on without the identity rather than get a guess.
     """
     if not manufacturer_data:
-        return PanelIdentity(None, None, None)
+        return PanelIdentity(None, None, None, None)
 
     for company_id, payload in manufacturer_data.items():
         # Preferred: locate the signature rather than assume an offset, since
@@ -107,19 +110,27 @@ def parse_identity(manufacturer_data: dict[int, bytes] | None) -> PanelIdentity:
                 )
                 return identity
 
-        # Fallback: the layout the app uses when the signature sits in the
-        # company id itself, with the payload starting at 'r'.
-        if company_id == COMPANY_ID and len(payload) > 3 and payload[0] == 0x72:
-            b_cid_hi, b_cid_lo, b_pid = payload[1], payload[2], payload[3]
+        # Real panels put the signature in the company id and start the
+        # payload one byte in, with 0x72 ('r') as the marker:
+        #
+        #   00 72 00 07 02 00 81
+        #      \  \___/  \  \  \__ device type
+        #       \    \    \  \____ around
+        #        \    \    \______ pid
+        #         \    \__________ cid, two bytes rendered decimal
+        #          \______________ marker
+        if company_id in COMPANY_IDS and len(payload) > 4 and payload[1] == 0x72:
+            b_cid_hi, b_cid_lo, b_pid = payload[2], payload[3], payload[4]
             cid = f"{b_cid_hi}{b_cid_lo}".rjust(4, "0")[-4:]
             width = 3 if b_pid >= 100 else 2
             identity = PanelIdentity(
                 cid=cid,
                 pid=str(b_pid).rjust(width, "0")[-width:],
-                around=payload[4] if len(payload) > 4 else None,
+                around=payload[5] if len(payload) > 5 else None,
+                device_type=payload[6] if len(payload) > 6 else None,
             )
-            _LOGGER.debug("Identity from company id layout: cid=%s pid=%s",
-                          identity.cid, identity.pid)
+            _LOGGER.debug("Identity from advertisement: cid=%s pid=%s device_type=%s",
+                          identity.cid, identity.pid, identity.device_type)
             return identity
 
     _LOGGER.debug(
@@ -127,4 +138,4 @@ def parse_identity(manufacturer_data: dict[int, bytes] | None) -> PanelIdentity:
         "Please report this along with your panel's model name.",
         {f"0x{cid:04X}": data.hex() for cid, data in manufacturer_data.items()},
     )
-    return PanelIdentity(None, None, None)
+    return PanelIdentity(None, None, None, None)

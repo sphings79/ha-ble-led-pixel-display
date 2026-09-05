@@ -106,6 +106,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Showing an empty slot makes the panel cycle through the slots that do hold
   something.
 
+## [1.3.1] - 2026-09-05
+
+### Fixed
+
+- **Product ID and Brand stayed empty.** Two wrong assumptions: Home Assistant
+  reports the company id byte-swapped compared to the vendor app (`0x5254`
+  against `0x5452`, because it reads the field little-endian per the BLE spec),
+  and the `TR` signature lives in the company id rather than in the payload,
+  which starts one byte further in. Verified against a real panel:
+  `{0x5254: 00720007020081}` resolves to cid 0007, pid 02, device type 129.
+- The advertisement also carries the **device type**, so it is now available
+  before a connection is made rather than only after the device-info query.
+
 ## [Unreleased]
 
 ### Added
