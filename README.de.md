@@ -66,6 +66,21 @@ Jedes Panel, das sich als `LED_BLE_*` mit der Service-UUID `0000fa01-0000-1000-8
 
 Die Auflösung wird vom Gerät selbst gemeldet, üblich ist 64×16. Meldet dein Panel falsche Maße, siehe [Fehlersuche](#fehlersuche).
 
+### Dein Panel steht nicht in der Liste?
+
+Es funktioniert trotzdem. Die Geometrie kommt vom **Gerätetyp**, nicht von der Marke — ein unbekanntes Panel verhält sich also genau wie ein bekanntes, lediglich das Herstellerfeld in der Geräteverwaltung bleibt leer.
+
+Zwei Diagnose-Sensoren sagen dir, was du melden kannst:
+
+| Sensor | Bedeutung |
+| --- | --- |
+| **Product ID** | Die Kennung, die das Panel aussendet, z. B. `000702` |
+| **Device Type** | Bestimmt die Auflösung |
+
+Die Integration schreibt beim ersten Erkennen einer unbekannten Kennung außerdem eine Warnung ins Protokoll. [Melde ein Issue](https://github.com/sphings79/ha-ble-led-pixel-display/issues) mit beiden Werten und der Bezeichnung auf der Verpackung, dann wird es aufgenommen.
+
+Die Markentabelle hat zwei unterschiedlich belastbare Quellen: Der Bereich `0025` stammt aus der Konfiguration des Herstellers, `000702` wurde dagegen an echter Hardware ermittelt. Alles andere ist wirklich unbekannt und nicht etwa bewusst weggelassen.
+
 ## Aktionen
 
 <img src="assets/actions.svg" alt="Die fünf Aktionen der Integration: send_text für gerätegerenderten Lauftext, send_image_file für Bilder und animierte GIFs, send_mdi_icon für Material Design Icons, send_layout zum Kombinieren von bis zu vier Icons, einem Bild und vier Textbereichen, sowie send_test_pattern zur Prüfung von Größe und Farbreihenfolge" width="100%">

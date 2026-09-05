@@ -8,11 +8,11 @@ from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import update_panel_display
 
@@ -60,13 +60,7 @@ class BleLedPixelSwitch(SwitchEntity):
         self._available = True
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     @property
     def is_on(self) -> bool:
@@ -160,13 +154,7 @@ class BleLedPixelAntialiasingSwitch(SwitchEntity, RestoreEntity):
         self._is_on = True  # Default to antialiasing enabled
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -222,13 +210,7 @@ class BleLedPixelAutoUpdateSwitch(SwitchEntity, RestoreEntity):
         self._is_on = False  # Default to manual updates only
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -286,13 +268,7 @@ class BleLedPixelClock24HSwitch(SwitchEntity, RestoreEntity):
         self._is_on = True  # Default to 24h format
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -370,13 +346,7 @@ class BleLedPixelClockShowDateSwitch(SwitchEntity, RestoreEntity):
         self._is_on = True  # Default to showing date
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""

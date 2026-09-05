@@ -322,6 +322,20 @@ class BleLedPixelAPI:
             return
         if entry.data.get("cid") == identity.cid and entry.data.get("pid") == identity.pid:
             return
+
+        # Logged once, when an identity is first seen or changes. The panel
+        # works either way -- dimensions come from the device type, not the
+        # brand -- but the manufacturer field stays blank until the id is known.
+        if identity.brand is None and identity.cidpid is not None:
+            _LOGGER.warning(
+                "Panel %s reports product id %s, which is not in the brand "
+                "table. Everything works, only the manufacturer stays unset. "
+                "Please open an issue with this id and the brand printed on "
+                "the packaging so it can be added: "
+                "https://github.com/sphings79/ha-ble-led-pixel-display/issues",
+                self._address, identity.cidpid,
+            )
+
         try:
             self._hass.config_entries.async_update_entry(
                 entry,

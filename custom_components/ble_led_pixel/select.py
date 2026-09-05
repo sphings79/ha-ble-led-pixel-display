@@ -10,11 +10,11 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, AVAILABLE_MODES, DEFAULT_MODE
+from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import update_panel_display
 from .fonts import get_available_fonts
@@ -66,13 +66,7 @@ class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
         self._attr_current_option = "OpenSans-Light.ttf" if "OpenSans-Light.ttf" in self._attr_options else self._attr_options[0]
         
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -146,13 +140,7 @@ class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
         self._attr_current_option = DEFAULT_MODE
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -226,13 +214,7 @@ class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
         self._attr_current_option = "1"  # Default style
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""

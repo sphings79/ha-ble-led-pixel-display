@@ -9,12 +9,12 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError
 from .fonts import resolve_font_for_library
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import resolve_template_variables, update_panel_display
 
@@ -72,13 +72,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         self._color_bg = (0, 0, 0)  # Black background
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""

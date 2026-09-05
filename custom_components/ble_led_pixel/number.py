@@ -8,11 +8,11 @@ from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,13 +67,7 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
         self._attr_entity_description = "Font size in pixels (0 = auto-sizing, supports decimals)"
         
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -140,13 +134,7 @@ class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
         self._attr_entity_description = "Extra spacing between lines in pixels (for multiline text)"
         
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -210,13 +198,7 @@ class BleLedPixelBrightness(NumberEntity, RestoreEntity):
         self._attr_entity_description = "Display brightness level (1-100)"
         
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -292,13 +274,7 @@ class BleLedPixelTextAnimation(NumberEntity, RestoreEntity):
         self._attr_unique_id = f"{address}_text_animation"
         self._attr_native_value = 0  # Default to no animation
 
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -373,13 +349,7 @@ class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
         self._attr_unique_id = f"{address}_text_speed"
         self._attr_native_value = 80  # Default speed
 
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
@@ -454,13 +424,7 @@ class BleLedPixelTextRainbow(NumberEntity, RestoreEntity):
         self._attr_unique_id = f"{address}_text_rainbow"
         self._attr_native_value = 0  # Default to no rainbow
 
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""

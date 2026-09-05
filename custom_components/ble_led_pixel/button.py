@@ -8,10 +8,10 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.entity import DeviceInfo
 
 from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .entity import panel_device_info
 from .common import update_panel_display
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,13 +58,7 @@ class BleLedPixelUpdateButton(ButtonEntity):
         self._attr_entity_description = "Manually update display with current text and settings"
         
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_press(self) -> None:
         """Handle button press to update display."""
@@ -101,13 +95,7 @@ class BleLedPixelSyncTimeButton(ButtonEntity):
         self._attr_entity_description = "Sync current time to device clock"
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_press(self) -> None:
         """Handle button press to sync time."""

@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING
 from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 if TYPE_CHECKING:
     from .api import BleLedPixelAPI
 
 from .const import DOMAIN
+from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id, rgb_to_hex
 
 _LOGGER = logging.getLogger(__name__)
@@ -92,13 +92,7 @@ class BleLedPixelColorBase(TextEntity, RestoreEntity):
         self._current_value = self._default_color
 
         # Device info for grouping in device registry
-        self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, address)},
-            name=name,
-            manufacturer="LED_BLE",
-            model="LED Pixel Panel",
-            sw_version="1.0",
-        )
+        self._attr_device_info = panel_device_info(api, address, name)
 
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
