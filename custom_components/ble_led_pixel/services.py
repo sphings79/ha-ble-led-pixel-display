@@ -66,6 +66,26 @@ def async_setup_services(hass: HomeAssistant) -> None:
     service.async_register_platform_entity_service(
         hass,
         DOMAIN,
+        "show_emoji",
+        entity_domain=Platform.TEXT,
+        schema={
+            vol.Required("emoji"): vol.All(cv.string, vol.Length(min=1)),
+            vol.Optional("bg_color", default=[0, 0, 0]): vol.All(
+                vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)
+            ),
+            vol.Optional("width", default=None): vol.Any(
+                None, vol.All(vol.Coerce(int), vol.Range(min=1, max=512))
+            ),
+            vol.Optional("height", default=None): vol.Any(
+                None, vol.All(vol.Coerce(int), vol.Range(min=1, max=512))
+            ),
+        },
+        func="async_show_emoji",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
         "send_mdi_icon",
         entity_domain=Platform.TEXT,
         schema={

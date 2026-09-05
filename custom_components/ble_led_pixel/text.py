@@ -347,6 +347,34 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             _LOGGER.error("Failed to send image file '%s'", file_path)
             raise HomeAssistantError(f"Failed to send image file '{file_path}' - check the logs for details")
 
+    async def async_show_emoji(
+        self,
+        emoji: str,
+        bg_color: tuple[int, int, int] = (0, 0, 0),
+        width: int | None = None,
+        height: int | None = None,
+    ) -> None:
+        """Render and display an emoji as a Twemoji graphic (action: show_emoji).
+
+        Args:
+            emoji: Emoji character or sequence, e.g. '\N{BELL}'.
+            bg_color: Canvas background color as an (R, G, B) tuple.
+            width: Optional canvas width override, when the firmware reports
+                the panel size incorrectly.
+            height: Optional canvas height override.
+        """
+        bg_color_hex = "".join(f"{c:02x}" for c in bg_color)
+
+        success = await self._api.display_emoji(
+            emoji,
+            bg_color=bg_color_hex,
+            width_override=width,
+            height_override=height,
+        )
+        if not success:
+            _LOGGER.error("Failed to show emoji '%s'", emoji)
+            raise HomeAssistantError(f"Failed to show emoji '{emoji}' - check the logs for details")
+
     async def async_update(self) -> None:
         """Update the entity state."""
         try:

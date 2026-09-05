@@ -5,8 +5,9 @@ show_emoji:
     once from the Twemoji CDN, cached locally, and rendered at the device
     dimensions. Useful for HA notifications (doorbell, alerts, etc.).
   target:
-    device:
+    entity:
       integration: ble_led_pixel
+      domain: text
   fields:
     emoji:
       name: Emoji
