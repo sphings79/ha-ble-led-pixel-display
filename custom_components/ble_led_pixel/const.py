@@ -56,3 +56,28 @@ REDISCOVERY_ATTEMPTS = 3      # lookups after asking HA to re-scan the address
 REDISCOVERY_DELAY = 2.0       # seconds between those lookups
 RECONNECT_BACKOFF_START = 5   # seconds before the first retry
 RECONNECT_BACKOFF_MAX = 30    # seconds; the backoff doubles up to this cap
+
+
+# Text effects, by the names the vendor's own tooling uses.
+#
+# Codes 3 and 4 are deliberately absent. pypixelcolor refuses them on anything
+# but a 32x32 panel because they can put a device into a boot loop, and no
+# source names them -- offering an unnamed option that bricks some panels is
+# not worth the two extra entries.
+#
+# The range runs to 8, not 7: every table reconstructed from captured traffic
+# stopped one short, so the Laser effect was unreachable until it turned up in
+# Bk-Light-AppBypass and was confirmed against the vendor app.
+TEXT_EFFECTS: dict[str, int] = {
+    "Fixed": 0,
+    "Scroll left": 1,
+    "Scroll right": 2,
+    "Blinking": 5,
+    "Breathing": 6,
+    "Snowflake": 7,
+    "Laser": 8,
+}
+
+TEXT_EFFECT_CODES: dict[int, str] = {code: name for name, code in TEXT_EFFECTS.items()}
+
+DEFAULT_TEXT_EFFECT = "Fixed"

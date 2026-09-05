@@ -168,6 +168,16 @@ That is eight on most panels, nine on a 32×32, ten on a 32×16 and six on a
 144×16. The vendor app presents these as preview images and gives them no
 names, so they stay numbered here.
 
+### Choosing the text effect
+
+The panel animates text seven ways. Pick one with the **Text Effect** entity —
+Fixed, Scroll left, Scroll right, Blinking, Breathing, Snowflake or Laser — and
+it applies the next time the display refreshes.
+
+Codes 3 and 4 exist but are not offered. `pypixelcolor` refuses them on
+anything but a 32×32 panel because they can put a device into a boot loop, and
+no source names them.
+
 ## Installation
 
 ### HACS (recommended)

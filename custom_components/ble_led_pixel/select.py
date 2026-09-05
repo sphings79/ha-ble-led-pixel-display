@@ -13,7 +13,15 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI
-from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, AVAILABLE_MODES, DEFAULT_MODE
+from .const import (
+    AVAILABLE_MODES,
+    CONF_ADDRESS,
+    CONF_NAME,
+    DEFAULT_MODE,
+    DEFAULT_TEXT_EFFECT,
+    DOMAIN,
+    TEXT_EFFECTS,
+)
 from .device_types import clock_style_count
 from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
@@ -38,6 +46,7 @@ async def async_setup_entry(
         BleLedPixelFontSelect(hass, api, entry, address, name),
         BleLedPixelModeSelect(hass, api, entry, address, name),
         BleLedPixelClockStyleSelect(hass, api, entry, address, name),
+        BleLedPixelTextEffectSelect(hass, api, entry, address, name),
     ])
 
 
@@ -272,3 +281,93 @@ class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
     def available(self) -> bool:
         """Return True if entity is available."""
         return True
+
+class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
+    """How the panel animates text written to the text entity.
+
+    The effect is a property of the text command, so it is picked here and
+    applied the next time the display is refreshed - it is not a command of
+    its own.
+    """
+
+    _attr_icon = "mdi:animation"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: BleLedPixelAPI,
+        entry: ConfigEntry,
+        address: str,
+        name: str,
+    ) -> None:
+        """Initialize the text effect select."""
+        self.hass = hass
+        self._api = api
+        self._entry = entry
+        self._address = address
+        self._name = name
+
+        self._attr_name = "Text Effect"
+        self._attr_unique_id = f"{address}_text_effect_select"
+        self._attr_entity_description = "How text is animated on the panel"
+        self._attr_options = list(TEXT_EFFECTS)
+        self._attr_current_option = DEFAULT_TEXT_EFFECT
+
+        self._attr_device_info = panel_device_info(api, address, name)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the previous selection."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is None:
+            return
+        if last_state.state in self._attr_options:
+            self._attr_current_option = last_state.state
+            _LOGGER.debug("Restored text effect: %s", self._attr_current_option)
+            return
+        # Migrating from the old number entity, which stored a bare code.
+        try:
+            code = int(float(last_state.state))
+        except (TypeError, ValueError):
+            return
+        for name, value in TEXT_EFFECTS.items():
+            if value == code:
+                self._attr_current_option = name
+                _LOGGER.debug("Migrated text effect %s to %s", code, name)
+                return
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the selected effect."""
+        return self._attr_current_option
+
+    async def async_select_option(self, option: str) -> None:
+        """Select an effect and refresh the display if it is showing text."""
+        if option not in self._attr_options:
+            _LOGGER.error("Unknown text effect: %s", option)
+            return
+        self._attr_current_option = option
+        _LOGGER.info("Text effect changed to: %s", option)
+        await self._trigger_auto_update()
+
+    async def _trigger_auto_update(self) -> None:
+        """Refresh the panel when auto-update is on and it is showing text."""
+        try:
+            from .common import update_panel_display
+
+            mode_entity_id = get_entity_id_by_unique_id(
+                self.hass, self._address, "mode_select", "select"
+            )
+            mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
+            if not mode_state or mode_state.state != "text":
+                return
+
+            auto_entity_id = get_entity_id_by_unique_id(
+                self.hass, self._address, "auto_update", "switch"
+            )
+            auto_state = self.hass.states.get(auto_entity_id) if auto_entity_id else None
+            if auto_state and auto_state.state == "on":
+                await update_panel_display(self.hass, self._name, self._api)
+                _LOGGER.debug("Auto-update refreshed the display for the new effect")
+        except Exception as err:  # noqa: BLE001 - a refresh must not break the select
+            _LOGGER.debug("Could not refresh after the effect change: %s", err)

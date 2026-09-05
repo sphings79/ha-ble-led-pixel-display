@@ -1218,7 +1218,9 @@ class BleLedPixelAPI:
             bg_color: Background color in hex format (e.g., '000000'), or None for transparent
             font: Font name or file path. Resolved through fonts.py, so the
                 library never sees one of its own volatile built-in names.
-            animation: Animation type (0-7)
+            animation: Effect code. See TEXT_EFFECTS in const.py for the
+                names; 3 and 4 are omitted because pypixelcolor rejects
+                them on anything but a 32x32 panel.
             speed: Animation speed (0-100)
             rainbow_mode: Rainbow mode (0-9)
             font_size: Font size (16, 32, 48, 64) defaults to 16

@@ -196,7 +196,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
             font: Font name or filename. Resolved against the integration's
                 fonts/ folder, the pypixelcolor package and system font
                 paths, and handed to the library as an absolute path.
-            animation: Animation type (0-7). Note: pypixelcolor itself rejects
+            animation: Effect code, 0-8. Note: pypixelcolor itself rejects
                 3 and 4 on panels that aren't 32x32, to avoid a device bootloop.
             speed: Animation speed (0-100).
             rainbow_mode: Rainbow color-cycling mode (0-9).

@@ -6,7 +6,14 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.template import Template
 from homeassistant.helpers import entity_registry as er
 from .fonts import resolve_font_for_library
-from .const import MODE_TEXT_IMAGE, MODE_TEXT, MODE_CLOCK, DOMAIN
+from .const import (
+    DEFAULT_TEXT_EFFECT,
+    DOMAIN,
+    MODE_CLOCK,
+    MODE_TEXT,
+    MODE_TEXT_IMAGE,
+    TEXT_EFFECTS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -301,10 +308,13 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
                 color = "010000"
         _LOGGER.debug("Text mode - text color: #%s", color)
 
-        # Animation - need new number entity
-        animation = await _get_entity_setting(hass, device_name, "number", "text_animation", int, api._address)
-        if animation is None:
-            animation = 0  # Default to no animation
+        # Text effect, chosen by name in the select entity. The panel wants a
+        # code, and the two are mapped here rather than in the entity so an
+        # unknown or stale selection cannot reach the wire.
+        effect_name = await _get_entity_setting(
+            hass, device_name, "select", "text_effect_select", str, api._address
+        )
+        animation = TEXT_EFFECTS.get(effect_name, TEXT_EFFECTS[DEFAULT_TEXT_EFFECT])
 
         # Speed - need new number entity
         speed = await _get_entity_setting(hass, device_name, "number", "text_speed", int, api._address)

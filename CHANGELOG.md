@@ -127,6 +127,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.0.0] - 2026-09-05
+
+### Breaking
+
+- **`number.<panel>_text_animation` is gone, replaced by
+  `select.<panel>_text_effect`.** The effect was only ever settable as a bare
+  number with no indication of what any of the codes did. It is now a named
+  choice: Fixed, Scroll left, Scroll right, Blinking, Breathing, Snowflake,
+  Laser. The new entity migrates an existing numeric selection on first start,
+  but **automations and scripts that set the old number entity need updating**
+  to select the effect by name.
+
+### Added
+
+- The effect list now includes **Laser** (code 8), which was unreachable while
+  the entity capped at 7.
+
 ## [1.6.0] - 2026-09-05
 
 ### Added

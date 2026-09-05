@@ -171,6 +171,16 @@ tatsächlich hat: acht bei den meisten, neun bei einem 32×32, zehn bei einem
 32×16 und sechs bei einem 144×16. Die Hersteller-App zeigt dafür Vorschaubilder
 und vergibt keine Namen, deshalb bleiben sie hier nummeriert.
 
+### Texteffekt auswählen
+
+Das Panel animiert Text auf sieben Arten. Ausgewählt wird der Effekt über die
+Entität **Text Effect** — Fixed, Scroll left, Scroll right, Blinking, Breathing,
+Snowflake oder Laser — und er greift bei der nächsten Aktualisierung.
+
+Die Codes 3 und 4 gibt es, sie werden aber nicht angeboten: `pypixelcolor`
+verweigert sie auf allem außer einem 32×32-Panel, weil sie ein Gerät in eine
+Boot-Schleife bringen können, und keine Quelle benennt sie.
+
 ## Installation
 
 ### HACS (empfohlen)
