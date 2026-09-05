@@ -119,6 +119,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The advertisement also carries the **device type**, so it is now available
   before a connection is made rather than only after the device-info query.
 
+## [1.3.2] - 2026-09-05
+
+### Added
+
+- **B.K. Light recognised as a brand.** cidpid `000702` is the "LED pixel
+  board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
+  grouping does not list the `0007` group at all, so this came from hardware.
+
 ## [Unreleased]
 
 ### Added

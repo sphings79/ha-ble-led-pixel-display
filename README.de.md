@@ -52,7 +52,9 @@ Jedes Panel, das sich als `LED_BLE_*` mit der Service-UUID `0000fa01-0000-1000-8
 
 | Marke | Anmerkung |
 | --- | --- |
-| **B.K. Light LED Pixel Board** | Bei Action erhältlich, in Europa am weitesten verbreitet |
+| **B.K. Light** | Bei Action: „LED pixel board" 13×13 cm (32×32) und „LED fun screen" 37×9 cm (64×16). Produkt-ID `000702`. |
+| **HYPERLITE** | Produkt-IDs `002501`–`002509`, `002513`, `002514` |
+| **EZYEVY** | Produkt-IDs `002510`–`002512` |
 | **BGLight** | Gleiches Protokoll |
 | Generische „iPixel Color"-Panels | Alles, wo die Hersteller-App iPixel Color heißt |
 

@@ -38,10 +38,14 @@ SIGNATURE = bytes([0x54, 0x52, 0x00, 0x72])
 # hands it over.
 COMPANY_IDS = (0x5452, 0x5254)
 
-# cidpid prefixes to brand, from http://app.heaton.cn/homeConfig.json
+# cidpid to brand. The 0025 group comes from the vendor's own grouping in
+# http://app.heaton.cn/homeConfig.json; the 0007 group is not listed there and
+# was identified from hardware -- B.K. Light panels sold by Action.
 BRANDS: dict[str, str] = {
     **{f"0025{n:02d}": "HYPERLITE" for n in (1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 14)},
     **{f"0025{n:02d}": "EZYEVY" for n in (10, 11, 12)},
+    # Confirmed: "LED pixel board", 13x13 cm, 32x32 pixels
+    "000702": "B.K. Light",
 }
 
 
