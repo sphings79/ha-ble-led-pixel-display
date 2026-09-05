@@ -1,7 +1,7 @@
 {
-  "name": "iPIXEL Color",
+  "name": "BLE LED Pixel Display",
   "zip_release": false,
-  "hide_default_branch": false,
+  "hide_default_branch": true,
   "homeassistant": "2024.1.0",
   "hacs": "1.32.0"
 }

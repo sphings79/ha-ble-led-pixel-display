@@ -3,7 +3,7 @@ display_text:
   description: Display text on the iPIXEL device with custom effects and colors
   target:
     entity:
-      integration: ipixel_color
+      integration: ble_led_pixel
       domain: text
   fields:
     text:
@@ -58,7 +58,7 @@ send_mdi_icon:
   description: Renders a Home Assistant MDI icon (fetched from @mdi/svg) and displays it on the iPIXEL panel.
   target:
     entity:
-      integration: ipixel_color
+      integration: ble_led_pixel
       domain: text
   fields:
     icon:
@@ -112,7 +112,7 @@ send_text:
     automations and scripts.
   target:
     entity:
-      integration: ipixel_color
+      integration: ble_led_pixel
       domain: text
   fields:
     text:
@@ -187,7 +187,7 @@ send_test_pattern:
     chiarita la mappatura.
   target:
     entity:
-      integration: ipixel_color
+      integration: ble_led_pixel
       domain: text
 
 send_layout:
@@ -198,7 +198,7 @@ send_layout:
     invia come un'unica immagine al pannello.
   target:
     entity:
-      integration: ipixel_color
+      integration: ble_led_pixel
       domain: text
   fields:
     icon:
@@ -527,7 +527,7 @@ send_image_file:
     animate, inviate così come sono), JPEG, BMP, TIFF, WEBP, HEIC/HEIF.
   target:
     entity:
-      integration: ipixel_color
+      integration: ble_led_pixel
       domain: text
   fields:
     file_path:

@@ -1,9 +1,17 @@
-# iPIXEL Color - Home Assistant Integration
+# BLE LED Pixel Display - Home Assistant Integration
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A4747U9)
+A Home Assistant custom integration for BLE LED pixel matrix displays that speak the
+iPIXEL Color protocol. These panels are sold under several brands - BGLight, and as the
+B.K. Light LED Pixel Board from Action - and advertise themselves as `LED_BLE_*` with
+service UUID `0000fa01-0000-1000-8000-00805f9b34fb`.
 
-A Home Assistant custom integration for iPIXEL Color LED matrix displays via Bluetooth.
-These displays have been recently available as B.K. Light LED Pixel Board from Action and thus get increasing popularity.
+> **This is a fork.** It continues [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color)
+> by Christian Grund, which has seen no commits since December 2025, and includes the
+> image/MDI-icon work from [tigers75/ha-ipixel-color](https://github.com/tigers75/ha-ipixel-color).
+> Licensed under GPL-3.0, like the original.
+>
+> **The integration domain is `ble_led_pixel`,** not `ipixel_color`. Both can therefore be
+> installed side by side, which makes migrating one device at a time possible.
 
 ## Features
 
@@ -29,16 +37,16 @@ These displays have been recently available as B.K. Light LED Pixel Board from A
 1. Open HACS in Home Assistant
 2. Click on the three dots in the top right corner
 3. Select **Custom repositories**
-4. Add the repository URL: `https://github.com/cagcoach/ha-ipixel-color`
+4. Add the repository URL: `https://github.com/sphings79/ha-ble-led-pixel-display`
 5. Select **Integration** as the category
 6. Click **Add**
-7. Search for "iPIXEL Color" in HACS and install it
+7. Search for "BLE LED Pixel Display" in HACS and install it
 8. Restart Home Assistant
 9. Add the integration via Settings → Devices & Services → Add Integration
 
 ### Manual Installation
 
-1. Copy `custom_components/ipixel_color` to your HA `custom_components` directory
+1. Copy `custom_components/ble_led_pixel` to your HA `custom_components` directory
 2. Restart Home Assistant
 3. Add integration via Settings → Devices & Services → Add Integration
 
@@ -115,7 +123,7 @@ Temp: {{ states('sensor.temperature') | round(1) }}°C
 
 ## Services (MDI Icons, Custom Layouts, Direct Text)
 
-These are `ipixel_color.*` actions, callable from Developer Tools → Actions or from any
+These are `ble_led_pixel.*` actions, callable from Developer Tools → Actions or from any
 automation/script. Unlike the `text.{device}_display` entity above (tied to the mode/color/font
 entities and auto-update), these render and send an image directly, independent of the
 panel's currently selected mode.
@@ -130,13 +138,13 @@ panel's currently selected mode.
 > auto-update, they don't re-render on their own when the underlying sensor changes - trigger
 > the automation again (e.g. on the sensor's `state_changed`) to refresh the panel.
 
-### `ipixel_color.send_mdi_icon`
+### `ble_led_pixel.send_mdi_icon`
 
 Renders any [Material Design Icon](https://pictogrammers.com/library/mdi/) (fetched on
 demand, no need to pre-install anything) and shows it centered on the panel.
 
 ```yaml
-action: ipixel_color.send_mdi_icon
+action: ble_led_pixel.send_mdi_icon
 target:
   entity_id: text.living_room_display
 data:
@@ -147,14 +155,14 @@ data:
   save_slot: 0        # 0 = don't save, >=1 = save to that device memory slot
 ```
 
-### `ipixel_color.send_text`
+### `ble_led_pixel.send_text`
 
 Sends text using pypixelcolor's native renderer (device-side animation/scroll), with its own
 parameters each call - independent of the panel's currently selected text/effect/colors, so
 it's safe to call from automations without disturbing manual use of the panel.
 
 ```yaml
-action: ipixel_color.send_text
+action: ble_led_pixel.send_text
 target:
   entity_id: text.living_room_display
 data:
@@ -167,7 +175,7 @@ data:
   rainbow_mode: 0         # 0-9, 0 = disabled
 ```
 
-### `ipixel_color.send_layout`
+### `ble_led_pixel.send_layout`
 
 Composes up to 4 independent MDI icons, a static image/GIF-first-frame, and/or up to 4
 independent text elements - each positioned by its own top-left (x, y) corner in pixels -
@@ -177,7 +185,7 @@ to it, several status icons in a row, or several labels stacked with their own s
 **Single icon and single text** - use the flat fields, same as before:
 
 ```yaml
-action: ipixel_color.send_layout
+action: ble_led_pixel.send_layout
 target:
   entity_id: text.living_room_display
 data:
@@ -212,7 +220,7 @@ one of them.
 over the flat fields:
 
 ```yaml
-action: ipixel_color.send_layout
+action: ble_led_pixel.send_layout
 target:
   entity_id: text.living_room_display
 data:
@@ -263,7 +271,7 @@ scrolling text. Multiple blinking and/or scrolling elements are kept in sync wit
 (same least-common-multiple mechanism as multi-text scrolling, below).
 
 ```yaml
-action: ipixel_color.send_layout
+action: ble_led_pixel.send_layout
 target:
   entity_id: text.living_room_display
 data:
@@ -288,7 +296,7 @@ data:
 (no scrolling):
 
 ```yaml
-action: ipixel_color.send_layout
+action: ble_led_pixel.send_layout
 target:
   entity_id: text.living_room_display
 data:
@@ -321,7 +329,7 @@ least common multiple of their individual cycle lengths, capped to avoid runaway
 counts on awkward combinations).
 
 ```yaml
-action: ipixel_color.send_layout
+action: ble_led_pixel.send_layout
 target:
   entity_id: text.living_room_display
 data:
@@ -334,7 +342,7 @@ data:
   scroll_gap: 16         # blank pixels between the end of one pass and the next
 ```
 
-> **Native vs. composed scrolling:** `ipixel_color.send_text` (below) scrolls text natively
+> **Native vs. composed scrolling:** `ble_led_pixel.send_text` (below) scrolls text natively
 > on the device - lighter and faster, but it always takes over the *entire* panel as a single
 > string; it cannot be combined with an icon, an image, or other text, because the device
 > protocol has no concept of a sub-region. Scrolling text *within* a `send_layout` composition
@@ -355,14 +363,14 @@ data:
 > to load. The BLE ACK timeout for image/GIF sends is already set higher (25s) than
 > pypixelcolor's small-command default (8s) to give the device room to process bigger GIFs.
 
-### `ipixel_color.send_image_file`
+### `ble_led_pixel.send_image_file`
 
 Sends an existing image or GIF file, read from disk, as-is. Supports PNG, GIF (including
 animated GIFs, sent frame-by-frame with their own durations), JPEG, BMP, TIFF, WEBP, and
 HEIC/HEIF. The file must be in a location Home Assistant can read, such as `/config/www/`.
 
 ```yaml
-action: ipixel_color.send_image_file
+action: ble_led_pixel.send_image_file
 target:
   entity_id: text.living_room_display
 data:
@@ -371,14 +379,14 @@ data:
   save_slot: 0
 ```
 
-### `ipixel_color.send_test_pattern`
+### `ble_led_pixel.send_test_pattern`
 
 Diagnostic only: sends a 4-quadrant colored pattern (red/green/blue/yellow) sized to the
 panel, useful for verifying how the device's reported width/height maps onto the physical
 panel when the two don't obviously match.
 
 ```yaml
-action: ipixel_color.send_test_pattern
+action: ble_led_pixel.send_test_pattern
 target:
   entity_id: text.living_room_display
 ```
@@ -398,7 +406,7 @@ target:
 
 ## Troubleshooting
 
-- Enable debug logging: `custom_components.ipixel_color: debug`
+- Enable debug logging: `custom_components.ble_led_pixel: debug`
 - Check auto-update is ON or use manual update button
 - Verify templates in Developer Tools → Template
 - Ensure device is in Bluetooth range
@@ -438,3 +446,9 @@ Special thanks to the authors of [pypixelcolor](https://github.com/lucagoc/pypix
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
+
+## Credits
+
+- Original integration: [Christian Grund (cagcoach)](https://github.com/cagcoach/ha-ipixel-color), GPL-3.0
+- Image, MDI icon and layout support: [tigers75](https://github.com/tigers75/ha-ipixel-color)
+- Protocol library: [lucagoc/pypixelcolor](https://github.com/lucagoc/pypixelcolor), MIT

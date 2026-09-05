@@ -1,6 +1,6 @@
 """Constants for the iPIXEL Color integration."""
 
-DOMAIN = "ipixel_color"
+DOMAIN = "ble_led_pixel"
 DEFAULT_NAME = "iPIXEL Display"
 
 # Bluetooth UUIDs from protocol documentation

@@ -7,9 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Forked** from [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color)
+  (upstream inactive since 2025-12-16) and renamed: domain `ipixel_color` -> `ble_led_pixel`,
+  integration name "iPIXEL Color" -> "BLE LED Pixel Display". The new domain allows running
+  this integration alongside the original one, so devices can be migrated one at a time.
+  All actions are now called `ble_led_pixel.*`.
+- Merged the image, MDI icon and layout work from
+  [tigers75/ha-ipixel-color](https://github.com/tigers75/ha-ipixel-color).
+
 ### Fixed
 
-- All `ipixel_color.*` actions (`send_mdi_icon`, `send_text`, `send_layout`, `send_test_pattern`,
+- **Selected font was silently ignored in text mode.** `_update_text_mode` resolves fonts
+  only against the integration's own `fonts/` folder, while the font selector is populated
+  from that folder *plus* the pypixelcolor package *plus* system font paths. Picking a font
+  that lives outside the integration therefore fell back to `CUSONG` without any notice.
+  `VCR_OSD_MONO` is now shipped with the integration, so selecting it actually applies it.
+- **Pinned `pypixelcolor` to `>=0.4.0,<0.5`.** The requirement was open-ended, and
+  pypixelcolor has since removed the `CUSONG`, `SIMSUN` and `VCR_OSD_MONO` fonts from the
+  package (only `unifont.otf` remains). The first release above 0.4.0 would have pulled
+  those fonts out from under any existing installation.
+
+### Fixed
+
+- All `ble_led_pixel.*` actions (`send_mdi_icon`, `send_text`, `send_layout`, `send_test_pattern`,
   `send_image_file`) are now registered once at integration setup (`async_setup` in
   `__init__.py`, via the new `services.py`) instead of per-config-entry inside `text.py`'s
   `async_setup_entry`, per Home Assistant's own guidance
@@ -36,13 +58,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Bundled a new font, `Lepidos` (3x7 pixel font, CC0/public domain, by SurrealEmber -
   https://surrealember.itch.io/lepidos), designed to be rendered at multiples of 16px for
   crisp, correctly-proportioned glyphs.
-- New service `ipixel_color.send_mdi_icon`: renders any Material Design Icon (fetched on
+- New service `ble_led_pixel.send_mdi_icon`: renders any Material Design Icon (fetched on
   demand from the jsDelivr mirror of `@mdi/svg`, no bundling required) and displays it
   centered on the panel, with configurable color, background color, size, and save slot.
-- New service `ipixel_color.send_text`: sends text via pypixelcolor's native renderer
+- New service `ble_led_pixel.send_text`: sends text via pypixelcolor's native renderer
   (device animation/scroll/speed/rainbow), independent of the `text.{device}_display`
   entity's stored state - safe to call repeatedly from automations.
-- New service `ipixel_color.send_layout`: composes up to 4 independent MDI icons, a static
+- New service `ble_led_pixel.send_layout`: composes up to 4 independent MDI icons, a static
   image/GIF-first-frame, and/or up to 4 independent text elements, each at independent (x, y)
   positions, onto a single canvas:
   - Up to 4 icons can be given via the new `icons` list field (YAML-only); the original flat
@@ -71,7 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     (Home Assistant's own engine renders them before the call); they do not resolve if typed
     literally into the Developer Tools → Actions test field, and these services are one-shot
     (no auto-update on sensor changes) - see the README for details.
-  - Native device-side text scrolling (`ipixel_color.send_text`, below) remains lighter/faster
+  - Native device-side text scrolling (`ble_led_pixel.send_text`, below) remains lighter/faster
     but always takes over the whole panel as a single string - it cannot be combined with an
     icon/image/other text, since the device protocol has no sub-region concept; scrolling
     *within* a layout composition is only achievable via generated GIF frames, which is
@@ -84,10 +106,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     a complex multi-frame GIF (e.g. several simultaneously-scrolling texts) can need more time
     for the device to process before it acknowledges, and would otherwise fail with
     `cur12k_no_answer: no ack from device` even though the transfer itself was fine.
-- New service `ipixel_color.send_image_file`: sends an existing image or GIF file (read from
+- New service `ble_led_pixel.send_image_file`: sends an existing image or GIF file (read from
   disk, e.g. under `/config/www/`) as-is - PNG, GIF (including animated, frame-by-frame with
   original durations), JPEG, BMP, TIFF, WEBP, HEIC/HEIF.
-- New diagnostic service `ipixel_color.send_test_pattern`: sends a 4-quadrant colored test
+- New diagnostic service `ble_led_pixel.send_test_pattern`: sends a 4-quadrant colored test
   image sized to the panel, to help verify how the device's reported width/height maps onto
   the physical panel.
 

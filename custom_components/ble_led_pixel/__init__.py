@@ -24,7 +24,7 @@ PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.TEXT, Platform.SENSOR, Pl
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the iPIXEL Color integration (not tied to any config entry).
 
-    Registers all ipixel_color.* actions here so they exist in Home
+    Registers all ble_led_pixel.* actions here so they exist in Home
     Assistant's service registry immediately at startup - see
     https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/
     """

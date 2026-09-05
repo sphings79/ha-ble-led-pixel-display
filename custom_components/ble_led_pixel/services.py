@@ -61,7 +61,7 @@ TEXT_ITEM_SCHEMA = vol.Schema({
 
 
 def async_setup_services(hass: HomeAssistant) -> None:
-    """Register all ipixel_color.* actions once, at integration setup."""
+    """Register all ble_led_pixel.* actions once, at integration setup."""
 
     service.async_register_platform_entity_service(
         hass,

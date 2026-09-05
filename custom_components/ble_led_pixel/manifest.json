@@ -1,6 +1,6 @@
 {
-  "domain": "ipixel_color",
-  "name": "iPIXEL Color",
+  "domain": "ble_led_pixel",
+  "name": "BLE LED Pixel Display",
   "bluetooth": [
     {
       "local_name": "LED_BLE_*"
@@ -10,24 +10,24 @@
     }
   ],
   "codeowners": [
-    "@cagcoach"
+    "@sphings79"
   ],
   "config_flow": true,
   "dependencies": [
     "bluetooth"
   ],
-  "documentation": "https://github.com/cagcoach/ha-ipixel-color",
+  "documentation": "https://github.com/sphings79/ha-ble-led-pixel-display",
   "integration_type": "device",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/cagcoach/ha-ipixel-color/issues",
+  "issue_tracker": "https://github.com/sphings79/ha-ble-led-pixel-display/issues",
   "loggers": [
-    "custom_components.ipixel_color"
+    "custom_components.ble_led_pixel"
   ],
   "requirements": [
     "bleak>=0.20.0",
     "bleak-retry-connector>=3.5.0",
     "pillow>=10.0.0",
-    "pypixelcolor>=0.4.0",
+    "pypixelcolor>=0.4.0,<0.5",
     "resvg_py>=0.3.0"
   ],
   "version": "0.1.0"
