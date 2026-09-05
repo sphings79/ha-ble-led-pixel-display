@@ -15,7 +15,7 @@ def make_text_command(
     text: str,
     color: str = "ffffff",
     bg_color: Optional[str] = None,
-    font: str = "CUSONG",
+    font: str = "VCR_OSD_MONO",
     animation: int = 0,
     speed: int = 80,
     rainbow_mode: int = 0,
@@ -28,7 +28,8 @@ def make_text_command(
         text: The text to display
         color: Text color in hex format (e.g., 'ffffff')
         bg_color: Background color in hex format (e.g., '000000'), or None for transparent
-        font: Font name ('CUSONG', 'SIMSUN', 'VCR_OSD_MONO') or file path
+        font: Font name or absolute file path. Callers should pass a path
+            resolved through fonts.resolve_font_for_library().
         animation: Animation type (0-7, excluding 3&4 on non-32x32 devices)
         speed: Animation speed (0-100)
         rainbow_mode: Rainbow mode (0-9)

@@ -21,6 +21,7 @@ from .device.commands import (
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_command
 from .device.image import make_image_command
+from .fonts import resolve_font_for_library
 from .device.info import build_device_info_command, parse_device_response
 from .device.mdi_icon import build_mdi_icon_png
 from .device.composer import build_layout_media
@@ -639,7 +640,7 @@ class iPIXELAPI:
         text: str,
         color: str = "ffffff",
         bg_color: str | None = None,
-        font: str = "CUSONG",
+        font: str | None = None,
         animation: int = 0,
         speed: int = 80,
         rainbow_mode: int = 0,
@@ -651,7 +652,8 @@ class iPIXELAPI:
             text: Text to display (supports emojis)
             color: Text color in hex format (e.g., 'ffffff')
             bg_color: Background color in hex format (e.g., '000000'), or None for transparent
-            font: Font name ('CUSONG', 'SIMSUN', 'VCR_OSD_MONO') or file path
+            font: Font name or file path. Resolved through fonts.py, so the
+                library never sees one of its own volatile built-in names.
             animation: Animation type (0-7)
             speed: Animation speed (0-100)
             rainbow_mode: Rainbow mode (0-9)
@@ -676,7 +678,7 @@ class iPIXELAPI:
                 text=text,
                 color=color,
                 bg_color=bg_color,
-                font=font,
+                font=resolve_font_for_library(font),
                 animation=animation,
                 speed=speed,
                 rainbow_mode=rainbow_mode,
