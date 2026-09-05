@@ -44,3 +44,9 @@ AVAILABLE_MODES = [
 ]
 
 DEFAULT_MODE = MODE_TEXT_IMAGE
+
+# Reconnect behaviour after the BLE link drops
+REDISCOVERY_ATTEMPTS = 3      # lookups after asking HA to re-scan the address
+REDISCOVERY_DELAY = 2.0       # seconds between those lookups
+RECONNECT_BACKOFF_START = 5   # seconds before the first retry
+RECONNECT_BACKOFF_MAX = 30    # seconds; the backoff doubles up to this cap

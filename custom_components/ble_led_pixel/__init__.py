@@ -6,7 +6,6 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.typing import ConfigType
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
@@ -51,28 +50,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create API instance with hass for Bluetooth proxy support
     api = BleLedPixelAPI(hass, address, entry=entry)
     
-    # Test connection
+    # Try to connect, but do not fail the setup when the panel is not reachable
+    # right now. A battery-less BLE panel comes and goes: at startup Home
+    # Assistant's Bluetooth manager often has no fresh advertisement cached yet,
+    # and aborting here left the entry unloaded with nothing scheduling a retry
+    # once the panel reappeared. The watcher started below handles that, so the
+    # entities exist immediately and turn available as soon as the link is up.
     try:
-        if not await api.connect():
-            raise ConfigEntryNotReady(f"Failed to connect to LED panel at {address}")
-        
-        _LOGGER.info("Successfully connected to LED panel %s", address)
-        
-        # Get device info for sensors
-        await api.get_device_info()
-        
-    except BleLedPixelTimeoutError as err:
-        _LOGGER.error("Connection timeout to LED panel %s: %s", address, err)
-        raise ConfigEntryNotReady(f"Connection timeout: {err}") from err
-        
-    except BleLedPixelConnectionError as err:
-        _LOGGER.error("Failed to connect to LED panel %s: %s", address, err)
-        raise ConfigEntryNotReady(f"Connection failed: {err}") from err
+        if await api.connect():
+            _LOGGER.info("Successfully connected to LED panel %s", address)
+            await api.get_device_info()
+        else:
+            _LOGGER.warning(
+                "LED panel %s not reachable yet; the reconnect watcher will "
+                "connect as soon as it advertises", address,
+            )
+    except (BleLedPixelTimeoutError, BleLedPixelConnectionError) as err:
+        _LOGGER.warning(
+            "LED panel %s not reachable yet (%s); the reconnect watcher will "
+            "connect as soon as it advertises", address, err,
+        )
     
     # Store API instance in hass.data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = api
     entry.runtime_data = api
+
+    # Watch for the panel dropping its link and bring it back automatically.
+    # Without this a lost connection stays lost until someone reloads the
+    # config entry by hand - which is what happens after a restart when the
+    # panel was not in Home Assistant's Bluetooth cache at setup time.
+    await api.start_watcher()
 
     # Reload the entry whenever options change (e.g. dimension overrides)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
@@ -92,6 +100,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         # Disconnect from device
         api: BleLedPixelAPI = hass.data[DOMAIN].pop(entry.entry_id)
+        await api.stop_watcher()
         try:
             await api.disconnect()
             _LOGGER.debug("Disconnected from LED panel")

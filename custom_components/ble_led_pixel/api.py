@@ -21,12 +21,15 @@ from .device.commands import (
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.text import make_text_command
 from .device.image import make_image_command
+from homeassistant.components import bluetooth
+
 from .fonts import resolve_font_for_library
 from .device.info import build_device_info_command, parse_device_response
 from .device.mdi_icon import build_mdi_icon_png
 from .device.composer import build_layout_media
 from .display.text_renderer import render_text_to_png
 from .display.emoji_renderer import render_emoji_to_png
+from .const import RECONNECT_BACKOFF_START, RECONNECT_BACKOFF_MAX
 from .exceptions import BleLedPixelConnectionError
 from .const import OPT_OVERRIDE_DIMENSIONS, OPT_PANEL_WIDTH, OPT_PANEL_HEIGHT
 
@@ -58,6 +61,11 @@ class BleLedPixelAPI:
         self._address = address
         self._entry = entry
         self._bluetooth = BluetoothClient(hass, address)
+        # Reconnect watcher state
+        self._reconnect_task: asyncio.Task | None = None
+        self._reconnect_lock = asyncio.Lock()
+        self._watcher_started = False
+        self._unsubscribe_bluetooth = None
         self._power_state = False
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
@@ -81,10 +89,108 @@ class BleLedPixelAPI:
         """Disconnect from the device."""
         await self._bluetooth.disconnect()
     
+    async def ensure_connected(self) -> bool:
+        """Reconnect if the link dropped. Never raises."""
+        return await self._bluetooth.ensure_connected()
+
+    def _schedule_reconnect(self) -> None:
+        """Start the reconnect loop, unless one is already running."""
+        if self._reconnect_task is not None and not self._reconnect_task.done():
+            return
+        self._reconnect_task = self._hass.async_create_task(self._reconnect_loop())
+
+    async def _reconnect_loop(self) -> None:
+        """Reconnect with a growing backoff until the link is up again."""
+        try:
+            async with self._reconnect_lock:
+                if self.is_connected:
+                    return
+                delay = RECONNECT_BACKOFF_START
+                _LOGGER.warning(
+                    "Link to LED panel %s lost; reconnecting (first retry in %.0fs)",
+                    self._address, delay,
+                )
+                while not self.is_connected:
+                    await asyncio.sleep(delay)
+                    if not self._watcher_started:   # integration unloaded meanwhile
+                        return
+                    if await self.ensure_connected():
+                        _LOGGER.info("Reconnected to LED panel %s", self._address)
+                        return
+                    delay = min(delay * 2, RECONNECT_BACKOFF_MAX)
+                    _LOGGER.warning(
+                        "Reconnect to %s failed; next attempt in %.0fs", self._address, delay,
+                    )
+        finally:
+            if self._reconnect_task is asyncio.current_task():
+                self._reconnect_task = None
+
+    async def start_watcher(self) -> None:
+        """Watch for the panel advertising again and reconnect when it does.
+
+        Home Assistant's Bluetooth manager tells us whenever the panel is seen.
+        If we are not connected at that moment, the link is restored right away
+        rather than waiting out the backoff - which is what makes a panel that
+        was out of range at startup come back on its own.
+        """
+        if self._watcher_started:
+            return
+        self._watcher_started = True
+
+        def _advertisement_callback(service_info, change) -> None:
+            if not self.is_connected:
+                self._schedule_reconnect()
+
+        self._unsubscribe_bluetooth = bluetooth.async_register_callback(
+            self._hass,
+            _advertisement_callback,
+            {"address": self._address},
+            bluetooth.BluetoothScanningMode.ACTIVE,
+        )
+        # The panel may already be advertising, and no callback fires for what
+        # happened before we subscribed - so make one attempt right away.
+        if not self.is_connected:
+            self._schedule_reconnect()
+
+    async def stop_watcher(self) -> None:
+        """Stop watching and cancel a pending reconnect."""
+        self._watcher_started = False
+        if self._unsubscribe_bluetooth is not None:
+            try:
+                self._unsubscribe_bluetooth()
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Error unsubscribing bluetooth callback: %s", err)
+            self._unsubscribe_bluetooth = None
+        if self._reconnect_task is not None:
+            self._reconnect_task.cancel()
+            try:
+                await self._reconnect_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.debug("Reconnect task ended with: %s", err)
+            self._reconnect_task = None
+
+    async def _send_with_reconnect(self, command: bytes) -> bool:
+        """Send a command, reconnecting once when the link turns out to be dead.
+
+        A connection can die between the availability check and the write. In
+        that case reconnect and retry once, instead of failing the action and
+        leaving the panel stale until someone reloads the integration.
+        """
+        try:
+            if await self._bluetooth.send_command(command):
+                return True
+        except BleLedPixelConnectionError:
+            pass
+        if await self.ensure_connected():
+            return await self._bluetooth.send_command(command)
+        return False
+
     async def set_power(self, on: bool) -> bool:
         """Set device power state."""
         command = make_power_command(on)
-        success = await self._bluetooth.send_command(command)
+        success = await self._send_with_reconnect(command)
         
         if success:
             self._power_state = on
@@ -102,7 +208,7 @@ class BleLedPixelAPI:
         """
         try:
             command = make_brightness_command(brightness)
-            success = await self._bluetooth.send_command(command)
+            success = await self._send_with_reconnect(command)
             
             if success:
                 _LOGGER.debug("Brightness set to %d", brightness)
@@ -128,7 +234,7 @@ class BleLedPixelAPI:
         """
         try:
             time_command = make_time_command()
-            success = await self._bluetooth.send_command(time_command)
+            success = await self._send_with_reconnect(time_command)
 
             if success:
                 _LOGGER.debug("Time synchronized to device")
@@ -161,7 +267,7 @@ class BleLedPixelAPI:
         try:
             # Set clock mode
             command = make_clock_mode_command(style, date, show_date, format_24)
-            success = await self._bluetooth.send_command(command)
+            success = await self._send_with_reconnect(command)
 
             if not success:
                 _LOGGER.error("Failed to set clock mode")
@@ -268,7 +374,7 @@ class BleLedPixelAPI:
                     len(commands),
                     len(command)
                 )
-                success = await self._bluetooth.send_command(command)
+                success = await self._send_with_reconnect(command)
                 if not success:
                     _LOGGER.error("Failed to send image frame %d/%d", i + 1, len(commands))
                     return False
@@ -694,7 +800,7 @@ class BleLedPixelAPI:
                     len(commands),
                     len(command)
                 )
-                success = await self._bluetooth.send_command(command)
+                success = await self._send_with_reconnect(command)
                 if not success:
                     _LOGGER.error("Failed to send text frame %d/%d", i + 1, len(commands))
                     return False
@@ -763,7 +869,7 @@ class BleLedPixelAPI:
                 await self.connect()
 
             for i, command in enumerate(commands):
-                success = await self._bluetooth.send_command(command)
+                success = await self._send_with_reconnect(command)
                 if not success:
                     _LOGGER.error("Failed to send emoji frame %d/%d", i + 1, len(commands))
                     return False

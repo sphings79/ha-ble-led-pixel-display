@@ -38,6 +38,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a field is omitted. Devices now report `LED_BLE` — what the panels actually
   call themselves in their advertising — instead of an invented manufacturer.
 
+## [1.1.0] - 2026-09-05
+
+### Added
+
+- **Automatic reconnect after the Bluetooth link drops.** Until now a lost
+  connection stayed lost until the config entry was reloaded by hand, which is
+  what happened after every Home Assistant restart when the panel was not in
+  the Bluetooth cache at setup time. Adapted from the work of arcdrake22 in
+  upstream PR #44, rebuilt on this fork's client architecture:
+  - `ensure_connected()` restores the link and never raises, serialized through
+    a connect lock so several entities updating at once cannot stampede the radio
+  - when the panel has fallen out of Home Assistant's Bluetooth cache,
+    `async_rediscover_address()` is triggered and the lookup retried
+  - a watcher subscribes to the panel's advertisements and reconnects the moment
+    it reappears, backed by a retry loop with growing delay (5s to 30s)
+  - commands retry once after a successful reconnect instead of failing silently
+
+### Changed
+
+- **Setup no longer aborts when the panel is unreachable.** A BLE panel that is
+  briefly out of range would fail the whole config entry with
+  `ConfigEntryNotReady`, leaving no entities and nothing watching for its
+  return. Setup now completes, the entities exist immediately, and the watcher
+  connects as soon as the panel advertises.
+
 ## [Unreleased]
 
 ### Added

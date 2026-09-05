@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 from homeassistant.components import bluetooth
 
-from ..const import WRITE_UUID, NOTIFY_UUID
+from ..const import WRITE_UUID, NOTIFY_UUID, REDISCOVERY_ATTEMPTS, REDISCOVERY_DELAY
 from ..exceptions import BleLedPixelConnectionError
 
 try:
@@ -60,6 +60,9 @@ class BluetoothClient:
         self._notification_handler: Callable | None = None
         self._ack_mgr = None
         self._extra_listeners: list[Callable[[Any, bytearray], None]] = []
+        # Serializes connection attempts. Several entities updating at once
+        # would otherwise each start their own connect and stampede the radio.
+        self._connect_lock = asyncio.Lock()
 
     def _disconnected_callback(self, client: BleakClientWithServiceCache) -> None:
         """Called when device disconnects."""
@@ -92,6 +95,35 @@ class BluetoothClient:
             except Exception as err:
                 _LOGGER.debug("Notification handler error: %s", err)
 
+    async def _get_ble_device(self):
+        """Return the BLEDevice, asking for a re-scan when the cache is stale.
+
+        After a dropped link Home Assistant's Bluetooth manager may have lost
+        track of the panel even though it is still advertising perfectly well.
+        Without this, a reconnect fails with "Device not found" and nothing
+        ever recovers until the config entry is reloaded by hand.
+        """
+        ble_device = bluetooth.async_ble_device_from_address(
+            self._hass, self._address, connectable=True
+        )
+        if ble_device:
+            return ble_device
+
+        _LOGGER.debug(
+            "Device %s not in the Bluetooth cache, asking for rediscovery",
+            self._address,
+        )
+        bluetooth.async_rediscover_address(self._hass, self._address)
+        for _ in range(REDISCOVERY_ATTEMPTS):
+            await asyncio.sleep(REDISCOVERY_DELAY)
+            ble_device = bluetooth.async_ble_device_from_address(
+                self._hass, self._address, connectable=True
+            )
+            if ble_device:
+                _LOGGER.debug("Device %s reappeared after rediscovery", self._address)
+                return ble_device
+        return None
+
     async def connect(self, notification_handler: Callable[[Any, bytearray], None]) -> bool:
         """Connect to the LED panel.
 
@@ -104,13 +136,37 @@ class BluetoothClient:
         Raises:
             BleLedPixelConnectionError: If connection fails
         """
+        async with self._connect_lock:
+            return await self._connect_locked(notification_handler)
+
+    async def ensure_connected(self) -> bool:
+        """Return True if connected, reconnecting when the link was lost.
+
+        Unlike connect() this never raises - it is the entry point for command
+        paths that want to recover quietly. Returns False when no connection
+        was ever established (nothing to restore) or the attempt failed.
+        """
+        if self.is_connected:
+            return True
+        if self._notification_handler is None:
+            return False
+
+        async with self._connect_lock:
+            # Another caller may have reconnected while we waited for the lock.
+            if self.is_connected:
+                return True
+            try:
+                return await self._connect_locked(self._notification_handler)
+            except BleLedPixelConnectionError as err:
+                _LOGGER.warning("Reconnect to %s failed: %s", self._address, err)
+                return False
+
+    async def _connect_locked(self, notification_handler: Callable[[Any, bytearray], None]) -> bool:
+        """Establish the link. Caller must hold the connect lock."""
         _LOGGER.debug("Connecting to LED panel at %s", self._address)
 
         try:
-            # Get BLEDevice from Home Assistant's Bluetooth integration
-            ble_device = bluetooth.async_ble_device_from_address(
-                self._hass, self._address, connectable=True
-            )
+            ble_device = await self._get_ble_device()
 
             if not ble_device:
                 raise BleLedPixelConnectionError(
