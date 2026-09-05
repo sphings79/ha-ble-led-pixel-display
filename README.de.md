@@ -34,6 +34,7 @@
 - [Warum dieser Fork](#warum-dieser-fork)
 - [Fehlersuche](#fehlersuche)
 - [Häufige Fragen](#häufige-fragen)
+- [Weiterführende Dokumentation](#weiterführende-dokumentation)
 - [Weitere Home-Assistant-Projekte](#weitere-home-assistant-projekte)
 - [Mitmachen](#mitmachen)
 - [Haftungsausschluss](#haftungsausschluss)
@@ -326,7 +327,7 @@ Er führt [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color
 
 **Das Panel sendet, lässt sich aber nicht verbinden.** Zuerst die Stromversorgung prüfen. Das Hersteller-Handbuch verlangt **5 V / 2 A** und warnt, dass eine unzureichende Versorgung „screen shutdown, Bluetooth connection errors, or a yellowish color" verursacht — ausdrücklich ausgeschlossen sind USB-Anschlüsse von Computern, USB-Medienanschlüsse im Auto und Nicht-Standard-Handynetzteile. Ein Panel, das in der Geräteliste auftaucht, aber jeden Verbindungsversuch abweist, zeigt genau dieses Bild. Zweiter Verdächtiger ist die Reichweite: Werbepakete brauchen viel weniger Signal als eine stehende Verbindung, ein Panel kann also durch eine Wand sichtbar sein, durch die es nicht erreichbar ist.
 
-**Das Panel verlangt ein Passwort oder verweigert die Verbindung, nachdem eines gesetzt wurde.** Das Gerät lässt sich ohne App zurücksetzen: einschalten und in dem Moment, in dem das weiße Licht erscheint, sofort wieder ausschalten. Fünfmal hintereinander wiederholen. Das Timing ist entscheidend — zu langsam oder zu schnell löst nicht aus. Ob eines gesetzt ist, zeigt `password_flag` in der Geräteabfrage; `255` bedeutet keines.
+**Das Panel verlangt ein Passwort oder verweigert die Verbindung, nachdem eines gesetzt wurde.** Es lässt sich ohne App zurücksetzen, allein über den Netzschalter — siehe [Resetting a password-locked panel](docs/password_reset.md).
 
 **Falsche Breite oder Höhe.** Die Maße kommen vom Gerät. Manche Firmware meldet sie falsch; die Sensoren Display Width und Display Height mit der Realität abgleichen.
 
@@ -359,6 +360,11 @@ logger:
 **Wie viele Panels gehen?** So viele, wie das Bluetooth-Setup verkraftet. Jedes wird ein eigenes Gerät.
 
 **Welche Auflösungen funktionieren?** Was das Gerät meldet, typischerweise 64×16.
+
+## Weiterführende Dokumentation
+
+- [Protokolldokumentation](docs/protocol.md) — das Bluetooth-Protokoll dieser Panels, rekonstruiert aus der Hersteller-App
+- [Resetting a password-locked panel](docs/password_reset.md) — ein aus der App gesperrtes Panel entsperren
 
 ## Weitere Home-Assistant-Projekte
 

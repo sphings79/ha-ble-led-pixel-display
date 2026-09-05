@@ -34,6 +34,7 @@
 - [Why this fork exists](#why-this-fork-exists)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
+- [Further documentation](#further-documentation)
 - [More Home Assistant projects](#more-home-assistant-projects)
 - [Contributing](#contributing)
 - [Disclaimer](#disclaimer)
@@ -326,7 +327,7 @@ This continues [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-
 
 **The panel advertises but will not connect.** Check its power supply before anything else. The vendor manual requires **5 V / 2 A** and warns that an inadequate supply causes "screen shutdown, Bluetooth connection errors, or a yellowish color" — it explicitly rules out computer USB ports, car USB media ports and non-standard phone chargers. A panel that is visible in the device list but refuses every connection attempt is the exact symptom this produces. Range is the second suspect: advertising needs far less signal than a held connection, so a panel can be seen through a wall it cannot be reached through.
 
-**The panel asks for a password, or refuses to connect after one was set.** The device can be reset without the app: power it on and, the moment the white light appears, switch it off again. Repeat five times in a row. The timing matters — too slow or too fast and it will not trigger. The `password_flag` in the device info shows whether one is set; `255` means none.
+**The panel asks for a password, or refuses to connect after one was set.** It can be reset without the app, using nothing but the power switch — see [Resetting a password-locked panel](docs/password_reset.md).
 
 **Wrong width or height.** The dimensions come from the device. Some firmware reports them incorrectly; check the Display Width and Display Height sensors against reality.
 
@@ -359,6 +360,11 @@ logger:
 **How many panels can I use?** As many as your Bluetooth setup handles. Each becomes its own device.
 
 **Which resolutions work?** Whatever the device reports, typically 64×16.
+
+## Further documentation
+
+- [Protocol documentation](docs/protocol.md) — the Bluetooth protocol these panels speak, reconstructed from the vendor app
+- [Resetting a password-locked panel](docs/password_reset.md) — recovering a panel locked from the app
 
 ## More Home Assistant projects
 
