@@ -1,0 +1,8 @@
+{
+  "issues": {
+    "unknown_panel": {
+      "title": "Panel {product_id} ist nicht in der Markentabelle",
+      "description": "Dein Panel unter {address} funktioniert normal — die Auflösung kommt vom Gerätetyp, nicht von der Marke, im Betrieb fehlt also nichts. Lediglich das Herstellerfeld in der Geräteverwaltung bleibt leer.\n\nÜber **Mehr erfahren** öffnest du eine Fehlermeldung, in der die technischen Werte bereits eingetragen sind. Ergänze bitte Marke und Modell sowie, wenn möglich, ein Foto des Typenschilds auf der Rückseite — das ist das Einzige, was nur du sehen kannst. Ein Foto der Verpackung hilft zusätzlich, ist aber optional.\n\nSobald die Produkt-ID aufgenommen ist, verschwindet dieser Hinweis von selbst."
+    }
+  }
+}

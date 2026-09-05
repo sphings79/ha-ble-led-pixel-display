@@ -1,0 +1,91 @@
+name: Unknown panel
+description: Help add a panel that the integration does not recognise yet
+title: "Unknown panel: "
+labels: ["unknown-panel"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping out. Your panel already works — geometry comes from
+        the device type, not from the brand. What is missing is only the name,
+        so the device registry can show a manufacturer instead of a placeholder.
+
+        If you opened this from the link in Home Assistant, the technical
+        fields below are already filled in. Please add the brand and model, and
+        a photo of the label if you can.
+
+  - type: input
+    id: brand
+    attributes:
+      label: Brand
+      description: The name printed on the panel or its packaging
+      placeholder: e.g. HYPERLITE, B.K. Light, EZYEVY
+    validations:
+      required: true
+
+  - type: input
+    id: model
+    attributes:
+      label: Model or article number
+      description: Anything that identifies this exact product
+      placeholder: e.g. ACT1026, or the shop listing name
+    validations:
+      required: true
+
+  - type: input
+    id: where_bought
+    attributes:
+      label: Where did you buy it?
+      description: Helps others find the same panel
+      placeholder: e.g. Action (Netherlands), Amazon, AliExpress
+
+  - type: textarea
+    id: photos
+    attributes:
+      label: Photos
+      description: |
+        Drag images in here. A photo of the **type label** on the back is the
+        most useful — that is where brand and model are printed. A photo of the
+        **packaging** helps too, but is optional.
+      placeholder: Drop images here
+
+  - type: input
+    id: product_id
+    attributes:
+      label: Product ID
+      description: Filled in automatically. Also visible as the "Product ID" sensor.
+    validations:
+      required: true
+
+  - type: input
+    id: device_type
+    attributes:
+      label: Device type
+      description: Filled in automatically. Decides the resolution.
+
+  - type: input
+    id: reported_size
+    attributes:
+      label: Reported size
+      description: Filled in automatically — what the panel says about itself.
+
+  - type: input
+    id: actual_size
+    attributes:
+      label: Actual size
+      description: |
+        Count the pixels if the reported size looks wrong. Some panels report
+        incorrect dimensions.
+      placeholder: e.g. 32x32
+
+  - type: input
+    id: versions
+    attributes:
+      label: Firmware
+      description: Filled in automatically.
+
+  - type: input
+    id: integration_version
+    attributes:
+      label: Integration version
+      description: Filled in automatically.

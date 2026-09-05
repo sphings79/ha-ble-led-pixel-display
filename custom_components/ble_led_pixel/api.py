@@ -26,6 +26,7 @@ from homeassistant.components import bluetooth
 
 from .advertisement import PanelIdentity, parse_identity
 from .fonts import resolve_font_for_library
+from .unknown_panel import async_report_unknown_panel
 from .device.info import build_device_info_command, parse_device_response
 from .device.mdi_icon import build_mdi_icon_png
 from .device.composer import build_layout_media
@@ -359,6 +360,18 @@ class BleLedPixelAPI:
             self._device_info["pid"] = identity.pid
             self._device_info["cidpid"] = identity.cidpid
             self._device_info["brand"] = identity.brand
+
+        # The identity can arrive long after setup, once the panel advertises.
+        # Re-check then, so the notice about an unknown panel appears - or
+        # disappears again - without waiting for the next restart.
+        self._hass.async_create_task(
+            async_report_unknown_panel(self._hass, self._address, self._device_info)
+        )
+
+    @property
+    def device_info(self) -> dict[str, Any] | None:
+        """Everything known about the panel, or None before it was queried."""
+        return self._device_info
 
     @property
     def identity(self) -> PanelIdentity:

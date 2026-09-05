@@ -57,5 +57,11 @@
         "name": "Power"
       }
     }
+  },
+  "issues": {
+    "unknown_panel": {
+      "title": "Panel {product_id} is not in the brand table",
+      "description": "Your panel at {address} works normally — its resolution comes from the device type, not from the brand, so nothing is missing in operation. Only the manufacturer field in the device registry stays empty.\n\nSelect **Learn more** to open a bug report that already has the technical values filled in. Please add the brand and the model, and a photo of the type label on the back if you can — that is the one thing only you can see. A photo of the packaging helps too, but is optional.\n\nOnce the product id is added, this notice disappears by itself."
+    }
   }
 }

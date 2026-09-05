@@ -12,6 +12,7 @@ from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutE
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .fonts import build_font_index
 from .services import async_setup_services
+from .unknown_panel import async_report_unknown_panel
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -80,6 +81,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = api
     entry.runtime_data = api
+
+    # An unrecognised panel gets a repair notice with a prefilled bug report.
+    # Everything technical is already known at this point; only the name on the
+    # box is not, and that is what the notice asks for.
+    await async_report_unknown_panel(hass, address, api.device_info)
 
     # Watch for the panel dropping its link and bring it back automatically.
     # Without this a lost connection stays lost until someone reloads the

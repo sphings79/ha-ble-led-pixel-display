@@ -77,7 +77,9 @@ Two diagnostic sensors tell you what to report:
 | **Product ID** | The identifier the panel advertises, e.g. `000702` |
 | **Device Type** | Decides the resolution |
 
-The integration also logs a warning the first time it sees an unknown id. [Open an issue](https://github.com/sphings79/ha-ble-led-pixel-display/issues) with both values and the name printed on the packaging, and it gets added to the table.
+You do not have to look them up, though. An unrecognised panel raises a notice under **Settings → System → Repairs**, and its **Learn more** button opens a bug report with the technical values already filled in — product id, device type, reported size, firmware and integration version. All that is left for you is the brand, the model, and ideally a photo of the type label on the back. A photo of the packaging is welcome but optional.
+
+Once the id is added to the table, the notice disappears by itself.
 
 The brand table has two sources of differing quality: the `0025` range comes from the vendor's own configuration, while `000702` was identified from actual hardware. Everything else is genuinely unknown rather than deliberately omitted.
 

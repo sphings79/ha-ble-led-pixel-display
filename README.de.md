@@ -77,7 +77,9 @@ Zwei Diagnose-Sensoren sagen dir, was du melden kannst:
 | **Product ID** | Die Kennung, die das Panel aussendet, z. B. `000702` |
 | **Device Type** | Bestimmt die Auflösung |
 
-Die Integration schreibt beim ersten Erkennen einer unbekannten Kennung außerdem eine Warnung ins Protokoll. [Melde ein Issue](https://github.com/sphings79/ha-ble-led-pixel-display/issues) mit beiden Werten und der Bezeichnung auf der Verpackung, dann wird es aufgenommen.
+Nachschlagen musst du sie aber nicht. Ein unbekanntes Panel erzeugt einen Hinweis unter **Einstellungen → System → Reparaturen**, und dessen Schaltfläche **Mehr erfahren** öffnet eine Fehlermeldung, in der die technischen Werte schon eingetragen sind — Produkt-ID, Gerätetyp, gemeldete Größe, Firmware und Version der Integration. Für dich bleiben Marke, Modell und idealerweise ein Foto des Typenschilds auf der Rückseite. Ein Foto der Verpackung ist willkommen, aber optional.
+
+Sobald die Kennung in der Tabelle steht, verschwindet der Hinweis von selbst.
 
 Die Markentabelle hat zwei unterschiedlich belastbare Quellen: Der Bereich `0025` stammt aus der Konfiguration des Herstellers, `000702` wurde dagegen an echter Hardware ermittelt. Alles andere ist wirklich unbekannt und nicht etwa bewusst weggelassen.
 
