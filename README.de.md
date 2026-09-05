@@ -220,6 +220,13 @@ Beide Einstellungen bleiben im Modus `text` sichtbar statt ausgegraut zu sein,
 und das Log meldet, wenn ein Wert nicht wie eingestellt verwendet werden kann —
 einmal pro Änderung, nicht bei jeder Aktualisierung.
 
+> **Nicht jedes Panel sendet eine Produkt-ID.** Manche geben nur ihren Namen
+> bekannt und sonst nichts — ein als B.K. Light verkauftes 64×16 tut genau das,
+> während das 32×32 derselben Marke `000702` meldet. Wo nichts zu lesen ist,
+> zeigen die Sensoren Product ID und Brand `not advertised` statt auf
+> „nicht verfügbar" zu fallen. Das Panel funktioniert normal: Die Auflösung
+> kommt vom Gerätetyp, nicht von der Marke.
+
 ## Installation
 
 ### HACS (empfohlen)

@@ -184,8 +184,20 @@ class BleLedPixelSensor(SensorEntity):
                     if self.entity_description.key == "cidpid"
                     else identity.brand
                 )
-                self._attr_native_value = value
-                self._available = value is not None
+                if value is not None:
+                    self._attr_native_value = value
+                    self._available = True
+                    return
+
+                # Not every panel broadcasts a product id: some advertise
+                # their name and nothing else. Once we have talked to the
+                # panel, "unavailable" would read as a fault that will pass,
+                # when in fact there is nothing to read. Say which it is.
+                if self._api.device_info is not None:
+                    self._attr_native_value = "not advertised"
+                    self._available = True
+                else:
+                    self._available = False
                 return
 
             if not self._api.is_connected:

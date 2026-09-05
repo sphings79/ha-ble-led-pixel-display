@@ -127,9 +127,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
-## [2.3.0] - 2026-09-06
+## [2.3.1] - 2026-09-06
 
 ### Fixed
+
+- **Product ID and Brand no longer sit at "unavailable" on a panel that has
+  none.** Not every model broadcasts a product id: a 64x16 B.K. Light
+  advertises its name and nothing else, while the 32x32 of the same brand
+  reports `000702`. Once the panel has answered at all, the sensors now read
+  `not advertised`, which is the difference between a fault that may pass and
+  a value that does not exist.
 
 - **The reconnect watcher slept through the very advertisements it waits
   for.** It promised to reconnect as soon as a panel was seen, but the backoff

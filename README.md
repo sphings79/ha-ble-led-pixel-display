@@ -218,6 +218,13 @@ Both settings stay visible in `text` mode rather than being greyed out, and
 the log says when a value cannot be used as given — once per change, not on
 every refresh.
 
+> **Not every panel broadcasts a product id.** Some advertise their name and
+> nothing else — a 64×16 panel sold as B.K. Light does exactly that, while the
+> 32×32 from the same brand reports `000702`. Where there is nothing to read,
+> the Product ID and Brand sensors say `not advertised` rather than going
+> unavailable, and the panel works normally: its resolution comes from the
+> device type, not the brand.
+
 ## Installation
 
 ### HACS (recommended)
