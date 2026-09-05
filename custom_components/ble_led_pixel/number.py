@@ -70,6 +70,7 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -142,6 +143,7 @@ class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -211,6 +213,7 @@ class BleLedPixelBrightness(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -292,6 +295,7 @@ class BleLedPixelTextAnimation(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -372,6 +376,7 @@ class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -452,6 +457,7 @@ class BleLedPixelTextRainbow(NumberEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )

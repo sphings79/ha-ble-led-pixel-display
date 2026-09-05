@@ -63,6 +63,7 @@ class BleLedPixelSwitch(SwitchEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -162,6 +163,7 @@ class BleLedPixelAntialiasingSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -223,6 +225,7 @@ class BleLedPixelAutoUpdateSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -286,6 +289,7 @@ class BleLedPixelClock24HSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -369,6 +373,7 @@ class BleLedPixelClockShowDateSwitch(SwitchEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )

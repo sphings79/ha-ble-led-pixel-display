@@ -25,7 +25,7 @@ import aiohttp
 from PIL import Image, ImageDraw, ImageFont
 
 from ..color import hex_to_rgb
-from ..fonts import get_font_locations, get_font_path
+from ..fonts import get_font_path
 from .mdi_icon import fetch_mdi_svg, render_mdi_icon
 
 _LOGGER = logging.getLogger(__name__)
@@ -157,8 +157,9 @@ def render_text_element(
     Returns:
         RGBA PIL Image sized to the rendered (possibly multi-line) text.
     """
-    locations = get_font_locations()
-    font_path = get_font_path(font_name or DEFAULT_SMALL_FONT, locations)
+    # No explicit locations: that lets get_font_path use the prebuilt index
+    # instead of walking the filesystem on the event loop.
+    font_path = get_font_path(font_name or DEFAULT_SMALL_FONT)
 
     # Accept both a real newline character and a literal '\n' (two chars,
     # backslash + n) as a forced line break - the latter is what arrives

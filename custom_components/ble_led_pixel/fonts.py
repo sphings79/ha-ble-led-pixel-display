@@ -6,6 +6,40 @@ from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
+# Font lookups touch the filesystem, including a recursive walk of the system
+# font directories. That must not happen on the event loop - Home Assistant
+# flags it as a blocking call. build_font_index() does the scanning once from
+# an executor thread during setup; every lookup afterwards is served from here.
+_FONT_INDEX: dict[str, Path] | None = None
+_FONT_NAMES: list[str] | None = None
+
+
+def build_font_index() -> None:
+    """Scan every font location and cache the result.
+
+    Blocking - call from an executor thread, not from the event loop.
+    """
+    global _FONT_INDEX, _FONT_NAMES
+
+    index: dict[str, Path] = {}
+    for location in get_font_locations():
+        try:
+            for pattern in ("*.ttf", "*.otf"):
+                # Top level first so it wins over anything nested, then
+                # subdirectories, which is where system fonts usually live.
+                for font_file in list(location.glob(pattern)) + list(location.rglob(pattern)):
+                    if not font_file.is_file():
+                        continue
+                    # Reachable both as "VCR_OSD_MONO" and "VCR_OSD_MONO.ttf"
+                    index.setdefault(font_file.name.lower(), font_file)
+                    index.setdefault(font_file.stem.lower(), font_file)
+        except (OSError, PermissionError) as err:
+            _LOGGER.debug("Could not scan directory %s: %s", location, err)
+
+    _FONT_INDEX = index
+    _FONT_NAMES = sorted({path.name for path in index.values()}) or ["OpenSans-Light.ttf"]
+    _LOGGER.debug("Font index built: %d fonts from %d keys", len(_FONT_NAMES), len(index))
+
 
 def get_font_locations() -> list[Path]:
     """Get list of font directories sorted by priority.
@@ -67,6 +101,18 @@ def get_font_path(font_name: str, locations: list[Path] | None = None) -> Path |
     Returns:
         Path to font file if found, None otherwise
     """
+    # Serve from the prebuilt index whenever the caller did not ask for
+    # specific locations. Keeps the lookup off the filesystem.
+    if locations is None and _FONT_INDEX is not None:
+        hit = _FONT_INDEX.get(font_name.lower())
+        if hit is None and not any(
+            font_name.lower().endswith(ext) for ext in ('.ttf', '.otf', '.woff', '.woff2')
+        ):
+            hit = _FONT_INDEX.get(f"{font_name.lower()}.ttf")
+        if hit is None:
+            _LOGGER.warning("Font %s not found in any location", font_name)
+        return hit
+
     # Add common font extensions if not present
     if not any(font_name.lower().endswith(ext) for ext in ['.ttf', '.otf', '.woff', '.woff2']):
         font_name += '.ttf'
@@ -101,6 +147,9 @@ def get_available_fonts(locations: list[Path] | None = None) -> list[str]:
     Returns:
         Sorted list of unique font filenames
     """
+    if locations is None and _FONT_NAMES is not None:
+        return list(_FONT_NAMES)
+
     if locations is None:
         locations = get_font_locations()
 

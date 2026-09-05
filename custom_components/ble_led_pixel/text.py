@@ -75,6 +75,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )

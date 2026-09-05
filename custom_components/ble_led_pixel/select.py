@@ -69,6 +69,7 @@ class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -148,6 +149,7 @@ class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -227,6 +229,7 @@ class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )

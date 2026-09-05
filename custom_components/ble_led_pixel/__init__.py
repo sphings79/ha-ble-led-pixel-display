@@ -11,6 +11,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .fonts import build_font_index
 from .services import async_setup_services
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,6 +32,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     Assistant's service registry immediately at startup - see
     https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/
     """
+    # Build the font index once, off the event loop. Every later lookup -
+    # the font selector, text rendering, the send_text action - reads from
+    # that cache instead of scanning the filesystem.
+    await hass.async_add_executor_job(build_font_index)
+
     async_setup_services(hass)
     return True
 

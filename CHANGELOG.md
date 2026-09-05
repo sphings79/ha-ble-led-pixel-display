@@ -22,6 +22,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 118 internal identifiers renamed from the `iPIXEL*` prefix to `BleLedPixel*`.
   The emoji cache moved to `.storage/ble_led_pixel_emoji_cache`.
 
+## [1.0.2] - 2026-09-05
+
+### Fixed
+
+- **Blocking filesystem calls on the event loop.** Home Assistant flagged
+  `get_available_fonts()` for scanning font directories synchronously while
+  building the font selector — including a recursive walk of the system font
+  paths. The 1.0.1 font rework made it worse, because `resolve_font_for_library()`
+  now runs on every text change. Font locations are scanned once during
+  `async_setup` in an executor thread and cached in an index; lookups afterwards
+  take about a microsecond instead of touching the disk.
+- **Device registration still said "von iPIXEL".** 1.0.1 dropped the field
+  rather than overwriting it, and Home Assistant keeps the previous value when
+  a field is omitted. Devices now report `LED_BLE` — what the panels actually
+  call themselves in their advertising — instead of an invented manufacturer.
+
 ## [Unreleased]
 
 ### Added

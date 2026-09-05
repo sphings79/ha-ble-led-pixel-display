@@ -61,6 +61,7 @@ class BleLedPixelUpdateButton(ButtonEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
@@ -103,6 +104,7 @@ class BleLedPixelSyncTimeButton(ButtonEntity):
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, address)},
             name=name,
+            manufacturer="LED_BLE",
             model="LED Pixel Panel",
             sw_version="1.0",
         )
