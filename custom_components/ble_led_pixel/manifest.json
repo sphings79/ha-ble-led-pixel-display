@@ -3,10 +3,17 @@
   "name": "BLE LED Pixel Display",
   "bluetooth": [
     {
-      "local_name": "LED_BLE_*"
+      "local_name": "LED_BLE*"
     },
     {
       "service_uuid": "0000fa01-0000-1000-8000-00805f9b34fb"
+    },
+    {
+      "manufacturer_id": 21076,
+      "manufacturer_data_start": [
+        0,
+        114
+      ]
     }
   ],
   "codeowners": [
@@ -30,5 +37,5 @@
     "pypixelcolor>=0.4.0,<0.5",
     "resvg_py>=0.3.0"
   ],
-  "version": "2.0.2"
+  "version": "2.1.0"
 }

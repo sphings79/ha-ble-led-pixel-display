@@ -19,8 +19,10 @@ from .const import (
     CONF_NAME,
     DEFAULT_MODE,
     DEFAULT_TEXT_EFFECT,
+    DEFAULT_TEXT_GRADIENT,
     DOMAIN,
     TEXT_EFFECTS,
+    TEXT_GRADIENTS,
 )
 from .device_types import clock_style_count
 from .entity import panel_device_info
@@ -47,6 +49,7 @@ async def async_setup_entry(
         BleLedPixelModeSelect(hass, api, entry, address, name),
         BleLedPixelClockStyleSelect(hass, api, entry, address, name),
         BleLedPixelTextEffectSelect(hass, api, entry, address, name),
+        BleLedPixelTextGradientSelect(hass, api, entry, address, name),
     ])
 
 
@@ -371,3 +374,92 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
                 _LOGGER.debug("Auto-update refreshed the display for the new effect")
         except Exception as err:  # noqa: BLE001 - a refresh must not break the select
             _LOGGER.debug("Could not refresh after the effect change: %s", err)
+
+
+class BleLedPixelTextGradientSelect(SelectEntity, RestoreEntity):
+    """Colour gradient applied to text, the protocol's "rainbow mode".
+
+    Off leaves the text in the colour picked by the text colour light. The
+    panel renders the gradient itself; the labels describe the ramps rather
+    than naming them, because the vendor numbers them and nothing more.
+    """
+
+    _attr_icon = "mdi:gradient-horizontal"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: BleLedPixelAPI,
+        entry: ConfigEntry,
+        address: str,
+        name: str,
+    ) -> None:
+        """Initialize the gradient select."""
+        self.hass = hass
+        self._api = api
+        self._entry = entry
+        self._address = address
+        self._name = name
+
+        self._attr_name = "Text Gradient"
+        self._attr_unique_id = f"{address}_text_gradient_select"
+        self._attr_entity_description = "Colour gradient applied to text"
+        self._attr_options = list(TEXT_GRADIENTS)
+        self._attr_current_option = DEFAULT_TEXT_GRADIENT
+
+        self._attr_device_info = panel_device_info(api, address, name)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the previous selection."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is None:
+            return
+        if last_state.state in self._attr_options:
+            self._attr_current_option = last_state.state
+            return
+        # Migrating from the old number entity, which stored a bare code.
+        try:
+            code = int(float(last_state.state))
+        except (TypeError, ValueError):
+            return
+        for label, value in TEXT_GRADIENTS.items():
+            if value == code:
+                self._attr_current_option = label
+                _LOGGER.debug("Migrated text gradient %s to %s", code, label)
+                return
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the selected gradient."""
+        return self._attr_current_option
+
+    async def async_select_option(self, option: str) -> None:
+        """Select a gradient and refresh the display if it is showing text."""
+        if option not in self._attr_options:
+            _LOGGER.error("Unknown text gradient: %s", option)
+            return
+        self._attr_current_option = option
+        _LOGGER.info("Text gradient changed to: %s", option)
+        await self._trigger_auto_update()
+
+    async def _trigger_auto_update(self) -> None:
+        """Refresh the panel when auto-update is on and it is showing text."""
+        try:
+            from .common import update_panel_display
+
+            mode_entity_id = get_entity_id_by_unique_id(
+                self.hass, self._address, "mode_select", "select"
+            )
+            mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
+            if not mode_state or mode_state.state != "text":
+                return
+
+            auto_entity_id = get_entity_id_by_unique_id(
+                self.hass, self._address, "auto_update", "switch"
+            )
+            auto_state = self.hass.states.get(auto_entity_id) if auto_entity_id else None
+            if auto_state and auto_state.state == "on":
+                await update_panel_display(self.hass, self._name, self._api)
+        except Exception as err:  # noqa: BLE001 - a refresh must not break the select
+            _LOGGER.debug("Could not refresh after the gradient change: %s", err)

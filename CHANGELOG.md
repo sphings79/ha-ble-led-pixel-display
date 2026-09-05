@@ -127,6 +127,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.1.0] - 2026-09-05
+
+### Breaking
+
+- **`number.<panel>_text_rainbow` is gone, replaced by
+  `select.<panel>_text_gradient`.** It was a slider from 0 to 9 with no
+  indication of what any value did -- and two of those ten values did nothing
+  at all. The eight real gradients are now described rather than numbered, and
+  Off is an option instead of a magic zero. An existing numeric selection is
+  migrated on first start; automations writing the old entity need updating.
+
+### Added
+
+- **Panels are discovered the way the vendor app discovers them.** The app
+  looks for `LED_BLE` anywhere in the name, and accepts a panel with no such
+  name at all when its advertisement carries the vendor manufacturer data.
+  Discovery here required the name to *start* with `LED_BLE_`, so a panel
+  named `LED_BLE1234`, or one rebranded entirely, was invisible to Home
+  Assistant while the app found it. Both paths are now matched.
+
 ## [2.0.2] - 2026-09-05
 
 ### Fixed

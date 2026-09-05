@@ -8,11 +8,13 @@ from homeassistant.helpers import entity_registry as er
 from .fonts import resolve_font_for_library
 from .const import (
     DEFAULT_TEXT_EFFECT,
+    DEFAULT_TEXT_GRADIENT,
     DOMAIN,
     MODE_CLOCK,
     MODE_TEXT,
     MODE_TEXT_IMAGE,
     TEXT_EFFECTS,
+    TEXT_GRADIENTS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -330,10 +332,15 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
             font_size = 16
         font_size = int(font_size)
 
-        # Rainbow mode - need new number entity
-        rainbow_mode = await _get_entity_setting(hass, device_name, "number", "text_rainbow", int, api._address)
-        if rainbow_mode is None:
-            rainbow_mode = 0  # Default to no rainbow
+        # Gradient, chosen by label in the select entity and mapped to the
+        # code the panel expects. An unknown or stale label falls back to off
+        # rather than reaching the wire as something arbitrary.
+        gradient_label = await _get_entity_setting(
+            hass, device_name, "select", "text_gradient_select", str, api._address
+        )
+        rainbow_mode = TEXT_GRADIENTS.get(
+            gradient_label, TEXT_GRADIENTS[DEFAULT_TEXT_GRADIENT]
+        )
 
         # Connect if needed
         if not api.is_connected:

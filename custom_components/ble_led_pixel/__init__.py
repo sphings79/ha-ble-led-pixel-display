@@ -49,6 +49,9 @@ REMOVED_ENTITIES: tuple[tuple[str, str], ...] = (
     # Replaced in 2.0.0 by select.<panel>_text_effect, which names the effects
     # instead of numbering them.
     ("text_animation", Platform.NUMBER),
+    # Replaced in 2.1.0 by select.<panel>_text_gradient, which describes the
+    # gradients instead of numbering them.
+    ("text_rainbow", Platform.NUMBER),
 )
 
 

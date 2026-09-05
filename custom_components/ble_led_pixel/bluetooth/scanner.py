@@ -6,7 +6,8 @@ from typing import Any, TYPE_CHECKING
 
 from homeassistant.components import bluetooth
 
-from ..const import DEVICE_NAME_PREFIX
+from ..advertisement import parse_identity
+from ..const import DEVICE_NAME_MARKER
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -37,8 +38,17 @@ def discover_panels(hass: HomeAssistant, return_all: bool = False) -> list[dict[
             device_name = service_info.name or f"Unknown_{service_info.address[-4:]}"
             _LOGGER.debug("Checking device: %s (%s)", device_name, service_info.address)
 
-            # Check if device is compatible (starts with our prefix)
-            is_compatible = bool(service_info.name and service_info.name.startswith(DEVICE_NAME_PREFIX))
+            # Two ways to recognise a panel, both taken from the vendor app.
+            # The name check is a substring, not a prefix: the app accepts
+            # LED_BLE anywhere in the name. And a panel that does not carry
+            # the name at all still counts when its advertisement holds the
+            # vendor's manufacturer data -- that is the app's fallback path,
+            # and without it a rebranded panel is invisible to us while the
+            # app finds it.
+            name = service_info.name or ""
+            is_compatible = DEVICE_NAME_MARKER in name
+            if not is_compatible:
+                is_compatible = parse_identity(service_info.manufacturer_data).cid is not None
 
             device_info = {
                 "address": service_info.address,

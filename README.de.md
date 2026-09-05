@@ -181,6 +181,17 @@ Die Codes 3 und 4 gibt es, sie werden aber nicht angeboten: `pypixelcolor`
 verweigert sie auf allem außer einem 32×32-Panel, weil sie ein Gerät in eine
 Boot-Schleife bringen können, und keine Quelle benennt sie.
 
+### Farbverläufe für Text
+
+**Text Gradient** färbt den Text mit einem von acht Verläufen, die das Panel
+selbst rendert — oder lässt ihn in der Farbe, die das Textfarben-Light vorgibt.
+
+Die Hersteller-App nummeriert sie nur durch, `GRADIENT_COLOR_01` bis `_08`.
+Die Bezeichnungen hier stammen deshalb von uns und beschreiben die tatsächlichen
+Farbrampen aus der App: Spectrum, Navy to blush, Cyan to gold, Blue to cyan,
+Spectrum vivid, Colour wheel, Warm wheel und Warm wheel wide. Die Nummer des
+Verlaufs bleibt im Namen stehen, damit nichts von unserer Wortwahl abhängt.
+
 ## Installation
 
 ### HACS (empfohlen)

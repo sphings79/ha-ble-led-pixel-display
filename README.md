@@ -178,6 +178,17 @@ Codes 3 and 4 exist but are not offered. `pypixelcolor` refuses them on
 anything but a 32×32 panel because they can put a device into a boot loop, and
 no source names them.
 
+### Text gradients
+
+**Text Gradient** paints the text with one of eight colour ramps the panel
+renders itself, or leaves it in the colour set by the text colour light.
+
+The vendor app numbers these and nothing more — `GRADIENT_COLOR_01` to `_08` —
+so the labels here are ours, describing the actual ramps read out of the app:
+Spectrum, Navy to blush, Cyan to gold, Blue to cyan, Spectrum vivid, Colour
+wheel, Warm wheel and Warm wheel wide. The gradient number stays in the label
+so nothing rests on our choice of adjectives.
+
 ## Installation
 
 ### HACS (recommended)

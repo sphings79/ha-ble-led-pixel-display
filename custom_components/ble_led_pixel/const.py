@@ -9,7 +9,11 @@ NOTIFY_UUID = "0000fa03-0000-1000-8000-00805f9b34fb"
 CCCD_UUID = "00002902-0000-1000-8000-00805f9b34fb"
 
 # Device discovery
-DEVICE_NAME_PREFIX = "LED_BLE_"
+# The vendor app looks for this anywhere in the name, not as a prefix and
+# without a trailing underscore -- so a panel called LED_BLE1234, or one
+# carrying a brand prefix, is found by the app. Matching the app rather
+# than being stricter than it.
+DEVICE_NAME_MARKER = "LED_BLE"
 
 # Configuration keys
 CONF_ADDRESS = "address"
@@ -81,3 +85,33 @@ TEXT_EFFECTS: dict[str, int] = {
 TEXT_EFFECT_CODES: dict[int, str] = {code: name for name, code in TEXT_EFFECTS.items()}
 
 DEFAULT_TEXT_EFFECT = "Fixed"
+
+
+# Text gradients ("rainbow mode"), by code.
+#
+# The vendor app names these only GRADIENT_COLOR_01 to _08, so the wording
+# here is ours -- but not invented: each label describes the actual colour
+# ramp, read out of GradientColor.kt and measured. The gradient number is kept
+# in the label so nobody has to trust our adjectives.
+#
+# Codes 0 and 1 both mean off. The app's gradient switch has no case for
+# either, so they fall through and the text keeps its solid colour.
+#
+# One caveat worth knowing: the ramps were read from the app's own rendering
+# path, which it uses for image-mode text. The code sent here is rendered by
+# the panel's firmware instead. The numbering lines up exactly -- eight
+# gradients at codes 2 to 9 in both -- so they are almost certainly the same
+# set, but that correspondence is inferred, not proven.
+TEXT_GRADIENTS: dict[str, int] = {
+    "Off": 0,
+    "1 - Spectrum": 2,
+    "2 - Navy to blush": 3,
+    "3 - Cyan to gold": 4,
+    "4 - Blue to cyan": 5,
+    "5 - Spectrum, vivid": 6,
+    "6 - Colour wheel, 16 steps": 7,
+    "7 - Warm wheel, 16 steps": 8,
+    "8 - Warm wheel, wide": 9,
+}
+
+DEFAULT_TEXT_GRADIENT = "Off"
