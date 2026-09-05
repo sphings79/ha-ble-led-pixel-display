@@ -94,6 +94,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   device type instead. An unknown device type is logged with a request to
   report it, and the panel's own numbers are kept rather than guessed at.
 
+## [1.3.0] - 2026-09-05
+
+### Added
+
+- **`show_slot` and `delete_slot` actions.** Panels store pictures internally,
+  and displaying a stored one costs seven bytes instead of a full frame buffer
+  -- 12288 bytes on a 32x32 panel. Writing was already possible through the
+  `save_slot` argument of `send_image_file` and `send_mdi_icon`; the commands to
+  recall and erase existed in pypixelcolor but no integration exposed them.
+  Showing an empty slot makes the panel cycle through the slots that do hold
+  something.
+
 ## [Unreleased]
 
 ### Added

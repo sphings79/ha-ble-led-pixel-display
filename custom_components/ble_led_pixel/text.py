@@ -378,6 +378,27 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
             _LOGGER.error("Failed to show emoji '%s'", emoji)
             raise HomeAssistantError(f"Failed to show emoji '{emoji}' - check the logs for details")
 
+    async def async_show_slot(self, slot: int) -> None:
+        """Display a picture already stored on the panel (action: show_slot).
+
+        Args:
+            slot: Slot number. An empty slot makes the panel cycle through
+                the ones that do hold something.
+        """
+        if not await self._api.show_slot(slot):
+            _LOGGER.error("Failed to show slot %d", slot)
+            raise HomeAssistantError(f"Failed to show slot {slot} - check the logs for details")
+
+    async def async_delete_slot(self, slot: int) -> None:
+        """Erase one stored picture from the panel (action: delete_slot).
+
+        Args:
+            slot: Slot number, 0-255.
+        """
+        if not await self._api.delete_slot(slot):
+            _LOGGER.error("Failed to delete slot %d", slot)
+            raise HomeAssistantError(f"Failed to delete slot {slot} - check the logs for details")
+
     async def async_update(self) -> None:
         """Update the entity state."""
         try:

@@ -1,3 +1,46 @@
+show_slot:
+  name: Show stored picture
+  description: >
+    Display a picture already stored on the panel. Sends seven bytes instead of
+    the whole image - on a 32x32 panel that is 7 bytes rather than 12288. Store
+    pictures first using the "save slot" field of send_image_file or
+    send_mdi_icon. Showing an empty slot makes the panel cycle through the slots
+    that do hold something.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    slot:
+      name: Slot
+      description: Slot number to display
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+
+delete_slot:
+  name: Delete stored picture
+  description: Erase one stored picture from the panel.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    slot:
+      name: Slot
+      description: Slot number to erase
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 0
+          max: 255
+          mode: box
+
 show_emoji:
   name: Show Emoji
   description: >

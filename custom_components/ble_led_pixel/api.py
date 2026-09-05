@@ -36,8 +36,10 @@ from .const import OPT_OVERRIDE_DIMENSIONS, OPT_PANEL_WIDTH, OPT_PANEL_HEIGHT
 
 try:
     from pypixelcolor.commands.show_slot import show_slot as pypixelcolor_show_slot
+    from pypixelcolor.commands.delete import delete as pypixelcolor_delete
 except ImportError:
     pypixelcolor_show_slot = None
+    pypixelcolor_delete = None
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -779,6 +781,57 @@ class BleLedPixelAPI:
             return True
         except Exception as err:
             _LOGGER.error("Error sending test pattern: %s", err)
+            return False
+
+    async def show_slot(self, slot: int) -> bool:
+        """Display a picture already stored on the panel.
+
+        Sends seven bytes instead of re-transmitting the image, which on a
+        32x32 panel means 7 bytes rather than 12288. Store pictures first with
+        the save_slot argument of send_image_file or send_mdi_icon.
+
+        Args:
+            slot: Slot number. An empty slot makes the panel cycle through the
+                slots that do hold something, rather than showing nothing.
+
+        Returns:
+            True when the command was sent.
+        """
+        if pypixelcolor_show_slot is None:
+            _LOGGER.error("pypixelcolor is not available")
+            return False
+        try:
+            success = await self._bluetooth.send_plan(pypixelcolor_show_slot(slot))
+            if success:
+                _LOGGER.debug("Showing slot %d", slot)
+            else:
+                _LOGGER.error("Failed to show slot %d", slot)
+            return success
+        except Exception as err:
+            _LOGGER.error("Error showing slot %d: %s", slot, err)
+            return False
+
+    async def delete_slot(self, slot: int) -> bool:
+        """Erase one stored picture from the panel.
+
+        Args:
+            slot: Slot number, 0-255.
+
+        Returns:
+            True when the command was sent.
+        """
+        if pypixelcolor_delete is None:
+            _LOGGER.error("pypixelcolor is not available")
+            return False
+        try:
+            success = await self._bluetooth.send_plan(pypixelcolor_delete(slot))
+            if success:
+                _LOGGER.debug("Deleted slot %d", slot)
+            else:
+                _LOGGER.error("Failed to delete slot %d", slot)
+            return success
+        except Exception as err:
+            _LOGGER.error("Error deleting slot %d: %s", slot, err)
             return False
 
     async def display_text_pypixelcolor(

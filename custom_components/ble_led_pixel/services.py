@@ -66,6 +66,28 @@ def async_setup_services(hass: HomeAssistant) -> None:
     service.async_register_platform_entity_service(
         hass,
         DOMAIN,
+        "show_slot",
+        entity_domain=Platform.TEXT,
+        schema={
+            vol.Required("slot"): vol.All(vol.Coerce(int), vol.Range(min=0, max=255)),
+        },
+        func="async_show_slot",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "delete_slot",
+        entity_domain=Platform.TEXT,
+        schema={
+            vol.Required("slot"): vol.All(vol.Coerce(int), vol.Range(min=0, max=255)),
+        },
+        func="async_delete_slot",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
         "show_emoji",
         entity_domain=Platform.TEXT,
         schema={
