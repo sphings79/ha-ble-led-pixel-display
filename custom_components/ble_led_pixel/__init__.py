@@ -5,7 +5,8 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
@@ -41,6 +42,28 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+# Entities this integration used to create. Left behind in the registry they
+# would sit there as permanently unavailable, so they are removed on setup.
+# (unique_id suffix, platform)
+REMOVED_ENTITIES: tuple[tuple[str, str], ...] = (
+    # Replaced in 2.0.0 by select.<panel>_text_effect, which names the effects
+    # instead of numbering them.
+    ("text_animation", Platform.NUMBER),
+)
+
+
+@callback
+def _remove_retired_entities(hass: HomeAssistant, address: str) -> None:
+    """Drop registry entries for entities this version no longer creates."""
+    registry = er.async_get(hass)
+    for suffix, platform in REMOVED_ENTITIES:
+        entity_id = registry.async_get_entity_id(platform, DOMAIN, f"{address}_{suffix}")
+        if entity_id is None:
+            continue
+        registry.async_remove(entity_id)
+        _LOGGER.info("Removed %s, which this version no longer provides", entity_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up BLE LED Pixel Display from a config entry."""
     address = entry.data[CONF_ADDRESS]
@@ -48,6 +71,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     _LOGGER.debug("Setting up BLE LED Pixel Display for %s (%s)", name, address)
     
+    _remove_retired_entities(hass, address)
+
     # Create API instance with hass for Bluetooth proxy support
     api = BleLedPixelAPI(hass, address, entry=entry)
 

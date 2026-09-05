@@ -131,6 +131,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The retired `text_animation` number was left behind in the entity
+  registry**, showing up as permanently unavailable after the 2.0.0 upgrade.
+  It is now removed on setup.
+
 - **Text mode crashed when the font size entity was unavailable.** Two
   mistakes in three lines: the fallback was written to `speed` instead of
   `font_size`, silently resetting the scroll speed to 16, and the following
