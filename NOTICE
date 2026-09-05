@@ -1,0 +1,48 @@
+BLE LED Pixel Display — Home Assistant integration
+Copyright (C) 2026 sphings79
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. See LICENSE.
+
+--------------------------------------------------------------------------------
+Derived work
+--------------------------------------------------------------------------------
+
+This project is a fork of:
+
+  ha-ipixel-color
+  Copyright (C) 2025 Christian Grund (@cagcoach)
+  https://github.com/cagcoach/ha-ipixel-color
+  Licensed under GPL-3.0
+
+It further incorporates work from:
+
+  tigers75/ha-ipixel-color — image display, MDI icon rendering, layout
+  composition and service registration
+  https://github.com/tigers75/ha-ipixel-color
+  Licensed under GPL-3.0
+
+--------------------------------------------------------------------------------
+Third-party components
+--------------------------------------------------------------------------------
+
+  pypixelcolor — protocol library for iPixel Color devices
+  Copyright (c) lucagoc
+  https://github.com/lucagoc/pypixelcolor
+  Licensed under the MIT License
+
+Bundled fonts retain the licences of their respective authors. UNIFONT_LICENSE
+and other licence files, where present, ship alongside the font files in
+custom_components/ble_led_pixel/fonts/.
+
+--------------------------------------------------------------------------------
+Trademarks
+--------------------------------------------------------------------------------
+
+Home Assistant is a trademark of the Home Assistant project. Nabu Casa is a
+trademark of Nabu Casa, Inc. Action, BGLight, B.K. Light and iPixel Color are
+trademarks of their respective owners. This project is not affiliated with,
+endorsed by or supported by any of them. Brand names are used solely to
+describe hardware compatibility.

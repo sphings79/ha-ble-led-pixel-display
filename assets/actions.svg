@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 392" width="1200" height="392" role="img"
+     aria-label="The five actions the integration provides: send_text for device-rendered scrolling text, send_image_file for images and animated GIFs, send_mdi_icon for Material Design Icons, send_layout to combine up to four icons an image and four text areas, and send_test_pattern to verify panel size and colour order.">
+  <defs><style>
+    .t { font-family: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    .m { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  </style></defs>
+  <rect width="1200" height="392" fill="#0f1720"/>
+  <text class="t" x="40" y="44" font-size="24" font-weight="700" fill="#e6edf3">Actions</text>
+  <text class="t" x="146" y="44" font-size="16" fill="#7d90a3">callable from automations, scripts and Developer Tools</text>
+<g transform="translate(40 70)">
+    <rect width="370" height="132" rx="14" fill="#16202b" stroke="#28394a"/>
+    <rect x="0" y="0" width="5" height="132" rx="2.5" fill="#3ddc97"/>
+    <text class="m" x="26" y="38" font-size="19" font-weight="600" fill="#3ddc97">ble_led_pixel.</text>
+    <text class="m" x="26" y="64" font-size="19" font-weight="600" fill="#e6edf3">send_text</text>
+    <text class="t" x="26" y="94" font-size="15" fill="#c8d5e1">Scrolling text rendered on the device itself</text>
+    <text class="t" x="26" y="116" font-size="13.5" fill="#7d90a3">Native renderer, lightest option</text>
+  </g>
+<g transform="translate(420 70)">
+    <rect width="370" height="132" rx="14" fill="#16202b" stroke="#28394a"/>
+    <rect x="0" y="0" width="5" height="132" rx="2.5" fill="#41BDF5"/>
+    <text class="m" x="26" y="38" font-size="19" font-weight="600" fill="#41BDF5">ble_led_pixel.</text>
+    <text class="m" x="26" y="64" font-size="19" font-weight="600" fill="#e6edf3">send_image_file</text>
+    <text class="t" x="26" y="94" font-size="15" fill="#c8d5e1">Any image or animated GIF from disk</text>
+    <text class="t" x="26" y="116" font-size="13.5" fill="#7d90a3">PNG, JPEG, GIF · crop or fit</text>
+  </g>
+<g transform="translate(800 70)">
+    <rect width="370" height="132" rx="14" fill="#16202b" stroke="#28394a"/>
+    <rect x="0" y="0" width="5" height="132" rx="2.5" fill="#7C7CF5"/>
+    <text class="m" x="26" y="38" font-size="19" font-weight="600" fill="#7C7CF5">ble_led_pixel.</text>
+    <text class="m" x="26" y="64" font-size="19" font-weight="600" fill="#e6edf3">send_mdi_icon</text>
+    <text class="t" x="26" y="94" font-size="15" fill="#c8d5e1">Any Material Design Icon, fetched on demand</text>
+    <text class="t" x="26" y="116" font-size="13.5" fill="#7d90a3">mdi:weather-sunny, mdi:battery</text>
+  </g>
+<g transform="translate(40 232)">
+    <rect width="370" height="132" rx="14" fill="#16202b" stroke="#28394a"/>
+    <rect x="0" y="0" width="5" height="132" rx="2.5" fill="#FFC107"/>
+    <text class="m" x="26" y="38" font-size="19" font-weight="600" fill="#FFC107">ble_led_pixel.</text>
+    <text class="m" x="26" y="64" font-size="19" font-weight="600" fill="#e6edf3">send_layout</text>
+    <text class="t" x="26" y="94" font-size="15" fill="#c8d5e1">Up to 4 icons, an image and 4 text areas combined</text>
+    <text class="t" x="26" y="116" font-size="13.5" fill="#7d90a3">Per-element position and scroll</text>
+  </g>
+<g transform="translate(420 232)">
+    <rect width="370" height="132" rx="14" fill="#16202b" stroke="#28394a"/>
+    <rect x="0" y="0" width="5" height="132" rx="2.5" fill="#ff6b6b"/>
+    <text class="m" x="26" y="38" font-size="19" font-weight="600" fill="#ff6b6b">ble_led_pixel.</text>
+    <text class="m" x="26" y="64" font-size="19" font-weight="600" fill="#e6edf3">send_test_pattern</text>
+    <text class="t" x="26" y="94" font-size="15" fill="#c8d5e1">Four coloured quadrants</text>
+    <text class="t" x="26" y="116" font-size="13.5" fill="#7d90a3">Verifies size and colour order</text>
+  </g>
+</svg>

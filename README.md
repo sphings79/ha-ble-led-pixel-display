@@ -1,454 +1,344 @@
-# BLE LED Pixel Display - Home Assistant Integration
+<div align="center">
+  <img src="assets/banner.svg" alt="BLE LED Pixel Display banner: a Home Assistant integration for Bluetooth LE LED pixel matrix panels, beside two 64 by 16 pixel panels rendering PV 2400W in green and H100M 57 in red" width="100%">
 
-A Home Assistant custom integration for BLE LED pixel matrix displays that speak the
-iPIXEL Color protocol. These panels are sold under several brands - BGLight, and as the
-B.K. Light LED Pixel Board from Action - and advertise themselves as `LED_BLE_*` with
-service UUID `0000fa01-0000-1000-8000-00805f9b34fb`.
+  # BLE LED Pixel Display — Bluetooth LE Pixel Matrix Panels for Home Assistant
 
-> **This is a fork.** It continues [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color)
-> by Christian Grund, which has seen no commits since December 2025, and includes the
-> image/MDI-icon work from [tigers75/ha-ipixel-color](https://github.com/tigers75/ha-ipixel-color).
-> Licensed under GPL-3.0, like the original.
->
-> **The integration domain is `ble_led_pixel`,** not `ipixel_color`. Both can therefore be
-> installed side by side, which makes migrating one device at a time possible.
+  **Put live Home Assistant data on a cheap Bluetooth LED panel — text, images, animated GIFs, Material Design Icons and composed layouts.**
+  A custom integration for LED pixel matrix displays that speak the iPIXEL Color protocol, sold as **BGLight** and as the **B.K. Light LED Pixel Board** at Action. Fully local over Bluetooth LE — no cloud, no vendor app, no account.
 
-## Features
+  [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)](https://hacs.xyz)
+  [![Release](https://img.shields.io/github/v/release/sphings79/ha-ble-led-pixel-display?style=for-the-badge&color=7C7CF5)](https://github.com/sphings79/ha-ble-led-pixel-display/releases)
+  [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-41BDF5?style=for-the-badge)](https://www.home-assistant.io)
+  [![License](https://img.shields.io/badge/License-GPL--3.0-3ddc97?style=for-the-badge)](LICENSE)
 
-- **Multiple Display Modes**: Text Image (PIL rendering), Native Text, and Clock modes
-- **RGB Color Support**: Separate text and background colors via RGB light entities
-- **Clock Display**: 9 different clock styles with automatic time synchronization
-- **Rich Text Display**: Custom fonts, sizes, multiline text with `\n`, antialiasing
-- **MDI Icons**: Render and display any Material Design Icon, fetched on demand
-- **Custom Layouts**: Compose up to 4 MDI icons, an image/GIF, and/or up to 4 independent text elements at independent positions on the panel, with left/right/center alignment, optional (synchronized) scrolling and/or blinking, and forced/automatic line wrapping that preserves exact spacing when disabled
-- **Send Existing Images/GIFs**: Display any image or animated GIF file readable by Home Assistant
-- **Template Support**: Use Home Assistant variables like `{{ states('sensor.temperature') }}°C`
-- **Font Management**: Load TTF/OTF fonts from `fonts/` folder
-- **Brightness Control**: Adjustable display brightness (1-100)
-- **Auto/Manual Updates**: Choose automatic updates or manual refresh
-- **State Persistence**: Settings preserved across HA restarts
-- **Bluetooth Proxy Support**: Compatible with Bluetooth proxy devices
-- **Auto-discovery**: Finds iPIXEL devices automatically via Bluetooth
+  **English** · [Deutsch](README.de.md)
+</div>
+
+## Table of contents
+
+- [What this integration does](#what-this-integration-does)
+- [Supported devices](#supported-devices)
+- [Actions](#actions)
+- [Installation](#installation)
+- [Entities you get](#entities-you-get)
+- [Display modes](#display-modes)
+- [Avoiding flicker: how updates actually work](#avoiding-flicker-how-updates-actually-work)
+- [Examples](#examples)
+- [Fonts](#fonts)
+- [Why this fork exists](#why-this-fork-exists)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+- [More Home Assistant projects](#more-home-assistant-projects)
+- [Contributing](#contributing)
+- [Disclaimer](#disclaimer)
+- [License](#license)
+
+## What this integration does
+
+These panels are sold as toys — you set a message with a phone app over Bluetooth and that is it. This integration makes them a proper Home Assistant output device: a `text` entity you can write to from any automation, plus actions for images, GIFs, icons and multi-element layouts.
+
+Typical uses:
+
+- **Energy dashboard on the wall** — current PV production, battery state of charge, house consumption, time until the battery is full
+- **Status ticker** — who is home, next calendar entry, whether the garage door is open
+- **Alerts** — a red panel when a window is open while the heating runs, or when the washing machine finishes
+- **Ambient info** — weather icon plus temperature, composed as a single layout
+
+Everything runs locally over Bluetooth LE. Home Assistant's Bluetooth proxies are supported, so the panel does not have to be near the Home Assistant host.
+
+## Supported devices
+
+Any panel that advertises as `LED_BLE_*` with service UUID `0000fa01-0000-1000-8000-00805f9b34fb` and speaks the iPIXEL Color protocol. Known brands:
+
+| Brand | Notes |
+| --- | --- |
+| **B.K. Light LED Pixel Board** | Sold at Action, the most common one in Europe |
+| **BGLight** | Same protocol |
+| Generic "iPixel Color" panels | Whatever the vendor app is called iPixel Color |
+
+Panel resolution is read from the device itself; 64×16 is the usual size. If your panel reports the wrong dimensions, see [Troubleshooting](#troubleshooting).
+
+## Actions
+
+<img src="assets/actions.svg" alt="The five actions the integration provides: send_text for device-rendered scrolling text, send_image_file for images and animated GIFs, send_mdi_icon for Material Design Icons, send_layout to combine up to four icons an image and four text areas, and send_test_pattern to verify panel size and colour order" width="100%">
+
+All actions target the panel's `text` entity and are callable from automations, scripts, and Developer Tools → Actions.
 
 ## Installation
 
-### HACS (Recommended)
+### HACS (recommended)
 
 1. Open HACS in Home Assistant
-2. Click on the three dots in the top right corner
-3. Select **Custom repositories**
-4. Add the repository URL: `https://github.com/sphings79/ha-ble-led-pixel-display`
-5. Select **Integration** as the category
-6. Click **Add**
-7. Search for "BLE LED Pixel Display" in HACS and install it
-8. Restart Home Assistant
-9. Add the integration via Settings → Devices & Services → Add Integration
+2. Three dots menu, top right → **Custom repositories**
+3. Repository URL: `https://github.com/sphings79/ha-ble-led-pixel-display`
+4. Category: **Integration** → **Add**
+5. Search for **BLE LED Pixel Display**, install it
+6. Restart Home Assistant
 
-### Manual Installation
+### Manual
 
-1. Copy `custom_components/ble_led_pixel` to your HA `custom_components` directory
+1. Copy `custom_components/ble_led_pixel` into your Home Assistant `custom_components` directory
 2. Restart Home Assistant
-3. Add integration via Settings → Devices & Services → Add Integration
 
-### Optional: Custom Fonts
+### Adding the panel
 
-Place `.ttf`/`.otf` font files in the `fonts/` folder within the integration directory for additional font options.
-Bundled pixel fonts (`3x5-de.ttf`, `5x5.ttf`, `7x5.ttf`) are good defaults for small matrices; `3x5-de` is the smallest.
+Power the panel on and make sure no phone is connected to it — a panel that is already connected to the vendor app will not advertise, and Home Assistant cannot find it.
 
-## Entities
+Home Assistant usually discovers it by itself and offers it under **Settings → Devices & Services**. Otherwise add it manually: **Add Integration → BLE LED Pixel Display**, then pick your panel from the list. Devices whose name starts with `LED_BLE_` are marked with a star. Manual entry of a MAC address is available as a fallback.
 
-Once configured, you'll get these entities:
+## Entities you get
 
-**Display Control:**
+| Entity | Domain | What it does |
+| --- | --- | --- |
+| **Display** | `text` | The text shown on the panel. Write to it from any automation. |
+| **Text Color** | `light` | Foreground colour as RGB |
+| **Background Color** | `light` | Background colour as RGB |
+| **Brightness** | `number` | 1–100 |
+| **Mode** | `select` | `textimage`, `text` or `clock` — see [Display modes](#display-modes) |
+| **Font** | `select` | TTF/OTF fonts, see [Fonts](#fonts) |
+| **Font Size**, **Line Spacing** | `number` | Layout in `textimage` mode |
+| **Text Animation**, **Text Speed**, **Text Rainbow** | `number` | Scrolling and effects in `text` mode |
+| **Clock Style** | `select` | 9 clock faces |
+| **Clock 24h**, **Clock Show Date** | `switch` | Clock options |
+| **Antialiasing** | `switch` | Smoothing in `textimage` mode |
+| **Auto Update** | `switch` | **Read [Avoiding flicker](#avoiding-flicker-how-updates-actually-work) before touching this** |
+| **Update Display** | `button` | Renders the stored state to the panel |
+| **Sync Time** | `button` | Sets the device clock |
+| Device Type, Display Width, Display Height, MCU/WiFi Version | `sensor` | Diagnostics |
 
-- `select.{device}_mode` - Display mode (textimage, text, clock)
-- `text.{device}_display` - Enter text with templates and `\n` for newlines
-- `switch.{device}_power` - Turn display on/off
-- `number.{device}_brightness` - Display brightness level (1-100)
+## Display modes
 
-**Text Appearance:**
+| Mode | Rendering | Good for |
+| --- | --- | --- |
+| **`text`** | The device renders the text itself | Scrolling tickers, lowest Bluetooth traffic, smoothest animation |
+| **`textimage`** | Home Assistant renders text to an image with Pillow, then sends the image | Custom TTF fonts, precise sizing, antialiasing, multiline with `\n` |
+| **`clock`** | Device-side clock | A clock, with 9 styles |
 
-- `select.{device}_font` - Choose from available fonts
-- `number.{device}_font_size` - Font size (0=auto, supports decimals like 12.5)
-- `number.{device}_line_spacing` - Spacing between lines (0-20px)
-- `switch.{device}_antialiasing` - Smooth vs sharp text
-- `light.{device}_text_color` - RGB text color
-- `light.{device}_background_color` - RGB background color
+## Avoiding flicker: how updates actually work
 
-**Clock Mode:**
+This is the part that is not obvious, and it decides whether your panel looks smooth or flickers on every change.
 
-- `select.{device}_clock_style` - Clock style (0-8)
-- `switch.{device}_clock_24h_format` - 24-hour time format
-- `switch.{device}_clock_show_date` - Show date below time
+**With `Auto Update` on, every single change renders immediately.** Setting the text is one Bluetooth write, setting the colour is another. Between the two, the panel briefly shows the old value in the new colour, or the new value in the old colour. On a slow Bluetooth link that gap is over a second and clearly visible.
 
-**Update Control:**
+**With `Auto Update` off, `text.set_value` and `light.turn_on` only store the value.** Nothing reaches the panel until you press the `Update Display` button — which then renders text and colour together, in a single write.
 
-- `switch.{device}_auto_update` - Auto-update on changes
-- `button.{device}_update_display` - Manual refresh
-
-**Device Info:**
-
-- `sensor.{device}_width` - Display width in pixels
-- `sensor.{device}_height` - Display height in pixels
-- `sensor.{device}_device_type` - Device model information
-
-## Template Examples
-
-```jinja2
-Time: {{ now().strftime('%H:%M') }}
-Temp: {{ states('sensor.temperature') | round(1) }}°C
-{% if is_state('sun.sun', 'above_horizon') %}Day{% else %}Night{% endif %}
-```
-
-## Quick Start
-
-**Text Mode:**
-
-1. Select mode: `textimage` (for RGB colors) or `text` (native)
-2. Set text: `"Hello\nWorld"`
-3. Choose text and background colors using light entities
-4. Select font and size (or use auto-sizing)
-5. Toggle auto-update ON or use manual update button
-
-**Clock Mode:**
-
-1. Select mode: `clock`
-2. Choose clock style (0-8)
-3. Set 24-hour format and date display preferences
-4. Time syncs automatically
-
-**Templates:**
-
-- Templates update automatically with sensor changes when auto-update is ON
-
-## Services (MDI Icons, Custom Layouts, Direct Text)
-
-These are `ble_led_pixel.*` actions, callable from Developer Tools → Actions or from any
-automation/script. Unlike the `text.{device}_display` entity above (tied to the mode/color/font
-entities and auto-update), these render and send an image directly, independent of the
-panel's currently selected mode.
-
-> **Templates:** `text`/`icon` fields in these services do **not** resolve Home Assistant
-> templates themselves (unlike `text.{device}_display`, which explicitly re-renders templates
-> server-side). A template like `{{ states('sensor.temperature') }}°C` works fine when the
-> service is called from an automation or script - Home Assistant's own automation engine
-> renders templates in the `data:` block before the service is called. It will **not** render
-> if typed literally into the test field under Developer Tools → Actions (same caveat as `\n`
-> typed there). These services are also **one-shot**: unlike `text.{device}_display` with
-> auto-update, they don't re-render on their own when the underlying sensor changes - trigger
-> the automation again (e.g. on the sensor's `state_changed`) to refresh the panel.
-
-### `ble_led_pixel.send_mdi_icon`
-
-Renders any [Material Design Icon](https://pictogrammers.com/library/mdi/) (fetched on
-demand, no need to pre-install anything) and shows it centered on the panel.
+So for anything that updates regularly:
 
 ```yaml
-action: ble_led_pixel.send_mdi_icon
-target:
-  entity_id: text.living_room_display
-data:
-  icon: "mdi:weather-sunny"
-  color: [255, 204, 0]
-  bg_color: [0, 0, 0]
-  scale: 100          # 1-100, percentage of the panel's shorter side
-  save_slot: 0        # 0 = don't save, >=1 = save to that device memory slot
+# Once, manually: turn the Auto Update switch off.
+actions:
+  - action: text.set_value
+    target: { entity_id: text.display }
+    data: { value: "PV 2400W" }
+  - action: light.turn_on
+    target: { entity_id: light.text_color }
+    data: { rgb_color: [0, 255, 0] }
+  - action: button.press          # both land on the panel at once
+    target: { entity_id: button.update_display }
 ```
 
-### `ble_led_pixel.send_text`
+Two further benefits: it is faster, because one Bluetooth round trip replaces two or three, and the timing gets predictable.
 
-Sends text using pypixelcolor's native renderer (device-side animation/scroll), with its own
-parameters each call - independent of the panel's currently selected text/effect/colors, so
-it's safe to call from automations without disturbing manual use of the panel.
+The one trade-off: with `Auto Update` off, changing text or colour by hand in the Home Assistant UI does nothing visible until the button is pressed. If an automation presses it regularly anyway, you will not notice.
+
+> **Tip:** Only write the colour when it actually changed. On a panel that cycles through five screens where only one is green, that saves four Bluetooth writes per cycle.
+
+## Examples
+
+### Energy display cycling through several values
+
+A single automation that rotates through PV production, battery state of charge and house consumption every five seconds:
 
 ```yaml
-action: ble_led_pixel.send_text
-target:
-  entity_id: text.living_room_display
-data:
-  text: "{{ states('sensor.temperature') }}°C"
-  color: [255, 255, 255]
-  bg_color: [0, 0, 0]     # omit for a transparent background
-  font: "CUSONG"          # or "SIMSUN", "VCR_OSD_MONO"
-  animation: 0            # 0-7; pypixelcolor itself rejects 3/4 on non-32x32 panels
-  speed: 80               # 0-100
-  rainbow_mode: 0         # 0-9, 0 = disabled
+alias: LED panel energy cycle
+triggers:
+  - trigger: time_pattern
+    seconds: /5
+mode: single
+max_exceeded: silent
+variables:
+  screens: >-
+    {% set pv = states('sensor.pv_power') | float(0) %}
+    {% set soc = states('sensor.battery_soc') | float(0) %}
+    {% set house = states('sensor.house_consumption') | float(0) %}
+    {% set ns = namespace(l=[]) %}
+    {% if pv > 0 %}
+      {% set ns.l = ns.l + [{'text': 'PV %d W' | format(pv), 'color': [0, 255, 0]}] %}
+    {% endif %}
+    {% set ns.l = ns.l + [{'text': 'SoC %d%%' | format(soc), 'color': [255, 0, 0]}] %}
+    {% set ns.l = ns.l + [{'text': 'H %d W' | format(house), 'color': [255, 0, 0]}] %}
+    {{ ns.l }}
+actions:
+  - variables:
+      screen: "{{ screens[(states('counter.panel_step') | int(0)) % (screens | length)] }}"
+  - action: text.set_value
+    target: { entity_id: text.display }
+    data: { value: "{{ screen.text }}" }
+  - if:
+      - "{{ (state_attr('light.text_color', 'rgb_color') or []) | list != screen.color }}"
+    then:
+      - action: light.turn_on
+        target: { entity_id: light.text_color }
+        data: { rgb_color: "{{ screen.color }}" }
+  - action: button.press
+    target: { entity_id: button.update_display }
+  - action: counter.increment
+    target: { entity_id: counter.panel_step }
 ```
 
-### `ble_led_pixel.send_layout`
+The screen list is built as data, so screens without meaning drop out of the cycle by themselves — no PV screen at night. A `counter` helper holds the position.
 
-Composes up to 4 independent MDI icons, a static image/GIF-first-frame, and/or up to 4
-independent text elements - each positioned by its own top-left (x, y) corner in pixels -
-onto a single canvas sent as one image. Useful for e.g. an icon on the left with a value next
-to it, several status icons in a row, or several labels stacked with their own sizes/fonts/colors.
+> **Mind the character limit.** Many panels switch to a second view when the text is longer than fits, which looks like the display jumping. Keep strings short and predictable, and pad numbers to a fixed width.
 
-**Single icon and single text** - use the flat fields, same as before:
+### An image or animated GIF
 
 ```yaml
-action: ble_led_pixel.send_layout
-target:
-  entity_id: text.living_room_display
-data:
-  icon: "mdi:weather-sunny"
-  icon_x: 0
-  icon_y: 0
-  icon_size: 16          # square icon size in pixels; omitted = panel's shorter side
-  icon_color: [255, 204, 0]
-  image_path: "/config/www/logo.png"  # optional: any image/GIF file readable by HA
-  image_x: 40                          # (only its first frame is used, if animated)
-  image_y: 0
-  image_width: 16                     # optional: resize
-  image_height: 16
-  text: "21°C"
-  text_x: 18
-  text_y: 4
-  text_size: 8           # font size in pixels, can be fractional (e.g. 7.5)
-  text_font: "7x5"        # "3x5-de" (smallest), "5x5", "7x5", "Lepidos" (3x7), "OpenSans-Light", "WP7xn"
-  text_color: [255, 255, 255]
-  text_wrap: true         # auto word-wrap at the panel's right edge
-  text_line_spacing: 1    # extra pixels between wrapped/forced lines
-  text_scroll: false      # see below
-  bg_color: [0, 0, 0]
-  save_slot: 0
+- action: ble_led_pixel.send_image_file
+  target: { entity_id: text.display }
+  data:
+    file_path: /config/www/panel/rain.gif
+    resize_method: fit          # or "crop"
 ```
 
-`icon`, `image_path` and `text` are all optional independently - use any combination, or just
-one of them.
+The path must be readable by Home Assistant and listed under `allowlist_external_dirs` if it is outside `/config`.
 
-**Multiple texts** (up to 4) - use `texts` instead of the flat `text`/`text_x`/... fields
-(YAML-only, not practical from the Developer Tools UI form). If given, `texts` takes priority
-over the flat fields:
+### A Material Design Icon
 
 ```yaml
-action: ble_led_pixel.send_layout
-target:
-  entity_id: text.living_room_display
-data:
-  texts:
-    - text: "Living room"
-      x: 0
-      y: 0
-      size: 6
-    - text: "21°C"
-      x: 0
-      y: 8
-      size: 8
-      color_hex: "ffcc00"
-      scroll: true   # see below - this one scrolls, the one above stays static
+- action: ble_led_pixel.send_mdi_icon
+  target: { entity_id: text.display }
+  data:
+    icon: mdi:weather-pouring
+    color: [65, 189, 245]
+    scale: 1.0
 ```
 
-Each item accepts: `text` (required), `x`, `y`, `size`, `font`, `color_hex`, `wrap`, `align`,
-`scroll`, `line_spacing`, `blink`, `blink_interval_ms` - same meaning as the single-text fields
-above (and below), just per item.
+Icons are fetched on demand, so any MDI name works without shipping the icon set.
 
-**Alignment:** `align` (or `text_align` for the single-text form) changes what `x`/`y` anchor:
-`left` (default) anchors the text's left edge at `x` (unchanged from before); `right` anchors
-its right edge at `x` (the text extends leftward from there); `center` anchors its horizontal
-center at `x`. With multiple `\n`-separated lines of different widths, each line is also
-aligned within the block itself the same way. Only static (non-scrolling) text is anchored
-this way - scrolling text always anchors its left edge at `x` and moves rightward through the
-available space, since a moving block has no fixed edge to anchor mid-scroll.
+### Weather icon and temperature side by side
 
 ```yaml
-# Right-align a value so it always ends flush at x=32, regardless of length
-texts:
-  - text: "12345"
-    x: 32
-    y: 4
-    align: "right"
-    wrap: false
+- action: ble_led_pixel.send_layout
+  target: { entity_id: text.display }
+  data:
+    icon: mdi:weather-sunny
+    icon_x: 0
+    icon_y: 0
+    icon_size: 16
+    icon_color: [255, 193, 7]
+    text: "{{ states('sensor.outside_temperature') | round(0) }}°C"
+    text_x: 20
+    text_y: 4
+    text_color: [230, 237, 243]
 ```
 
-**Preserving exact spacing:** word-wrap (`wrap`/`text_wrap: true`) reflows text and does not
-preserve exact spacing between words. If you need leading/trailing/internal spaces exactly as
-given (e.g. for manual alignment via spaces in the text itself), set `wrap: false` -
-`send_layout` measures text by its font advance width, so spaces contribute to the layout
-instead of being invisibly trimmed.
+`send_layout` composes up to four icons, an image and four independent text areas, each with its own position, colour, alignment and optional scrolling or blinking.
 
-**Blinking:** set `blink: true` (plus optional `blink_interval_ms`, default 500) on any icon or
-text item to make it blink on/off continuously - independent of, and combinable with,
-scrolling text. Multiple blinking and/or scrolling elements are kept in sync with each other
-(same least-common-multiple mechanism as multi-text scrolling, below).
+### Scrolling text rendered by the device
 
 ```yaml
-action: ble_led_pixel.send_layout
-target:
-  entity_id: text.living_room_display
-data:
-  icons:
-    - icon: "mdi:water-alert"
-      x: 0
-      y: 0
-      size: 16
-      blink: true
-      blink_interval_ms: 300
-  texts:
-    - text: "ALARM"
-      x: 16
-      y: 4
-      size: 8
-      blink: true
-      blink_interval_ms: 300
+- action: ble_led_pixel.send_text
+  target: { entity_id: text.display }
+  data:
+    text: "Doorbell — someone is at the front door"
+    color: [255, 107, 107]
+    animation: 1        # scroll
+    speed: 60
 ```
 
-**Multiple icons** (up to 4) - use `icons` instead of the flat `icon`/`icon_x`/... fields
-(YAML-only). If given, `icons` takes priority over the flat fields. Icons are always static
-(no scrolling):
+This is the lightest option: the panel does the scrolling itself, Home Assistant sends the string once.
+
+### Checking a new panel
 
 ```yaml
-action: ble_led_pixel.send_layout
-target:
-  entity_id: text.living_room_display
-data:
-  icons:
-    - icon: "mdi:weather-sunny"
-      x: 0
-      y: 0
-      size: 16
-      color_hex: "ffcc00"
-    - icon: "mdi:water-percent"
-      x: 16
-      y: 0
-      size: 16
-      color_hex: "3399ff"
+- action: ble_led_pixel.send_test_pattern
+  target: { entity_id: text.display }
 ```
 
-Each item accepts: `icon` (required), `x`, `y`, `size`, `color_hex`, `blink`, `blink_interval_ms`.
-Icons never scroll, but can blink (see below).
+Four coloured quadrants — verifies resolution and colour channel order in one shot.
 
-Forcing a line break regardless of `wrap`/`text_wrap`: use `\n` in any text (works whether
-typed literally into a GUI text field or as a real newline from YAML), e.g.
-`text: "Living room\n21°C"`.
+## Fonts
 
-**Scrolling text:** set `wrap: false` (or `text_wrap: false` for the single-text form) and
-`scroll: true` (or `text_scroll: true`) to make text too wide for the available space scroll
-continuously (looping marquee GIF) instead of being clipped. No effect if the text already
-fits - it's sent as a plain static image in that case. If more than one text in `texts`
-scrolls, they're kept in sync with each other (their loops realign together, computed via the
-least common multiple of their individual cycle lengths, capped to avoid runaway frame
-counts on awkward combinations).
+Fonts are picked in the **Font** select entity and looked up in this order:
 
-```yaml
-action: ble_led_pixel.send_layout
-target:
-  entity_id: text.living_room_display
-data:
-  text: "This message is too long to fit and will scroll"
-  text_x: 0
-  text_wrap: false
-  text_scroll: true
-  scroll_step: 2        # pixels moved per animation frame, shared by every scrolling text
-  scroll_frame_ms: 80    # duration of each frame, in ms
-  scroll_gap: 16         # blank pixels between the end of one pass and the next
-```
+1. `custom_components/ble_led_pixel/fonts/` — shipped with the integration
+2. The `pypixelcolor` package
+3. System font directories
 
-> **Native vs. composed scrolling:** `ble_led_pixel.send_text` (below) scrolls text natively
-> on the device - lighter and faster, but it always takes over the *entire* panel as a single
-> string; it cannot be combined with an icon, an image, or other text, because the device
-> protocol has no concept of a sub-region. Scrolling text *within* a `send_layout` composition
-> is only achievable by generating the animation frames ourselves (as above), which is
-> inherently heavier to transfer - expect it to take longer to load than a native
-> `send_text` call, though it plays back smoothly once loaded.
->
-> GIF sending (used by scrolling text, and by `send_image_file` below) is a newer code path
-> than static images - if you hit `cur12k_no_answer: no ack from device` in the logs, or the
-> panel just takes a long time to update, the device needs more time/data than for a static
-> image. In practice, `scroll_step` is the one lever that reliably helps: doubling it roughly
-> halves both the frame count and the transferred bytes (measured: a single long scrolling
-> word at `scroll_step: 2` produced a 69-frame/13KB GIF; at `scroll_step: 4`, ~35 frames/6.4KB)
-> - at the cost of a choppier motion. `send_layout` already merges identical consecutive
-> frames and uses a small quantized color palette to keep GIFs as small as it can, but for a
-> single long word filling most of the available width, there typically aren't any identical
-> frames to merge, so `scroll_step` remains the main thing to adjust if a scroll is too slow
-> to load. The BLE ACK timeout for image/GIF sends is already set higher (25s) than
-> pypixelcolor's small-command default (8s) to give the device room to process bigger GIFs.
+> **Important:** In `text` mode, only location 1 is used for rendering, while the selector lists fonts from all three. Selecting a font that lives outside the integration folder silently falls back to `CUSONG`. This fork ships `VCR_OSD_MONO` for exactly that reason. To use your own font, drop the `.ttf` or `.otf` into the integration's `fonts/` folder and restart.
 
-### `ble_led_pixel.send_image_file`
+Bundled: `3x5-de`, `5x5`, `7x5`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`.
 
-Sends an existing image or GIF file, read from disk, as-is. Supports PNG, GIF (including
-animated GIFs, sent frame-by-frame with their own durations), JPEG, BMP, TIFF, WEBP, and
-HEIC/HEIF. The file must be in a location Home Assistant can read, such as `/config/www/`.
+## Why this fork exists
 
-```yaml
-action: ble_led_pixel.send_image_file
-target:
-  entity_id: text.living_room_display
-data:
-  file_path: "/config/www/my_animation.gif"
-  resize_method: "crop"   # "crop" fills the panel and crops excess, "fit" pads with black
-  save_slot: 0
-```
+This continues [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color) by Christian Grund, which has had no commits since December 2025 while pull requests and issues piled up. It merges the image, MDI icon and layout work from [tigers75](https://github.com/tigers75/ha-ipixel-color) and adds fixes of its own — among them the font fallback above, and pinning `pypixelcolor` below 0.5 because the library has since removed the fonts that existing installations depend on.
 
-### `ble_led_pixel.send_test_pattern`
-
-Diagnostic only: sends a 4-quadrant colored pattern (red/green/blue/yellow) sized to the
-panel, useful for verifying how the device's reported width/height maps onto the physical
-panel when the two don't obviously match.
-
-```yaml
-action: ble_led_pixel.send_test_pattern
-target:
-  entity_id: text.living_room_display
-```
-
-## Font Management
-
-- Place `.ttf`/`.otf` files in `fonts/` folder
-- Restart HA to see new fonts in dropdown
-- Recommended: pixel fonts like 5x5.ttf, 7x7.ttf
-- The same bundled fonts (`3x5-de`, `5x5`, `7x5`, `Lepidos`, `OpenSans-Light`, `WP7xn`) are
-  also available to `send_layout`'s `text_font` field
-- `Lepidos` is a 3x7 pixel font (CC0/public domain, by SurrealEmber -
-  https://surrealember.itch.io/lepidos), designed to be rendered at multiples of 16px
-  (`text_size: 16`, `32`, ...) for crisp, correctly-proportioned glyphs
-- Text rendering in `send_layout` thresholds to pure black/white (no anti-aliasing), so pixel
-  fonts stay crisp regardless of size
+**The domain is `ble_led_pixel`, not `ipixel_color`.** Both integrations can therefore be installed side by side, so you can migrate one panel at a time instead of switching everything at once.
 
 ## Troubleshooting
 
-- Enable debug logging: `custom_components.ble_led_pixel: debug`
-- Check auto-update is ON or use manual update button
-- Verify templates in Developer Tools → Template
-- Ensure device is in Bluetooth range
-- For `send_mdi_icon`/`send_layout` failures, check that the device could reach
-  `cdn.jsdelivr.net` (icons are fetched on demand, not bundled)
-- For `send_layout` (scrolling text) or `send_image_file` failures with
-  `cur12k_no_answer: no ack from device` in the logs, the GIF is likely too large/complex for
-  the device to process in time - try a shorter message, fewer scroll frames
-  (`text_scroll_step` higher), or a smaller source GIF file
+**The panel is not discovered.** Disconnect the vendor app first — a connected panel stops advertising. Check that Home Assistant's Bluetooth integration is set up and the panel is within range of the host or a Bluetooth proxy.
 
-## Status
+**Wrong width or height.** The dimensions come from the device. Some firmware reports them incorrectly; check the Display Width and Display Height sensors against reality.
 
-| Feature | Status |
-|---------|--------|
-| ✅ Text Display (3 modes) | Complete |
-| ✅ RGB Colors | Complete |
-| ✅ Clock Mode (9 styles) | Complete |
-| ✅ Custom Fonts | Complete |
-| ✅ Templates | Complete |
-| ✅ State Persistence | Complete |
-| ✅ Brightness Control | Complete |
-| ✅ MDI Icons | Complete |
-| ✅ Custom Icon+Image+Text Layouts | Complete |
-| ✅ Scrolling Text | Complete |
-| ✅ Send Existing Image/GIF Files | Complete |
-| 🔄 GIF Animations | Planned |
-| 🔄 Animated Variable-Width Fonts | Planned |
+**Text is cut off or the display jumps between two views.** The string is longer than the panel fits. Shorten it, or use `send_text` with scrolling.
 
-## Technical
+**The selected font has no effect.** See [Fonts](#fonts) — in `text` mode only the integration's own folder is searched.
 
-- Requires: Home Assistant 2024.1+ and HACS
+**Colour and text change at different times.** See [Avoiding flicker](#avoiding-flicker-how-updates-actually-work).
 
-## Acknowledgments
+**Nothing happens when I change something in the UI.** `Auto Update` is off. Press `Update Display`.
 
-Special thanks to the authors of [pypixelcolor](https://github.com/lucagoc/pypixelcolor) for their excellent library that powers the core functionality of this integration. Their work in reverse-engineering the iPIXEL protocol has been invaluable.
+Debug logging:
+
+```yaml
+logger:
+  logs:
+    custom_components.ble_led_pixel: debug
+```
+
+## FAQ
+
+**Does this need the vendor app or an account?** No. Everything is local Bluetooth LE.
+
+**Does it work with a Bluetooth proxy?** Yes, the panel does not have to be near the Home Assistant host.
+
+**Can I run this next to the original `ipixel_color` integration?** Yes — different domain, no conflict. Do not connect both to the same panel at the same time.
+
+**Can I read whether the panel is switched on?** No. The protocol has a command to switch power, but none to query it. The switch reflects what Home Assistant last sent, not the device.
+
+**How many panels can I use?** As many as your Bluetooth setup handles. Each becomes its own device.
+
+**Which resolutions work?** Whatever the device reports, typically 64×16.
+
+## More Home Assistant projects
+
+- [Marstek Venus Modbus](https://github.com/sphings79/marstek_venus_modbus_dev) — Marstek Venus battery storage over local Modbus TCP
+- [Shelly Modbus](https://github.com/sphings79/shelly-modbus-home-assistant) — Shelly energy meters and relays over Modbus TCP, no cloud
+- [StateGuard](https://github.com/sphings79/stateguard-home-assistant) — alerts when entities go unavailable or stop reporting
+- [IntegrationGuard](https://github.com/sphings79/integrationguard-home-assistant) — which of your HACS extensions is still maintained
+- [MyIP.wtf](https://github.com/sphings79/myip-wtf-home-assistant) — public IPv4/IPv6, ISP and geolocation as sensors
+- [Leasing KM](https://github.com/sphings79/leasing-km-home-assistant) — mileage allowance for a leased car
+- [Marstek Venus BLE](https://github.com/sphings79/ha-marstek-ble) — Marstek Venus E over Bluetooth LE
+- [Marstek offline endpoint](https://github.com/sphings79/Marstek-offline-endpoint) — run a Venus battery without the cloud
+- [Power Flow Card Plus Mushroom](https://github.com/sphings79/power-flow-card-plus-mushroom) — power flow card with multiple batteries and PV sources
+
+## Contributing
+
+Issues and pull requests are welcome — especially reports from panels of other brands, and the exact model name and reported resolution.
+
+If this integration got your energy data onto the wall, a ⭐ on the repository genuinely helps other people find it.
+
+<a href="https://buymeacoffee.com/sphings"><img src="https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy me a coffee"></a>
+
+## Disclaimer
+
+Unofficial, community-built integration. Not affiliated with, endorsed by, or supported by Home Assistant, Nabu Casa, Action, BGLight, or any panel manufacturer. Brand names are used only to describe compatibility. See [NOTICE](NOTICE).
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
+[GPL-3.0](LICENSE) — inherited from the original work by Christian Grund. Protocol library [pypixelcolor](https://github.com/lucagoc/pypixelcolor) by lucagoc is MIT.
 
-## Credits
+---
 
-- Original integration: [Christian Grund (cagcoach)](https://github.com/cagcoach/ha-ipixel-color), GPL-3.0
-- Image, MDI icon and layout support: [tigers75](https://github.com/tigers75/ha-ipixel-color)
-- Protocol library: [lucagoc/pypixelcolor](https://github.com/lucagoc/pypixelcolor), MIT
+<sub>Home Assistant LED matrix · Bluetooth LE pixel display · BGLight Home Assistant · B.K. Light LED Pixel Board Action · iPixel Color integration · LED_BLE · 64x16 pixel panel · HACS custom integration · display sensor value on LED panel · animated GIF on LED matrix · Material Design Icon on display · scrolling text ticker · energy dashboard wall display · PV production display · battery state of charge panel · no cloud · local Bluetooth · pypixelcolor</sub>
