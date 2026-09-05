@@ -1114,3 +1114,95 @@ This documentation is derived from open-source implementations and reverse engin
 - ipixel-ctrl by sdolphin-JP (Python implementation)
 
 The protocol itself is proprietary to the iPIXEL device manufacturers. This documentation is provided for educational and interoperability purposes.
+---
+
+## Appendix A: Commands recovered from the vendor app
+
+Everything above was reconstructed from observed Bluetooth traffic, by
+`ipixel-ctrl`, `go-ipxl` and `pypixelcolor`. This appendix comes from a
+different source: static analysis of the vendor Android app **iPixel Color
+3.7.7** (`com.wifiled.ipixels`, versionCode 379), decompiled with jadx.
+
+Reading the app rather than the wire shows commands the app *can* send but
+rarely does, which traffic capture cannot reveal. Seven of the entries below
+appear in none of the three projects.
+
+Source: `com/wifiled/ipixels/core/send/BaseSend.kt`.
+
+### A.1 Frame format
+
+Confirmed by every command in the app:
+
+```
+[LEN_L, LEN_H, CMD_L, CMD_H, DATA...]
+```
+
+`LEN` is the total frame length, little-endian. The opcode is
+`CMD_H << 8 | CMD_L`, so the bytes appear byte-swapped in the frame.
+
+### A.2 Command table
+
+| Opcode | Frame | App method | Notes |
+|---|---|---|---|
+| `0x0107` | `05 00 07 01 <onOff>` | `sendLedOnOff` | Power. Already known. |
+| `0x8004` | `05 00 04 80 <level>` | `setLedLight` | Brightness 1–100. Already known. |
+| `0x8006` | `05 00 06 80 <isDown>` | `setUpsideDown` | Flip display. Already known. |
+| `0x8003` | `04 00 03 80` | `deleteAllData` | Clear stored data. Already known. |
+| `0x0104` | `05 00 04 01 <mode>` | `setDiyFunMode` | DIY mode. Already known. |
+| `0x0106` | `0B 00 06 01 01 01 00 00 00 00 00` | `sendColockMode` | Clock. Already known. |
+| **`0x0006`** | `07 00 06 00 00 00 00` | `sendSportData` | **New.** Step count, speed, decimals. |
+| **`0x0200`** | `06 00 00 02 00 00` | `sendRhythm` | **New.** Music visualiser, level and mode. |
+| **`0x0201`** | `10 00 01 02 <mode> …` | `sendRhythmChart` | **New.** Spectrum payload, 16-byte frame. |
+| **`0x0204`** | `08 00 04 02 <flag> <p1> <p2> <p3>` | `setPwd` | **New.** Sets a device password. |
+| **`0x0205`** | `07 00 05 02 <p1> <p2> <p3>` | `verifyPwd` | **New.** Verifies the password. |
+| **`0x8012`** | `05 00 12 80 <weekday>` | `setWeek` | **New.** Sets the weekday. |
+| **`0x55AA`** | `05 00 AA 55 02` | `upDataOTA2900Start` | **New.** Starts a firmware update. |
+| **`0xC0..`** | `0D 00 <otaType> C0 <pkgCount> <CRC32>` | `updateOtaMcuOrWifiStep1` | **New.** Firmware upload; `CMD_L` carries the OTA target. |
+
+Password bytes are sent as three separate decimal digits parsed from a
+string, not as ASCII — `Byte.parseByte()` on two-character substrings.
+
+### A.3 There is no way to read device state
+
+This matters for any integration that wants to show whether a panel is on.
+
+The only inbound path is `BleManager.onChanged()`, and it treats responses as
+flow control for bulk transfers, nothing else:
+
+```java
+if (value.length < 4 || value[0] != 5) { ... }
+else {
+    byte b = value[4];
+    if (b == 1)      { sendBleDataThread.clear12kDataQueue(); }
+    else if (b == 3) { ...clearTotalDataQueue(); }
+}
+```
+
+`value[4]` is a buffer signal, not a status field. There is no query for power
+state, brightness, current mode or anything else. **The vendor app does not
+know whether the panel is on either** — it only remembers what it last sent.
+
+Four independent sources now agree: the three open-source projects, all built
+from traffic capture, and the app itself. Any integration can only track the
+state it wrote, never read it back.
+
+### A.4 Content API
+
+The app loads its picture and animation archive from a server. Endpoints found
+in the DEX:
+
+| Endpoint | Purpose |
+|---|---|
+| `https://manage.heaton.com.cn/api/rm/getMaterialUnderCategory?sign=` | Assets by category |
+| `http://app.heaton.cn/sucai_define.json` | Category definitions per panel geometry |
+| `http://app.heaton.cn/homeConfig.json` | Home screen configuration |
+| `https://api.e-toys.cn/api/app/bluetoothFilter` | Which BLE devices the app accepts |
+| `https://api.e-toys.cn/api/app/lastUpdate` | Version check |
+
+`assets/sucai_define.json` inside the APK lists 49 panel geometries, each with
+its own categories. The category keys are Chinese (`热点` hotspot, `表情` emoji,
+`驾驶` drive, `时节` season, `创意` originality) and are passed to the server as
+`requestKey`.
+
+This is documented for completeness. The archive contents belong to the
+vendor, so this project neither bundles them nor provides a downloader.
