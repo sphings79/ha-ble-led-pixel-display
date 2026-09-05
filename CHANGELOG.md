@@ -127,6 +127,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.3.0] - 2026-09-06
+
+### Fixed
+
+- **The reconnect watcher slept through the very advertisements it waits
+  for.** It promised to reconnect as soon as a panel was seen, but the backoff
+  used a plain sleep, and the advertisement callback bails out while a
+  reconnect loop is running -- so every sighting during a wait of up to 30
+  seconds was dropped. The loop now waits on the advertisement instead of
+  ignoring it, and tries at once when the panel shows up. The backoff still
+  grows on a failed attempt, so a panel that advertises but refuses
+  connections cannot spin this into a busy loop.
+
+### Added
+
+- **A panel brought back by an ordinary write now says so.** That path
+  recovers the link silently, which made the watcher look worse than it is:
+  the log showed a string of failures and never the recovery that followed.
+- Advertisements that carry no identity are logged at debug, and separately
+  from ones that carry manufacturer data this parser cannot read -- only the
+  second kind is something the parser could be taught.
+
 ## [2.2.1] - 2026-09-05
 
 ### Fixed

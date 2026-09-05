@@ -99,6 +99,10 @@ def parse_identity(manufacturer_data: dict[int, bytes] | None) -> PanelIdentity:
         callers can carry on without the identity rather than get a guess.
     """
     if not manufacturer_data:
+        # Distinct from an advertisement we cannot parse: this one carries no
+        # manufacturer data at all. Worth telling apart, because only the
+        # second case is something this parser could be taught to handle.
+        _LOGGER.debug("Advertisement carries no manufacturer data")
         return PanelIdentity(None, None, None, None)
 
     for company_id, payload in manufacturer_data.items():

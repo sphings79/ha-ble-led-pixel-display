@@ -97,6 +97,9 @@ class BleLedPixelAPI:
         # Reconnect watcher state
         self._reconnect_task: asyncio.Task | None = None
         self._reconnect_lock = asyncio.Lock()
+        # Raised whenever the panel is seen advertising, so the reconnect loop
+        # can stop waiting and try immediately.
+        self._advertised = asyncio.Event()
         self._watcher_started = False
         self._unsubscribe_bluetooth = None
         self._unsubscribe_identity = None
@@ -134,8 +137,17 @@ class BleLedPixelAPI:
     
     async def ensure_connected(self) -> bool:
         """Reconnect if the link dropped. Never raises."""
+        was_connected = self.is_connected
         connected = await self._bluetooth.ensure_connected()
         if connected:
+            if not was_connected:
+                # Every other path that restores the link says so. This one is
+                # reached from _send_with_reconnect, so a panel brought back
+                # by an ordinary write used to recover in complete silence --
+                # which made the reconnect watcher look worse than it is.
+                _LOGGER.info(
+                    "Link to LED panel %s restored while sending", self._address
+                )
             await self._unlock_if_needed()
         return connected
 
@@ -293,15 +305,36 @@ class BleLedPixelAPI:
                     self._address, delay,
                 )
                 while not self.is_connected:
-                    await asyncio.sleep(delay)
+                    # Wait out the backoff, but no longer than it takes for the
+                    # panel to advertise. Sleeping through that was the bug:
+                    # the watcher promised to reconnect as soon as the panel
+                    # was seen, while every sighting during a 30 second sleep
+                    # was dropped, because _schedule_reconnect returns early
+                    # while this loop is running.
+                    self._advertised.clear()
+                    woken = False
+                    try:
+                        await asyncio.wait_for(self._advertised.wait(), timeout=delay)
+                        woken = True
+                    except asyncio.TimeoutError:
+                        pass
+
                     if not self._watcher_started:   # integration unloaded meanwhile
                         return
                     if await self.ensure_connected():
-                        _LOGGER.info("Reconnected to LED panel %s", self._address)
+                        _LOGGER.info(
+                            "Reconnected to LED panel %s%s", self._address,
+                            " after it advertised" if woken else "",
+                        )
                         return
+
+                    # An advertisement that did not lead to a connection must
+                    # not reset the backoff, or a chatty panel that refuses
+                    # connections turns this into a busy loop.
                     delay = min(delay * 2, RECONNECT_BACKOFF_MAX)
                     _LOGGER.warning(
-                        "Reconnect to %s failed; next attempt in %.0fs", self._address, delay,
+                        "Reconnect to %s failed; next attempt in %.0fs "
+                        "(or as soon as it advertises)", self._address, delay,
                     )
         finally:
             if self._reconnect_task is asyncio.current_task():
@@ -320,8 +353,12 @@ class BleLedPixelAPI:
         self._watcher_started = True
 
         def _advertisement_callback(service_info, change) -> None:
-            if not self.is_connected:
-                self._schedule_reconnect()
+            if self.is_connected:
+                return
+            # Cut short a loop that is already waiting, and start one if none
+            # is running. Without the first half the loop sleeps through this.
+            self._advertised.set()
+            self._schedule_reconnect()
 
         self._unsubscribe_bluetooth = bluetooth.async_register_callback(
             self._hass,
@@ -569,7 +606,16 @@ class BleLedPixelAPI:
 
         @callback
         def _advertisement_seen(service_info, change) -> None:
-            self._store_identity(parse_identity(service_info.manufacturer_data))
+            identity = parse_identity(service_info.manufacturer_data)
+            if identity.cid is None:
+                # Say which advertisement failed, so an unparsed panel can be
+                # told apart from one that is simply never seen.
+                _LOGGER.debug(
+                    "No identity in the advertisement of %s (name %r)",
+                    self._address, service_info.name,
+                )
+                return
+            self._store_identity(identity)
 
         try:
             self._unsubscribe_identity = bluetooth.async_register_callback(
