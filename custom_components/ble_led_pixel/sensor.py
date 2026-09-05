@@ -68,11 +68,24 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:tag",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    # Which of the optional actions this model accepts. Panels differ, and a
+    # command a panel does not implement fails silently on the wire, so it is
+    # worth being able to see the answer without reading the source.
+    SensorEntityDescription(
+        key="features",
+        name="Supported features",
+        icon="mdi:feature-search",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 ]
 
 # These come from the advertisement, so they are known whether or not a link
 # is up -- unlike everything else here, which needs the device-info query.
 ADVERTISED_KEYS = frozenset({"cidpid", "brand"})
+
+# Resolved from the panel model rather than read from it, so it needs no
+# connection either.
+DERIVED_KEYS = frozenset({"features"})
 
 
 async def async_setup_entry(
@@ -128,6 +141,12 @@ class BleLedPixelSensor(SensorEntity):
     async def async_update(self) -> None:
         """Update the sensor state."""
         try:
+            if self.entity_description.key in DERIVED_KEYS:
+                features = sorted(self._api.features)
+                self._attr_native_value = ", ".join(features) if features else "none"
+                self._available = True
+                return
+
             if self.entity_description.key in ADVERTISED_KEYS:
                 identity = self._api.identity
                 value = (

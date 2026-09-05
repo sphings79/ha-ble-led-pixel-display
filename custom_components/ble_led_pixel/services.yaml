@@ -618,3 +618,117 @@ send_image_file:
         number:
           min: 0
           max: 10
+show_preset:
+  name: Show preset
+  description: >-
+    Show one of the twenty animations stored in the panel's own firmware.
+    Nothing is transferred, so this is far cheaper than sending a picture.
+    Which animations these are depends on the model - some ship road signs,
+    others a set of moods. Not every panel has presets; the action fails with
+    a clear message when yours does not.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    preset:
+      name: Preset
+      description: Preset number.
+      required: true
+      example: 6
+      selector:
+        number:
+          min: 1
+          max: 20
+    language:
+      name: Language
+      description: >-
+        Language byte sent alongside, used by presets that contain wording.
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 255
+
+set_scoreboard:
+  name: Set scoreboard
+  description: >-
+    Show two scores on the panel. Only some models have a scoreboard.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    home:
+      name: Home
+      description: First score.
+      required: true
+      example: 3
+      selector:
+        number:
+          min: 0
+          max: 65535
+    away:
+      name: Away
+      description: Second score.
+      required: true
+      example: 2
+      selector:
+        number:
+          min: 0
+          max: 65535
+
+set_countdown:
+  name: Set countdown
+  description: >-
+    Start or stop the countdown timer. The panel counts down on its own.
+    Only the "mecha" panel family has a countdown.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    running:
+      name: Running
+      description: Turn the countdown on or off.
+      required: true
+      example: true
+      selector:
+        boolean:
+    minutes:
+      name: Minutes
+      description: Minutes to count down from.
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 99
+    seconds:
+      name: Seconds
+      description: Seconds to count down from.
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 59
+
+set_stopwatch:
+  name: Set stopwatch
+  description: >-
+    Start or stop the stopwatch. The panel counts on its own, and there is no
+    command to read the elapsed time back.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    running:
+      name: Running
+      description: Start or stop the stopwatch.
+      required: true
+      example: true
+      selector:
+        boolean:

@@ -106,7 +106,34 @@ Die Markentabelle hat zwei unterschiedlich belastbare Quellen: Der Bereich `0025
 
 <img src="assets/actions.svg" alt="Die fünf Aktionen der Integration: send_text für gerätegerenderten Lauftext, send_image_file für Bilder und animierte GIFs, send_mdi_icon für Material Design Icons, send_layout zum Kombinieren von bis zu vier Icons, einem Bild und vier Textbereichen, sowie send_test_pattern zur Prüfung von Größe und Farbreihenfolge" width="100%">
 
-Alle Aktionen richten sich an die `text`-Entität des Panels und lassen sich aus Automationen, Skripten und den Entwicklerwerkzeugen → Aktionen aufrufen.
+Alle Aktionen richten sich an die `text`-Entität des Panels und sind aus Automationen, Skripten und den Entwicklerwerkzeugen → Aktionen aufrufbar.
+
+### Aktionen, die nicht jedes Panel hat
+
+Vier weitere Aktionen steuern Funktionen, die in der Firmware des Panels
+stecken. Nicht jedes Modell hat sie — die Hersteller-App entscheidet anhand von
+LED-Typ und Produkt-ID, was sie anbietet, und diese Integration folgt derselben
+Tabelle.
+
+| Aktion | Wirkung |
+| --- | --- |
+| `show_preset` | Zeigt eine von 20 in der Firmware gespeicherten Animationen. Sechs Bytes, keine Bildübertragung. Welche Animationen das sind, hängt vom Modell ab: mal Verkehrszeichen, mal Stimmungsbilder. |
+| `set_scoreboard` | Zwei Punktestände, je 0–65535. |
+| `set_countdown` | Startet oder stoppt einen Countdown, den das Panel selbst herunterzählt. |
+| `set_stopwatch` | Startet oder stoppt eine Stoppuhr, die im Panel läuft. |
+
+Der Diagnosesensor **Supported features** zeigt, was dein Panel annimmt. Eine
+Aktion, die das Panel nicht kann, schlägt mit einer erklärenden Meldung fehl,
+statt wirkungslos zu bleiben: Diese Panels quittieren unbekannte Kommandos
+kommentarlos, ein stilles Nichts wäre von Erfolg nicht zu unterscheiden.
+
+Hat dein Panel eine dieser Funktionen und der Sensor behauptet das Gegenteil,
+aktiviere in den Optionen *Presets, Anzeigetafel, Countdown und Stoppuhr
+trotzdem anbieten* und [melde es](https://github.com/sphings79/ha-ble-led-pixel-display/issues)
+mit dem Wert des Produkt-ID-Sensors, damit die Tabelle korrigiert werden kann.
+
+Weder die verstrichene Zeit der Stoppuhr noch die Restzeit des Countdowns lassen
+sich auslesen — dafür hat das Protokoll kein Kommando.
 
 ## Installation
 

@@ -127,6 +127,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [1.4.0] - 2026-09-05
+
+### Added
+
+- **Four actions for features built into the panel firmware**: `show_preset`
+  shows one of twenty stored animations for six bytes on the wire,
+  `set_scoreboard` puts two scores up, `set_countdown` and `set_stopwatch`
+  drive timers the panel runs by itself.
+- **A feature table, so those actions are only offered where they work.** Not
+  every panel has them, and two panels of the same resolution can differ. The
+  table is transcribed from the vendor app's own screen dispatcher, keyed by
+  LED type and product id. A **Supported features** diagnostic sensor shows
+  what a given panel accepts, and calling an unsupported action fails with an
+  explanation instead of doing nothing -- these panels acknowledge unknown
+  commands without complaint, so a silent no-op looks exactly like success.
+- **An options switch to offer the four anyway**, for hardware newer than the
+  table.
+- German translations for the options dialog, which previously fell back to
+  English.
+
 ## [1.3.4] - 2026-09-05
 
 ### Fixed

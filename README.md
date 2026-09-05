@@ -108,6 +108,32 @@ The brand table has two sources of differing quality: the `0025` range comes fro
 
 All actions target the panel's `text` entity and are callable from automations, scripts, and Developer Tools → Actions.
 
+### Actions only some panels have
+
+Four more actions drive features built into the panel's own firmware. Not every
+model has them — the vendor app decides what to offer from the panel's LED type
+and product id, and this integration follows the same table.
+
+| Action | What it does |
+| --- | --- |
+| `show_preset` | Show one of 20 animations stored in the firmware. Six bytes on the wire, no image transfer. Which animations depends on the model: some ship road signs, others moods. |
+| `set_scoreboard` | Two scores, 0–65535 each. |
+| `set_countdown` | Start or stop a countdown the panel runs itself. |
+| `set_stopwatch` | Start or stop a stopwatch the panel runs itself. |
+
+The **Supported features** diagnostic sensor lists what your panel accepts.
+Calling an action the panel does not support fails with an explanatory message
+rather than doing nothing, because these panels acknowledge unknown commands
+without complaint — a silent no-op would be indistinguishable from success.
+
+If your panel does have one of these and the sensor says otherwise, turn on
+*Offer presets, scoreboard, countdown and stopwatch anyway* in the integration
+options and [open an issue](https://github.com/sphings79/ha-ble-led-pixel-display/issues)
+with the Product ID sensor's value, so the table can be corrected.
+
+Neither the elapsed stopwatch time nor the remaining countdown can be read
+back — the protocol has no command for it.
+
 ## Installation
 
 ### HACS (recommended)

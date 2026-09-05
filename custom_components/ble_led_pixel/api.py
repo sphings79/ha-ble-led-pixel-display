@@ -20,6 +20,20 @@ from .device.commands import (
     make_brightness_command,
 )
 from .device.clock import make_clock_mode_command, make_time_command
+from .device.commands import (
+    make_countdown_command,
+    make_preset_command,
+    make_scoreboard_command,
+    make_stopwatch_command,
+)
+from .capabilities import (
+    ALL_FEATURES,
+    FEATURE_COUNTDOWN,
+    FEATURE_PRESETS,
+    FEATURE_SCOREBOARD,
+    FEATURE_STOPWATCH,
+    resolve_features,
+)
 from .device.text import make_text_command
 from .device.image import make_image_command
 from homeassistant.components import bluetooth
@@ -33,8 +47,13 @@ from .device.composer import build_layout_media
 from .display.text_renderer import render_text_to_png
 from .display.emoji_renderer import render_emoji_to_png
 from .const import RECONNECT_BACKOFF_START, RECONNECT_BACKOFF_MAX
-from .exceptions import BleLedPixelConnectionError
-from .const import OPT_OVERRIDE_DIMENSIONS, OPT_PANEL_WIDTH, OPT_PANEL_HEIGHT
+from .exceptions import BleLedPixelConnectionError, BleLedPixelFeatureUnsupported
+from .const import (
+    OPT_FORCE_FEATURES,
+    OPT_OVERRIDE_DIMENSIONS,
+    OPT_PANEL_HEIGHT,
+    OPT_PANEL_WIDTH,
+)
 
 try:
     from pypixelcolor.commands.show_slot import show_slot as pypixelcolor_show_slot
@@ -957,6 +976,104 @@ class BleLedPixelAPI:
             _LOGGER.error("Error deleting slot %d: %s", slot, err)
             return False
 
+    @property
+    def features(self) -> frozenset[str]:
+        """Extra features this panel supports.
+
+        Resolved from the LED type and the advertised product id, because two
+        panels of the same resolution can differ. The options flow can force
+        the full set on for hardware newer than the table.
+        """
+        entry = self._entry
+        if entry is not None and entry.options.get(OPT_FORCE_FEATURES):
+            return ALL_FEATURES
+
+        led_type = None
+        if self._device_info is not None:
+            led_type = self._device_info.get("led_type")
+        identity = self.identity
+        return resolve_features(led_type, identity.cid, identity.pid)
+
+    def supports(self, feature: str) -> bool:
+        """Whether this panel supports one feature."""
+        return feature in self.features
+
+    async def _send_feature_command(
+        self, feature: str, command: bytes, description: str
+    ) -> bool:
+        """Send a command that only some panels implement.
+
+        Refuses rather than sending into the void: a command a panel does not
+        implement produces no error and no effect, which is the most confusing
+        possible outcome for an automation.
+        """
+        if not self.supports(feature):
+            raise BleLedPixelFeatureUnsupported(
+                f"This panel does not support {feature}. The vendor app does "
+                f"not offer it for this model either. If yours does have it, "
+                f"turn on the feature override in the integration options."
+            )
+        success = await self._send_with_reconnect(command)
+        if success:
+            _LOGGER.debug("%s", description)
+        else:
+            _LOGGER.error("Failed: %s", description)
+        return success
+
+    async def show_preset(self, preset: int, language: int = 0) -> bool:
+        """Show one of the presets stored in the panel's firmware.
+
+        Args:
+            preset: Preset number, 1-20.
+            language: Language byte for presets that contain wording.
+        """
+        return await self._send_feature_command(
+            FEATURE_PRESETS,
+            make_preset_command(preset, language),
+            f"Showing preset {preset}",
+        )
+
+    async def set_scoreboard(self, home: int, away: int) -> bool:
+        """Put two scores on the panel.
+
+        Args:
+            home: First score, 0-65535.
+            away: Second score, 0-65535.
+        """
+        return await self._send_feature_command(
+            FEATURE_SCOREBOARD,
+            make_scoreboard_command(home, away),
+            f"Scoreboard set to {home}:{away}",
+        )
+
+    async def set_countdown(
+        self, running: bool, minutes: int = 0, seconds: int = 0
+    ) -> bool:
+        """Start or stop the countdown timer.
+
+        Args:
+            running: True starts counting down, False stops.
+            minutes: Minutes to start from, 0-99.
+            seconds: Seconds to start from, 0-59.
+        """
+        return await self._send_feature_command(
+            FEATURE_COUNTDOWN,
+            make_countdown_command(running, minutes, seconds),
+            f"Countdown {'started' if running else 'stopped'} "
+            f"at {minutes:02d}:{seconds:02d}",
+        )
+
+    async def set_stopwatch(self, running: bool) -> bool:
+        """Start or stop the stopwatch.
+
+        The panel counts on its own; the elapsed time cannot be read back.
+        """
+        return await self._send_feature_command(
+            FEATURE_STOPWATCH,
+            make_stopwatch_command(running),
+            f"Stopwatch {'started' if running else 'stopped'}",
+        )
+
     async def display_text_pypixelcolor(
         self,
         text: str,
@@ -1121,5 +1238,16 @@ class BleLedPixelAPI:
 
 
 # Export at module level for convenience
-__all__ = ["BleLedPixelAPI", "BleLedPixelError", "BleLedPixelConnectionError", "BleLedPixelTimeoutError"]
-from .exceptions import BleLedPixelError, BleLedPixelConnectionError, BleLedPixelTimeoutError
+__all__ = [
+    "BleLedPixelAPI",
+    "BleLedPixelError",
+    "BleLedPixelConnectionError",
+    "BleLedPixelFeatureUnsupported",
+    "BleLedPixelTimeoutError",
+]
+from .exceptions import (
+    BleLedPixelConnectionError,
+    BleLedPixelError,
+    BleLedPixelFeatureUnsupported,
+    BleLedPixelTimeoutError,
+)

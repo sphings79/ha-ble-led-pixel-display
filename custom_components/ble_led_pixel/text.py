@@ -383,6 +383,58 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
             _LOGGER.error("Failed to show slot %d", slot)
             raise HomeAssistantError(f"Failed to show slot {slot} - check the logs for details")
 
+    async def async_show_preset(self, preset: int, language: int = 0) -> None:
+        """Show a preset stored in the panel's firmware (action: show_preset).
+
+        Args:
+            preset: Preset number, 1-20. Which animation that is depends on
+                the model; some ship road signs, others moods.
+            language: Language byte for presets that contain wording.
+        """
+        if not await self._api.show_preset(preset, language):
+            raise HomeAssistantError(
+                f"Failed to show preset {preset} - check the logs for details"
+            )
+
+    async def async_set_scoreboard(self, home: int, away: int) -> None:
+        """Put two scores on the panel (action: set_scoreboard).
+
+        Args:
+            home: First score, 0-65535.
+            away: Second score, 0-65535.
+        """
+        if not await self._api.set_scoreboard(home, away):
+            raise HomeAssistantError(
+                f"Failed to set the scoreboard to {home}:{away} - "
+                "check the logs for details"
+            )
+
+    async def async_set_countdown(
+        self, running: bool, minutes: int = 0, seconds: int = 0
+    ) -> None:
+        """Start or stop the countdown timer (action: set_countdown).
+
+        Args:
+            running: True starts the countdown, False stops it.
+            minutes: Minutes to count down from, 0-99.
+            seconds: Seconds to count down from, 0-59.
+        """
+        if not await self._api.set_countdown(running, minutes, seconds):
+            raise HomeAssistantError(
+                "Failed to set the countdown - check the logs for details"
+            )
+
+    async def async_set_stopwatch(self, running: bool) -> None:
+        """Start or stop the stopwatch (action: set_stopwatch).
+
+        The panel counts on its own. There is no command to read the elapsed
+        time back, so Home Assistant cannot show it.
+        """
+        if not await self._api.set_stopwatch(running):
+            raise HomeAssistantError(
+                "Failed to control the stopwatch - check the logs for details"
+            )
+
     async def async_delete_slot(self, slot: int) -> None:
         """Erase one stored picture from the panel (action: delete_slot).
 

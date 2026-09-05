@@ -4,5 +4,19 @@
       "title": "Panel {product_id} ist nicht in der Markentabelle",
       "description": "Dein Panel unter {address} funktioniert normal — die Auflösung kommt vom Gerätetyp, nicht von der Marke, im Betrieb fehlt also nichts. Lediglich das Herstellerfeld in der Geräteverwaltung bleibt leer.\n\nÜber **Mehr erfahren** öffnest du eine Fehlermeldung, in der die technischen Werte bereits eingetragen sind. Ergänze bitte Marke und Modell sowie, wenn möglich, ein Foto des Typenschilds auf der Rückseite — das ist das Einzige, was nur du sehen kannst. Ein Foto der Verpackung hilft zusätzlich, ist aber optional.\n\nSobald die Produkt-ID aufgenommen ist, verschwindet dieser Hinweis von selbst."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "BLE LED Pixel Display – Optionen",
+        "description": "Manche Panels melden über Bluetooth die falschen Maße, etwa das 32x32 B.K. Light von Action. Wenn deins verzerrt darstellt, aktiviere die Überschreibung und trage die tatsächlichen Maße ein.\n\nPresets, Anzeigetafel, Countdown und Stoppuhr hat nicht jedes Panel. Welche davon angeboten werden, richtet sich nach dem Modell – genau wie in der Hersteller-App. Ist dein Panel neuer als diese Liste, kannst du sie hier trotzdem freischalten.",
+        "data": {
+          "override_dimensions": "Panelmaße überschreiben",
+          "panel_width": "Breite in Pixeln (0 = Angabe der Firmware verwenden)",
+          "panel_height": "Höhe in Pixeln (0 = Angabe der Firmware verwenden)",
+          "force_features": "Presets, Anzeigetafel, Countdown und Stoppuhr trotzdem anbieten"
+        }
+      }
+    }
   }
 }

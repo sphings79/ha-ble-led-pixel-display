@@ -252,3 +252,55 @@ def async_setup_services(hass: HomeAssistant) -> None:
         },
         func="async_send_image_file",
     )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "show_preset",
+        entity_domain=Platform.TEXT,
+        schema={
+            vol.Required("preset"): vol.All(vol.Coerce(int), vol.Range(min=1, max=20)),
+            vol.Optional("language", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=255)
+            ),
+        },
+        func="async_show_preset",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "set_scoreboard",
+        entity_domain=Platform.TEXT,
+        schema={
+            vol.Required("home"): vol.All(vol.Coerce(int), vol.Range(min=0, max=65535)),
+            vol.Required("away"): vol.All(vol.Coerce(int), vol.Range(min=0, max=65535)),
+        },
+        func="async_set_scoreboard",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "set_countdown",
+        entity_domain=Platform.TEXT,
+        schema={
+            vol.Required("running"): cv.boolean,
+            vol.Optional("minutes", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=99)
+            ),
+            vol.Optional("seconds", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=59)
+            ),
+        },
+        func="async_set_countdown",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "set_stopwatch",
+        entity_domain=Platform.TEXT,
+        schema={vol.Required("running"): cv.boolean},
+        func="async_set_stopwatch",
+    )

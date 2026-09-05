@@ -20,6 +20,7 @@ from .const import (
     OPT_OVERRIDE_DIMENSIONS,
     OPT_PANEL_WIDTH,
     OPT_PANEL_HEIGHT,
+    OPT_FORCE_FEATURES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -342,6 +343,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     OPT_PANEL_HEIGHT,
                     default=current.get(OPT_PANEL_HEIGHT, 0),
                 ): vol.All(int, vol.Range(min=0, max=512)),
+                vol.Optional(
+                    OPT_FORCE_FEATURES,
+                    default=current.get(OPT_FORCE_FEATURES, False),
+                ): bool,
             }
         )
 

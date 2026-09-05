@@ -14,3 +14,11 @@ class BleLedPixelConnectionError(BleLedPixelError):
 
 class BleLedPixelTimeoutError(BleLedPixelError):
     """LED panel timeout error."""
+
+class BleLedPixelFeatureUnsupported(BleLedPixelError):
+    """The panel does not implement the requested feature.
+
+    Raised rather than sending the command anyway: these panels acknowledge
+    nothing and report nothing, so an unsupported command is indistinguishable
+    from a working one until someone looks at the panel.
+    """

@@ -23,6 +23,9 @@ CONF_NAME = "name"
 OPT_OVERRIDE_DIMENSIONS = "override_dimensions"
 OPT_PANEL_WIDTH = "panel_width"
 OPT_PANEL_HEIGHT = "panel_height"
+# Turns on the presets, scoreboard, countdown and stopwatch actions for a
+# panel the feature table does not know. See capabilities.py.
+OPT_FORCE_FEATURES = "force_features"
 
 # Update interval
 SCAN_INTERVAL = 30

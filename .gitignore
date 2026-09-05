@@ -202,3 +202,7 @@ test_font_rendering.py
 *.apkm
 *.xapk
 /apk-analysis/
+
+# Vendor app graphics extracted for reverse-image research. Same copyright
+# reasoning as the APK itself: useful locally, must not ship in the repo.
+/research/
