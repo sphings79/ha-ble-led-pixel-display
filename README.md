@@ -154,6 +154,20 @@ Forgot it? [docs/password_reset.md](docs/password_reset.md) describes the
 power-cycle reset. This integration cannot set or clear a password — only use
 one — which is deliberate: locking yourself out is easy, and undoing it is not.
 
+### Firmware versions and clock faces
+
+The **MCU Version** and **WiFi Version** sensors now carry real numbers. The
+device-info response contains no version at all — they come from a second read
+(opcode `0x8005`) that no traffic-derived implementation had, because nothing
+visible happens when you send it. An **MCU build** sensor reports the same
+number in the integer form the vendor's firmware lookup uses (`4.06` → `406`),
+which is the value worth quoting in a bug report about firmware behaviour.
+
+The clock style selector now offers as many faces as the panel actually has.
+That is eight on most panels, nine on a 32×32, ten on a 32×16 and six on a
+144×16. The vendor app presents these as preview images and gives them no
+names, so they stay numbered here.
+
 ## Installation
 
 ### HACS (recommended)

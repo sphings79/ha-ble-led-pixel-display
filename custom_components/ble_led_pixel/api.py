@@ -43,7 +43,12 @@ from homeassistant.components import bluetooth
 from .advertisement import PanelIdentity, parse_identity
 from .fonts import resolve_font_for_library
 from .unknown_panel import async_report_unknown_panel
-from .device.info import build_device_info_command, parse_device_response
+from .device.info import (
+    build_device_info_command,
+    build_firmware_command,
+    parse_device_response,
+    parse_firmware_response,
+)
 from .device.mdi_icon import build_mdi_icon_png
 from .device.composer import build_layout_media
 from .display.text_renderer import render_text_to_png
@@ -542,6 +547,44 @@ class BleLedPixelAPI:
             _LOGGER.debug("Could not read product identity: %s", err)
             return PanelIdentity(None, None, None, None)
 
+    async def _read_firmware(self) -> None:
+        """Query the firmware versions and fold them into the device info.
+
+        The device-info response carries no version numbers -- pypixelcolor
+        reports "unknown" for both. They come from a second read, opcode
+        0x8005, which no traffic-derived implementation had: it looks inert
+        because nothing on the panel changes, so it was taken for a no-op.
+
+        Never raises. A panel that does not answer keeps the placeholder
+        values rather than failing the whole device-info read.
+        """
+        try:
+            response = await self._bluetooth.send_command_wait_response(
+                build_firmware_command(), timeout=5.0
+            )
+        except Exception as err:  # noqa: BLE001 - versions are a nice-to-have
+            _LOGGER.debug("Firmware query failed for %s: %s", self._address, err)
+            return
+
+        if not response:
+            _LOGGER.debug("No firmware reply from %s", self._address)
+            return
+
+        versions = parse_firmware_response(response)
+        if versions is None:
+            _LOGGER.debug(
+                "Unexpected firmware reply from %s: %s", self._address, response.hex()
+            )
+            return
+
+        if self._device_info is not None:
+            self._device_info.update(versions)
+        _LOGGER.debug(
+            "Firmware of %s: MCU %s (build %s), WiFi %s",
+            self._address, versions["mcu_version"],
+            versions["mcu_build"], versions["wifi_version"],
+        )
+
     async def get_device_info(self) -> dict[str, Any] | None:
         """Query device information and store it (with retry logic)."""
         if self._device_info is not None:
@@ -569,6 +612,7 @@ class BleLedPixelAPI:
                     self._device_info["pid"] = identity.pid
                     self._device_info["cidpid"] = identity.cidpid
                     self._device_info["brand"] = identity.brand
+                    await self._read_firmware()
                     _LOGGER.info("Device info retrieved on attempt %d: %s", attempt + 1, self._device_info)
                     return self._device_info
 

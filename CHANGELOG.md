@@ -127,6 +127,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [1.6.0] - 2026-09-05
+
+### Added
+
+- **Real firmware versions.** The device-info response carries none, so MCU
+  Version and WiFi Version had always read "unknown". They now come from a
+  second read, opcode `0x8005`, recovered from the vendor app. Traffic-derived
+  implementations missed it because nothing visible happens when it is sent --
+  it looks like a no-op unless you read the reply.
+- **An "MCU build" sensor** giving the same version as the plain integer the
+  vendor's own firmware lookup is keyed on: `4.06` becomes `406`.
+
+### Fixed
+
+- **The clock style selector offered nine faces to every panel.** How many
+  there are depends on the resolution: eight on most, nine on a 32x32, ten on
+  a 32x16, six on a 144x16. Picking one a panel does not have was another
+  command it accepts and then ignores. The list now matches the hardware.
+
 ## [1.5.0] - 2026-09-05
 
 ### Added

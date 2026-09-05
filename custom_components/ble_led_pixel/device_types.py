@@ -122,3 +122,39 @@ def resolve_panel(device_type: int | None, pid: str | None = None) -> PanelSpec:
         text_size=LED_TEXT_SIZE.get(led_type),
         has_wifi=LED_HAS_WIFI.get(led_type),
     )
+
+
+# How many clock faces a panel offers, by resolution.
+#
+# The vendor app shows a grid of preview images rather than named styles, and
+# the number of images differs per panel -- the drawable names spell out the
+# geometry they belong to (time_image_16x144_*, time_pictures_16x32_*, and so
+# on), which is what this table is read from. Offering a style the panel does
+# not have is another silent no-op, so the count matters.
+#
+# Source: ColockActivity.arrResidTime* in iPixel Color 3.7.7.
+# Note the app names those drawables height-first: time_pictures_16x64 is the
+# set for a 64x16 panel. Keys here are (width, height), the way this codebase
+# states a resolution everywhere else.
+CLOCK_STYLE_COUNT: dict[tuple[int, int], int] = {
+    (32, 16): 10,   # time_pictures_16x32
+    (32, 32): 9,    # time_image_1_1 .. 3_3
+    (144, 16): 6,   # time_image_16x144
+}
+DEFAULT_CLOCK_STYLE_COUNT = 8
+
+
+def clock_style_count(width: int | None, height: int | None) -> int:
+    """How many clock faces this panel offers.
+
+    Args:
+        width: Panel width in pixels.
+        height: Panel height in pixels.
+
+    Returns:
+        The number of styles, counting from 0. Eight for everything the table
+        does not name, which is what almost every panel has.
+    """
+    if width is None or height is None:
+        return DEFAULT_CLOCK_STYLE_COUNT
+    return CLOCK_STYLE_COUNT.get((width, height), DEFAULT_CLOCK_STYLE_COUNT)

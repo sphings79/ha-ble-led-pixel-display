@@ -156,6 +156,21 @@ Reset über die Stromversorgung. Setzen oder Löschen eines Passworts kann diese
 Integration bewusst nicht — nur verwenden: Sich auszusperren ist leicht, es
 rückgängig zu machen nicht.
 
+### Firmware-Versionen und Uhrenstile
+
+Die Sensoren **MCU Version** und **WiFi Version** liefern jetzt echte Werte. In
+der Device-Info-Antwort steht gar keine Version — sie kommen aus einem zweiten
+Lesekommando (`0x8005`), das keine aus Traffic rekonstruierte Implementierung
+kannte, weil beim Senden sichtbar nichts passiert. Ein Sensor **MCU build**
+zeigt dieselbe Zahl in der ganzzahligen Form, mit der die Firmware-Abfrage des
+Herstellers arbeitet (`4.06` → `406`) — das ist der Wert, den man in einem
+Fehlerbericht zum Firmware-Verhalten angeben sollte.
+
+Die Auswahl des Uhrenstils bietet jetzt so viele Ziffernblätter, wie das Panel
+tatsächlich hat: acht bei den meisten, neun bei einem 32×32, zehn bei einem
+32×16 und sechs bei einem 144×16. Die Hersteller-App zeigt dafür Vorschaubilder
+und vergibt keine Namen, deshalb bleiben sie hier nummeriert.
+
 ## Installation
 
 ### HACS (empfohlen)

@@ -93,3 +93,50 @@ def parse_device_response(response: bytes, pid: str | None = None) -> dict[str, 
                  device_info["frame_size"])
 
     return device_info
+
+# Firmware version query. pypixelcolor has no equivalent -- this opcode was
+# recovered from the vendor app, where it is SendCore.getHwInfo.
+FIRMWARE_QUERY = bytes([4, 0, 5, 0x80])
+
+
+def build_firmware_command() -> bytes:
+    """Build the firmware version query.
+
+    Frame: [4, 0, 5, 0x80], opcode 0x8005. Together with the device-info
+    query this is the entire read surface of the protocol: everything else is
+    write-only.
+    """
+    return FIRMWARE_QUERY
+
+
+def parse_firmware_response(response: bytes) -> dict[str, str] | None:
+    """Parse the reply to the firmware query.
+
+    Layout, from OtaUpData.checkIsNeedOta:
+
+        08 00 05 80 <mcu major> <mcu minor> <wifi major> <wifi minor>
+
+    The app builds the MCU version by writing the major number followed by
+    the minor zero-padded to two digits, then reading the result as one
+    integer: bytes 4 and 6 become 406. That number, not a dotted string, is
+    what its OTA lookup is keyed on, so it is reported here as well.
+
+    Args:
+        response: Raw notification bytes.
+
+    Returns:
+        A dict with mcu_version, mcu_build and wifi_version, or None when the
+        response is not the expected eight-byte reply.
+    """
+    if len(response) != 8:
+        return None
+    if response[0] != 8 or response[1] != 0 or response[2] != 5 or response[3] != 0x80:
+        return None
+
+    mcu_major, mcu_minor, wifi_major, wifi_minor = response[4:8]
+    return {
+        "mcu_version": f"{mcu_major}.{mcu_minor:02d}",
+        # The plain integer the vendor's OTA API expects as its version.
+        "mcu_build": str(int(f"{mcu_major}{mcu_minor:02d}")),
+        "wifi_version": f"{wifi_major}.{wifi_minor:02d}",
+    }

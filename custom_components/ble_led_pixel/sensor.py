@@ -53,6 +53,15 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:wifi",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    # The same MCU version as a plain integer: 4.06 becomes 406. That is the
+    # form the vendor's OTA lookup is keyed on, so it is the number to quote
+    # in a bug report about firmware behaviour.
+    SensorEntityDescription(
+        key="mcu_build",
+        name="MCU build",
+        icon="mdi:numeric",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
     # Product identity, read from the advertisement rather than the device
     # info response. cid and pid together identify the model, and for some
     # device types the pid decides which hardware generation it is.

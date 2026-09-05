@@ -14,6 +14,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, AVAILABLE_MODES, DEFAULT_MODE
+from .device_types import clock_style_count
 from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import update_panel_display
@@ -207,10 +208,16 @@ class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
         self._name = name
         self._attr_name = "Clock Style"
         self._attr_unique_id = f"{address}_clock_style_select"
-        self._attr_entity_description = "Select clock display style (0-8)"
-
-        # Clock styles 0-8
-        self._attr_options = ["0", "1", "2", "3", "4", "5", "6", "7", "8"]
+        # How many faces a panel offers depends on its resolution: most
+        # have eight, a 32x32 has nine, a 32x16 ten, a 144x16 only six.
+        # Offering one the panel does not have is another command it
+        # would accept and then quietly ignore.
+        info = api.device_info or {}
+        count = clock_style_count(info.get("width"), info.get("height"))
+        self._attr_entity_description = (
+            f"Select clock display style (0-{count - 1})"
+        )
+        self._attr_options = [str(i) for i in range(count)]
         self._attr_current_option = "1"  # Default style
 
         # Device info for grouping in device registry
