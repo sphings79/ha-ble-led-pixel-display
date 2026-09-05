@@ -304,3 +304,17 @@ def async_setup_services(hass: HomeAssistant) -> None:
         schema={vol.Required("running"): cv.boolean},
         func="async_set_stopwatch",
     )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "set_password",
+        entity_domain=Platform.TEXT,
+        schema={
+            # Digits only; the length is checked against the model, because
+            # two known models use four digits and everything else six.
+            vol.Required("password"): vol.All(cv.string, vol.Match(r"^\d{4}$|^\d{6}$")),
+            vol.Optional("enabled", default=True): cv.boolean,
+        },
+        func="async_set_password",
+    )

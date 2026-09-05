@@ -127,6 +127,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.2.0] - 2026-09-05
+
+### Added
+
+- **`set_password` action**, to set or remove a panel's password without the
+  vendor app. Left out until now because locking yourself out is easy, but the
+  app is unmaintained: if it disappears, so does the only way to set one at
+  all. The frame is `08 00 04 02 <flag> p1 p2 p3`, flag 1 to set and 0 to
+  remove, with the current password carried on removal -- the app checks it
+  against its own copy first, and the panel is expected to as well.
+- The action stores the password in the integration options in the same step,
+  which is what keeps the integration able to reach the panel afterwards, and
+  corrects the cached password flag so the diagnostic sensor is right
+  immediately rather than after the next reconnect.
+
 ## [2.1.2] - 2026-09-05
 
 ### Fixed

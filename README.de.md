@@ -151,10 +151,18 @@ Verbindungsaufbau gesendet, denn das Panel vergisst es, sobald die Verbindung
 abreißt. Die meisten Modelle nutzen sechs Ziffern, zwei bekannte vier — die
 richtige Länge wird anhand der Produkt-ID gewählt.
 
+Setzen und Löschen geht ebenfalls, über die Aktion `set_password`. Bewusst als
+Aktion und nicht als Schalter: Ein gesperrtes Panel verbindet sich normal und
+verwirft danach kommentarlos alles, und der Weg zurück ohne Passwort ist der
+Reset über die Stromversorgung am Panel selbst. Die Aktion legt das Passwort im
+selben Schritt in den Optionen ab, damit die Integration weiterarbeiten kann —
+schreib es trotzdem woanders auf.
+
+Zum Entfernen dieselbe Aktion mit dem aktuellen Passwort und *Enabled* aus
+aufrufen.
+
 Vergessen? [docs/password_reset.md](docs/password_reset.md) beschreibt den
-Reset über die Stromversorgung. Setzen oder Löschen eines Passworts kann diese
-Integration bewusst nicht — nur verwenden: Sich auszusperren ist leicht, es
-rückgängig zu machen nicht.
+Reset über die Stromversorgung.
 
 ### Firmware-Versionen und Uhrenstile
 

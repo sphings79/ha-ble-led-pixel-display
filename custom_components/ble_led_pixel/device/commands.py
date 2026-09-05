@@ -149,3 +149,39 @@ def make_verify_password_command(password: str, digits: int = 6) -> bytes:
     while len(pairs) < 3:
         pairs.append(0)
     return bytes([7, 0, 5, 2, *pairs])
+
+
+def make_set_password_command(
+    password: str, digits: int = 6, enable: bool = True
+) -> bytes:
+    """Build the command that sets or clears a panel's password.
+
+    Frame: [8, 0, 4, 2, flag, p1, p2, p3]
+
+    The flag decides which: 1 stores the password, 0 removes it. Clearing
+    still carries the password, because it is the current one -- the vendor
+    app checks it against its own copy before sending, and the panel is
+    expected to do the same.
+
+    Digits are packed as in make_verify_password_command: pairs of decimal
+    digits, each pair one byte holding that number.
+
+    Args:
+        password: The password, digits only, `digits` characters long.
+        digits: Expected length, 4 or 6. See password_length().
+        enable: True to set the password, False to remove it.
+
+    Raises:
+        ValueError: When the password is not exactly `digits` decimal digits.
+    """
+    if digits not in (4, 6):
+        raise ValueError(f"Password length must be 4 or 6 digits, not {digits}")
+    if len(password) != digits or not password.isdigit():
+        raise ValueError(
+            f"This panel expects a password of exactly {digits} digits"
+        )
+
+    pairs = [int(password[i:i + 2]) for i in range(0, digits, 2)]
+    while len(pairs) < 3:
+        pairs.append(0)
+    return bytes([8, 0, 4, 2, 1 if enable else 0, *pairs])

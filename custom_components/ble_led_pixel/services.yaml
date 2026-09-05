@@ -732,3 +732,39 @@ set_stopwatch:
       example: true
       selector:
         boolean:
+
+set_password:
+  name: Set password
+  description: >-
+    Set or remove the panel's password. Think before using this: a locked
+    panel connects normally and then silently discards everything sent to it,
+    and the only way back without the password is a power-cycle reset at the
+    panel itself.
+    The password is stored in the integration options as part of this action,
+    so Home Assistant can still reach the panel afterwards - it is sent again
+    after every connect. Write it down somewhere else too.
+    Most models take six digits, two known models take four; the right length
+    is checked against your panel.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    password:
+      name: Password
+      description: >-
+        Digits only. When setting, the new password. When removing, the
+        password currently on the panel.
+      required: true
+      example: "123456"
+      selector:
+        text:
+          type: password
+    enabled:
+      name: Enabled
+      description: >-
+        On sets the password, off removes it.
+      required: false
+      default: true
+      selector:
+        boolean:

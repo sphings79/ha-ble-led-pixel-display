@@ -150,9 +150,18 @@ connect, because the panel forgets it as soon as the link drops. Most models
 use six digits; two known models use four, and the integration picks the right
 length from the product id.
 
+Setting and removing a password is possible too, through the
+`set_password` action. It is an action rather than a switch on purpose: a
+locked panel connects normally and then silently discards everything, and the
+way back without the password is a power-cycle reset at the panel itself. The
+action stores the password in the options as part of the same step, so the
+integration keeps working — but write it down somewhere else as well.
+
+To remove a password, call the same action with the current password and
+*Enabled* off.
+
 Forgot it? [docs/password_reset.md](docs/password_reset.md) describes the
-power-cycle reset. This integration cannot set or clear a password — only use
-one — which is deliberate: locking yourself out is easy, and undoing it is not.
+power-cycle reset.
 
 ### Firmware versions and clock faces
 

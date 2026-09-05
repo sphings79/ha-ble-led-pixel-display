@@ -22,6 +22,7 @@ from .device.commands import (
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.commands import (
     make_countdown_command,
+    make_set_password_command,
     make_verify_password_command,
     password_length,
     make_preset_command,
@@ -198,6 +199,65 @@ class BleLedPixelAPI:
                 )
         except Exception as err:  # noqa: BLE001 - unlocking must not break setup
             _LOGGER.warning("Error sending the password to %s: %s", self._address, err)
+
+    async def set_password(self, password: str, enable: bool = True) -> bool:
+        """Set or clear the panel's password.
+
+        The panel must be reachable: this is a write, and a command that never
+        left is indistinguishable from one the panel ignored.
+
+        On success the password is written into the entry options, or cleared
+        from them. That is not a convenience -- it is what keeps the
+        integration able to talk to the panel afterwards, because every later
+        connect has to present the password again.
+
+        Args:
+            password: Digits only. When enabling, the new password; when
+                clearing, the current one, which the panel expects to see.
+            enable: True to set the password, False to remove it.
+
+        Returns:
+            True when the panel accepted the command.
+
+        Raises:
+            BleLedPixelFeatureUnsupported: When the password is malformed for
+                this model, or the panel is not connected.
+        """
+        identity = self.identity
+        digits = password_length(identity.cid, identity.pid)
+        try:
+            command = make_set_password_command(password, digits, enable)
+        except ValueError as err:
+            raise BleLedPixelFeatureUnsupported(str(err)) from err
+
+        if not self.is_connected and not await self.ensure_connected():
+            raise BleLedPixelFeatureUnsupported(
+                "The panel is not reachable. A password is only worth setting "
+                "on a panel that answers, so that a failure is visible now "
+                "rather than at the next connect."
+            )
+
+        if not await self._bluetooth.send_command(command):
+            _LOGGER.error("Panel %s did not accept the password change",
+                          self._address)
+            return False
+
+        # Remember it, or forget it, before anything else can reconnect.
+        entry = self._entry
+        if entry is not None:
+            self._hass.config_entries.async_update_entry(
+                entry,
+                options={**entry.options, OPT_PASSWORD: password if enable else ""},
+            )
+
+        # The flag lives in the cached device info; correct it so the sensor
+        # does not keep reporting the old state until the next reconnect.
+        if self._device_info is not None:
+            self._device_info["password_flag"] = 1 if enable else 0
+
+        _LOGGER.info("Password %s on %s",
+                     "set" if enable else "cleared", self._address)
+        return True
 
     async def unlock(self) -> bool:
         """Send the configured password now.

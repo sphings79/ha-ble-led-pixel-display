@@ -383,6 +383,23 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
             _LOGGER.error("Failed to show slot %d", slot)
             raise HomeAssistantError(f"Failed to show slot {slot} - check the logs for details")
 
+    async def async_set_password(self, password: str, enabled: bool = True) -> None:
+        """Set or clear the panel's password (action: set_password).
+
+        The password is stored in the integration options as part of this, so
+        the integration can still reach the panel afterwards.
+
+        Args:
+            password: Digits only. When enabling, the new password; when
+                clearing, the current one.
+            enabled: True to set a password, False to remove it.
+        """
+        if not await self._api.set_password(password, enabled):
+            raise HomeAssistantError(
+                "The panel did not accept the password change - check the "
+                "logs for details"
+            )
+
     async def async_show_preset(self, preset: int, language: int = 0) -> None:
         """Show a preset stored in the panel's firmware (action: show_preset).
 
