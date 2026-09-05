@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`show_emoji`** action, rendering any emoji via Twemoji (PR #37 by bastooky)
+- **Options flow to override the panel size** when the firmware reports it wrong
+  (PR #38 by bastooky), plus a French translation
+- Font metric JSON sidecars for the bundled pixel fonts (PR #24 by scyto)
+
+### Fixed
+
+- **Device info is now retried three times** with a 10 second timeout instead of
+  being queried once with 5 seconds, falling back to 64x16 defaults and an error
+  in the log when all attempts fail (PR #30 by casef007). Adapted: the PR drove
+  the GATT characteristics directly and cycled notifications per attempt; kept
+  the persistent-subscription helper and took only the retry behaviour.
+- **The clock used the host's naive local time**, which is UTC on most Home
+  Assistant installations, so the panel clock was off by the timezone offset
+  (PR #32 by MobilGame06)
+- **The font size setting was ignored** in native text mode (PR #35 by BAERnado)
+- Removed the `display_text` declaration from `services.yaml`. It described an
+  action that was never registered anywhere; `send_text` is the working
+  equivalent.
+
+### Not merged
+
+- **PR #31** (buffer-safe chunked writes) chunks at 20 bytes with fixed delays,
+  while the client inherited from tigers75 already chunks at 244 bytes with
+  per-window ACKs. Merging it would have been a regression.
+
 ### Changed
 
 - **Forked** from [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color)

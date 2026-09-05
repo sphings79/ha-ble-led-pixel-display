@@ -47,61 +47,6 @@ show_emoji:
           max: 512
           mode: box
 
-display_text:
-  name: Display Text
-  description: Display text on the iPIXEL device with custom effects and colors
-  target:
-    entity:
-      integration: ble_led_pixel
-      domain: text
-  fields:
-    text:
-      name: Text
-      description: Text to display (max 500 characters)
-      required: true
-      example: "Hello World"
-      selector:
-        text:
-    effect:
-      name: Effect
-      description: Display effect for the text
-      required: false
-      default: "scroll_ltr"
-      selector:
-        select:
-          options:
-            - "fixed"
-            - "scroll_rtl"
-            - "scroll_ltr"
-            - "blink"
-            - "breeze"
-            - "snow"
-            - "laser"
-    speed:
-      name: Speed
-      description: Animation speed (1-100)
-      required: false
-      default: 50
-      selector:
-        number:
-          min: 1
-          max: 100
-          mode: slider
-    color_fg:
-      name: Text Color
-      description: Foreground text color
-      required: false
-      default: [255, 255, 255]
-      selector:
-        color_rgb:
-    color_bg:
-      name: Background Color
-      description: Background color
-      required: false
-      default: [0, 0, 0]
-      selector:
-        color_rgb:
-
 send_mdi_icon:
   name: Send MDI Icon
   description: Renders a Home Assistant MDI icon (fetched from @mdi/svg) and displays it on the iPIXEL panel.
