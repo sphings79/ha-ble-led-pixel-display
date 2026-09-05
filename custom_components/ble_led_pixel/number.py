@@ -42,7 +42,6 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
 
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0.0  # 0 = auto-sizing
-    _attr_native_max_value = 64.0  # Maximum font size for 32x32 display
     _attr_native_step = 0.5  # Allow half-pixel increments
     _attr_icon = "mdi:format-size"
     _attr_entity_category = None
@@ -62,6 +61,14 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
         self._attr_name = "Font Size"
         self._attr_unique_id = f"{address}_font_size"
         self._attr_native_value = 0.0  # 0 means auto-sizing
+
+        # A glyph taller than the panel cannot be shown, so the maximum is the
+        # panel height rather than a fixed 64 - which was simply wrong for
+        # anything shorter. Falls back to 64 while the panel has not reported
+        # its geometry yet.
+        info = api.device_info or {}
+        height = info.get("height")
+        self._attr_native_max_value = float(height) if height else 64.0
         
         # Device info for grouping in device registry
         self._attr_device_info = panel_device_info(api, address, name)

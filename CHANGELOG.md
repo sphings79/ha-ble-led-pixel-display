@@ -127,6 +127,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.1.2] - 2026-09-05
+
+### Fixed
+
+- **The font size could be set higher than the panel is tall.** The maximum
+  was a fixed 64 regardless of hardware, so a 16px panel offered sizes it
+  cannot render. It is now the panel's own height.
+
 ## [2.1.1] - 2026-09-05
 
 ### Fixed
