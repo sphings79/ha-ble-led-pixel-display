@@ -127,6 +127,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.2.1] - 2026-09-05
+
+### Fixed
+
+- **Text mode `textimage` never reached the panel.** `make_image_command`
+  returns a `SendPlan`, which has to go through `send_plan()` so each window
+  is chunked and acknowledged. `display_text` still iterated it as if it were
+  a list of frames, so every update raised `'SendPlan' object is not
+  iterable` and nothing was displayed. Every other caller already did it
+  correctly; this one had been missed.
+- The same mistake in `display_emoji`, which the `show_emoji` action uses.
+
 ## [2.2.0] - 2026-09-05
 
 ### Added

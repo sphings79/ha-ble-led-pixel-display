@@ -731,33 +731,28 @@ class BleLedPixelAPI:
             png_data = render_text_to_png(text, width, height, antialias, font_size, font, line_spacing, text_color, bg_color)
 
             # Generate image commands using pypixelcolor
-            commands = make_image_command(
+            plan = make_image_command(
                 image_bytes=png_data,
                 file_extension=".png",
                 resize_method="crop",
                 device_info_dict=device_info
             )
 
-            # Send all command frames
-            for i, command in enumerate(commands):
-                _LOGGER.debug(
-                    "Sending pypixelcolor image frame %d/%d: %d bytes",
-                    i + 1,
-                    len(commands),
-                    len(command)
-                )
-                success = await self._send_with_reconnect(command)
-                if not success:
-                    _LOGGER.error("Failed to send image frame %d/%d", i + 1, len(commands))
-                    return False
+            # A SendPlan, not a list of frames: an image is larger than one
+            # BLE packet, and send_plan chunks each window and waits for the
+            # panel's per-window acknowledgement. Iterating it here treated it
+            # as frames and raised on every single update.
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            if not success:
+                _LOGGER.error("Failed to send the rendered text to the panel")
+                return False
 
             _LOGGER.info(
-                "Text rendered as image: '%s' (%dx%d, %d bytes PNG, %d frames)",
+                "Text rendered as image: '%s' (%dx%d, %d bytes PNG)",
                 text,
                 width,
                 height,
                 len(png_data),
-                len(commands)
             )
             return True
 
@@ -1403,7 +1398,7 @@ class BleLedPixelAPI:
                 _LOGGER.error("Could not render emoji %r (download or cache miss)", emoji)
                 return False
 
-            commands = make_image_command(
+            plan = make_image_command(
                 image_bytes=png_data,
                 file_extension=".png",
                 resize_method="crop",
@@ -1413,16 +1408,13 @@ class BleLedPixelAPI:
             if not self.is_connected:
                 await self.connect()
 
-            for i, command in enumerate(commands):
-                success = await self._send_with_reconnect(command)
-                if not success:
-                    _LOGGER.error("Failed to send emoji frame %d/%d", i + 1, len(commands))
-                    return False
+            # As in display_text: a SendPlan is not a sequence of frames.
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            if not success:
+                _LOGGER.error("Failed to send emoji %r to the panel", emoji)
+                return False
 
-            _LOGGER.info(
-                "Emoji %r displayed (%dx%d, %d frames)",
-                emoji, width, height, len(commands),
-            )
+            _LOGGER.info("Emoji %r displayed (%dx%d)", emoji, width, height)
             return True
 
         except Exception as err:
