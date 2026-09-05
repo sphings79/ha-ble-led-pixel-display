@@ -132,15 +132,24 @@ send_text:
         color_rgb:
     font:
       name: Font
-      description: Built-in font
+      description: >
+        Font to render with. The fonts shipped with the integration are listed
+        below; any other font in the integration's fonts/ folder, in the
+        pypixelcolor package or in a system font path also works. Drop your own
+        .ttf or .otf into the fonts/ folder and restart to add one.
       required: false
-      default: "CUSONG"
+      default: "VCR_OSD_MONO"
       selector:
         select:
+          custom_value: true
           options:
-            - "CUSONG"
-            - "SIMSUN"
+            - "3x5-de"
+            - "5x5"
+            - "7x5"
+            - "Lepidos"
+            - "OpenSans-Light"
             - "VCR_OSD_MONO"
+            - "WP7xn"
     animation:
       name: Animation
       description: >-

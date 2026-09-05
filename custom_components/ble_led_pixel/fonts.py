@@ -135,3 +135,39 @@ def get_available_fonts(locations: list[Path] | None = None) -> list[str]:
 
     _LOGGER.debug("Found %d unique fonts across all locations", len(fonts))
     return sorted(list(fonts))
+
+# Shipped with the integration, so it is available regardless of which
+# pypixelcolor version is installed.
+FALLBACK_FONT = "VCR_OSD_MONO.ttf"
+
+
+def resolve_font_for_library(font_name: str | None) -> str:
+    """Resolve a font name to an absolute path for pypixelcolor.
+
+    pypixelcolor accepts either one of its built-in font names or a path to a
+    font file. The set of built-in names is not stable: 0.4 shipped CUSONG,
+    SIMSUN and VCR_OSD_MONO, while later versions replaced all three with a
+    single UNIFONT. Handing over an absolute path keeps this integration
+    working across both, and lets users drop their own fonts into the
+    integration's fonts/ folder.
+
+    Args:
+        font_name: Font filename or name, with or without extension.
+
+    Returns:
+        An absolute path when the font was found anywhere in the search
+        locations, otherwise the name unchanged so the library can still try
+        to resolve it as one of its own.
+    """
+    for candidate in (font_name, FALLBACK_FONT):
+        if not candidate:
+            continue
+        path = get_font_path(candidate)
+        if path is not None:
+            return str(path)
+
+    _LOGGER.warning(
+        "Font %s not found and fallback %s missing; passing the name to the "
+        "library unchanged", font_name, FALLBACK_FONT
+    )
+    return font_name or FALLBACK_FONT

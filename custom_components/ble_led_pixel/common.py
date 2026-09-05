@@ -5,6 +5,7 @@ import logging
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.template import Template
 from homeassistant.helpers import entity_registry as er
+from .fonts import resolve_font_for_library
 from .const import MODE_TEXT_IMAGE, MODE_TEXT, MODE_CLOCK, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -274,14 +275,11 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
 
         # Reuse existing font selector - convert TTF filename to full path
         font_name = await _get_entity_setting(hass, device_name, "select", "font_select", str, api._address)
-        if font_name and font_name.endswith(('.ttf', '.otf')):
-            # Custom TTF/OTF font from fonts/ folder
-            from pathlib import Path
-            font_path = Path(__file__).parent / "fonts" / font_name
-            font = str(font_path) if font_path.exists() else "CUSONG"
-        else:
-            # Use pypixelcolor's built-in fonts or default
-            font = "CUSONG"
+        # Resolve through the same search locations the font selector is built
+        # from. Previously only the integration's own fonts/ folder was checked
+        # here, so picking a font offered by the selector but living in the
+        # pypixelcolor package or a system path silently fell back to CUSONG.
+        font = resolve_font_for_library(font_name)
 
         # Get background color from light entity
         bg_color = get_color_from_light_entity(hass, api._address, "background_color", default=None)

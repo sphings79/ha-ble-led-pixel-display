@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Fonts are resolved to file paths** instead of relying on pypixelcolor's
+  built-in font names, which change between library versions. Any font in the
+  integration's `fonts/` folder, the pypixelcolor package or a system font path
+  works, in every mode and in `send_text`, with `VCR_OSD_MONO` as the fallback.
 - **`show_emoji`** action, rendering any emoji via Twemoji (PR #37 by bastooky)
 - **Options flow to override the panel size** when the firmware reports it wrong
   (PR #38 by bastooky), plus a French translation

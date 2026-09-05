@@ -265,9 +265,11 @@ Die Schrift wird in der Select-Entität **Font** gewählt und in dieser Reihenfo
 2. Das Paket `pypixelcolor`
 3. Systemschriftverzeichnisse
 
-> **Wichtig:** Im Modus `text` wird zum Rendern **nur Ort 1** verwendet, während die Auswahlliste Schriften aus allen drei Orten anbietet. Wählt man eine Schrift, die außerhalb des Integrationsordners liegt, greift stillschweigend der Rückfall auf `CUSONG`. Genau deshalb liefert dieser Fork `VCR_OSD_MONO` mit. Für eigene Schriften die `.ttf` oder `.otf` in den Ordner `fonts/` der Integration legen und neu starten.
+Die gewählte Schrift wird zu einem absoluten Pfad aufgelöst und so an den Renderer übergeben — dieselbe Schrift funktioniert also in jedem Modus und in der Aktion `send_text`. Für eigene Schriften eine `.ttf` oder `.otf` in den Ordner `fonts/` der Integration legen und neu starten. Lässt sich eine Schrift nirgends finden, wird `VCR_OSD_MONO` verwendet und eine Warnung protokolliert.
 
 Mitgeliefert: `3x5-de`, `5x5`, `7x5`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`.
+
+> **Warum über Pfade:** pypixelcolor kennt auch eigene Schriftnamen, die sind aber nicht stabil — 0.4 lieferte `CUSONG`, `SIMSUN` und `VCR_OSD_MONO` mit, spätere Versionen ersetzten alle drei durch ein einzelnes `UNIFONT`. Upstream reichte diese Namen unverändert weiter, ein Bibliotheks-Update hätte die Schrift also verändert oder unbrauchbar gemacht. Dieser Fork löst stattdessen alles zu einem Dateipfad auf und liefert `VCR_OSD_MONO` mit, damit sie immer vorhanden ist.
 
 ## Warum dieser Fork
 
@@ -283,7 +285,7 @@ Er führt [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color
 
 **Text wird abgeschnitten oder die Anzeige springt zwischen zwei Ansichten.** Die Zeichenkette ist länger, als auf das Panel passt. Kürzen oder `send_text` mit Lauftext verwenden.
 
-**Die gewählte Schrift wirkt nicht.** Siehe [Schriften](#schriften) — im Modus `text` wird nur der Ordner der Integration durchsucht.
+**Die gewählte Schrift wirkt nicht.** Im Protokoll nach `Font ... not found in any location` suchen. Schriftdateien gehören in den Ordner `fonts/` der Integration, danach ist ein Neustart nötig.
 
 **Farbe und Text ändern sich zu unterschiedlichen Zeitpunkten.** Siehe [Flackern vermeiden](#flackern-vermeiden-wie-updates-wirklich-funktionieren).
 

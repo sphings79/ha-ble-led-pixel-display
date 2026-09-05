@@ -120,9 +120,11 @@ def async_setup_services(hass: HomeAssistant) -> None:
                 None,
                 vol.All(vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)),
             ),
-            vol.Optional("font", default="CUSONG"): vol.In(
-                ["CUSONG", "SIMSUN", "VCR_OSD_MONO"]
-            ),
+            # Any font the integration can resolve: its own fonts/ folder,
+            # the pypixelcolor package, or a system font path. Not a fixed
+            # list, because the library's built-in font names change between
+            # versions and users may add their own.
+            vol.Optional("font", default="VCR_OSD_MONO"): cv.string,
             vol.Optional("animation", default=0): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=7)
             ),

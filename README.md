@@ -265,9 +265,11 @@ Fonts are picked in the **Font** select entity and looked up in this order:
 2. The `pypixelcolor` package
 3. System font directories
 
-> **Important:** In `text` mode, only location 1 is used for rendering, while the selector lists fonts from all three. Selecting a font that lives outside the integration folder silently falls back to `CUSONG`. This fork ships `VCR_OSD_MONO` for exactly that reason. To use your own font, drop the `.ttf` or `.otf` into the integration's `fonts/` folder and restart.
+Whatever you pick is resolved to an absolute path and handed to the renderer that way, so the same font works in every mode and in the `send_text` action. To add your own, drop a `.ttf` or `.otf` into the integration's `fonts/` folder and restart. If a font cannot be found anywhere, `VCR_OSD_MONO` is used and a warning is logged.
 
 Bundled: `3x5-de`, `5x5`, `7x5`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`.
+
+> **Why the paths matter:** pypixelcolor also has built-in font names, but they are not stable — 0.4 shipped `CUSONG`, `SIMSUN` and `VCR_OSD_MONO`, later versions replaced all three with a single `UNIFONT`. Upstream passed those names straight through, so a library update would have changed or broken the font. This fork resolves everything to a file path instead, and ships `VCR_OSD_MONO` so it is always available.
 
 ## Why this fork exists
 
@@ -283,7 +285,7 @@ This continues [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-
 
 **Text is cut off or the display jumps between two views.** The string is longer than the panel fits. Shorten it, or use `send_text` with scrolling.
 
-**The selected font has no effect.** See [Fonts](#fonts) — in `text` mode only the integration's own folder is searched.
+**The selected font has no effect.** Check the log for `Font ... not found in any location`. Font files belong in the integration's `fonts/` folder; a restart is needed after adding one.
 
 **Colour and text change at different times.** See [Avoiding flicker](#avoiding-flicker-how-updates-actually-work).
 

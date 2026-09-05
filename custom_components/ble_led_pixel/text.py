@@ -13,6 +13,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import iPIXELAPI, iPIXELConnectionError
+from .fonts import resolve_font_for_library
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
 from .common import get_entity_id_by_unique_id
 from .common import resolve_template_variables, update_ipixel_display
@@ -183,7 +184,7 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
         text: str,
         color: tuple[int, int, int] = (255, 255, 255),
         bg_color: tuple[int, int, int] | None = None,
-        font: str = "CUSONG",
+        font: str = "VCR_OSD_MONO",
         animation: int = 0,
         speed: int = 80,
         rainbow_mode: int = 0,
@@ -198,7 +199,9 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             text: Text to display (supports emojis).
             color: Text color as an (R, G, B) tuple.
             bg_color: Background color as an (R, G, B) tuple, or None for transparent.
-            font: Built-in font name ('CUSONG', 'SIMSUN', 'VCR_OSD_MONO').
+            font: Font name or filename. Resolved against the integration's
+                fonts/ folder, the pypixelcolor package and system font
+                paths, and handed to the library as an absolute path.
             animation: Animation type (0-7). Note: pypixelcolor itself rejects
                 3 and 4 on panels that aren't 32x32, to avoid a device bootloop.
             speed: Animation speed (0-100).
@@ -211,7 +214,7 @@ class iPIXELTextDisplay(TextEntity, RestoreEntity):
             text=text,
             color=color_hex,
             bg_color=bg_color_hex,
-            font=font,
+            font=resolve_font_for_library(font),
             animation=animation,
             speed=speed,
             rainbow_mode=rainbow_mode,
