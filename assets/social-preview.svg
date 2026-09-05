@@ -7,7 +7,6 @@
     <pattern id="grid7" width="8" height="8" patternUnits="userSpaceOnUse">
       <rect width="7" height="7" rx="1" fill="#151d26"/>
     </pattern>
-    <style>.t { font-family: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }</style>
   </defs>
   <rect width="1280" height="640" fill="#0f1720"/>
   <rect y="636" width="1280" height="4" fill="url(#brand)"/>
@@ -22,14 +21,14 @@
     <path d="M55 28 v54 l18-13 -18-14 18-13 -18-14" fill="none" stroke="#0f1720"
           stroke-width="7.5" stroke-linejoin="round" stroke-linecap="round"/>
   </g>
-  <text class="t" x="240" y="140" font-size="60" font-weight="700" fill="#e6edf3">BLE LED Pixel Display</text>
-  <text class="t" x="243" y="188" font-size="27" fill="#9fb0c0">Bluetooth LE pixel matrix panels in Home Assistant</text>
+  <text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="240" y="140" font-size="60" font-weight="700" fill="#e6edf3">BLE LED Pixel Display</text>
+  <text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="243" y="188" font-size="27" fill="#9fb0c0">Bluetooth LE pixel matrix panels in Home Assistant</text>
   <line x1="82" y1="252" x2="1198" y2="252" stroke="#22303d"/>
-  <circle cx="98" cy="330" r="7" fill="#3ddc97"/><text class="t" x="122" y="337" font-size="25" fill="#c8d5e1">Text, images, GIFs</text>
-<circle cx="98" cy="392" r="7" fill="#41BDF5"/><text class="t" x="122" y="399" font-size="25" fill="#c8d5e1">Material Design Icons</text>
-<circle cx="98" cy="454" r="7" fill="#7C7CF5"/><text class="t" x="122" y="461" font-size="25" fill="#c8d5e1">Composed layouts</text>
-<circle cx="98" cy="516" r="7" fill="#FFC107"/><text class="t" x="122" y="523" font-size="25" fill="#c8d5e1">Local Bluetooth LE, no cloud</text>
-  <text class="t" x="98" y="600" font-size="21" fill="#5d7183">HACS · GPL-3.0 · BGLight · B.K. Light · iPIXEL Color protocol</text>
+  <circle cx="98" cy="330" r="7" fill="#3ddc97"/><text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="122" y="337" font-size="25" fill="#c8d5e1">Text, images, GIFs</text>
+<circle cx="98" cy="392" r="7" fill="#41BDF5"/><text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="122" y="399" font-size="25" fill="#c8d5e1">Material Design Icons</text>
+<circle cx="98" cy="454" r="7" fill="#7C7CF5"/><text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="122" y="461" font-size="25" fill="#c8d5e1">Composed layouts</text>
+<circle cx="98" cy="516" r="7" fill="#FFC107"/><text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="122" y="523" font-size="25" fill="#c8d5e1">Local Bluetooth LE, no cloud</text>
+  <text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="98" y="600" font-size="21" fill="#5d7183">HACS · GPL-3.0 · BGLight · B.K. Light · iPIXEL Color protocol</text>
 <g transform="translate(690 300)"><title>Panel showing PV 2400 W</title>
 <rect x="-10" y="-10" width="532" height="148" rx="12" fill="#0b1118" stroke="#28394a" stroke-width="1.5"/>
 <rect width="512" height="128" fill="url(#grid7)"/>

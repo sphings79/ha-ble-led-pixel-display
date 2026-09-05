@@ -7,7 +7,6 @@
     <pattern id="grid" width="7" height="7" patternUnits="userSpaceOnUse">
       <rect width="6" height="6" rx="1" fill="#151d26"/>
     </pattern>
-    <style>.t { font-family: ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }</style>
   </defs>
   <rect width="1200" height="400" fill="#0f1720"/>
 
@@ -23,9 +22,9 @@
           stroke-width="7.5" stroke-linejoin="round" stroke-linecap="round"/>
   </g>
 
-  <text class="t" x="196" y="172" font-size="40" font-weight="700" fill="#e6edf3">BLE LED Pixel Display</text>
-  <text class="t" x="198" y="208" font-size="19" fill="#9fb0c0">Bluetooth LE pixel matrix panels in Home Assistant</text>
-  <text class="t" x="198" y="239" font-size="15" fill="#41BDF5">Text · images · GIFs · MDI icons · layouts — no cloud, no app</text>
+  <text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="196" y="172" font-size="40" font-weight="700" fill="#e6edf3">BLE LED Pixel Display</text>
+  <text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="198" y="208" font-size="19" fill="#9fb0c0">Bluetooth LE pixel matrix panels in Home Assistant</text>
+  <text font-family="ui-sans-serif, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" x="198" y="239" font-size="15" fill="#41BDF5">Text · images · GIFs · MDI icons · layouts — no cloud, no app</text>
 
 <g transform="translate(700 48)"><title>64 by 16 LED panel showing PV 2400 W in green</title>
 <rect x="-9" y="-9" width="466" height="130" rx="10" fill="#0b1118" stroke="#28394a"/>
