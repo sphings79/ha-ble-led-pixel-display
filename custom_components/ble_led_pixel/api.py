@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.config_entries import ConfigEntry
 
+from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .bluetooth.client import BluetoothClient
@@ -69,7 +70,11 @@ class BleLedPixelAPI:
         self._reconnect_lock = asyncio.Lock()
         self._watcher_started = False
         self._unsubscribe_bluetooth = None
+        self._unsubscribe_identity = None
         self._power_state = False
+        # Options this instance was set up with; __init__ compares against it
+        # so an entry.data change does not trigger a reload.
+        self.setup_options: dict[str, Any] = {}
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
 
@@ -298,9 +303,9 @@ class BleLedPixelAPI:
             _LOGGER.error("Error setting clock mode: %s", err)
             return False
     
-    def _cached_identity(self):
-        """Identity stored on the config entry, if one was ever read."""
-        entry = getattr(self, "_entry", None)
+    def _cached_identity(self) -> PanelIdentity:
+        """Identity stored on the config entry, if one was ever seen."""
+        entry = self._entry
         if entry is None:
             return PanelIdentity(None, None, None, None)
         return PanelIdentity(
@@ -310,10 +315,12 @@ class BleLedPixelAPI:
             device_type=entry.data.get("adv_device_type"),
         )
 
-    def _store_identity(self, identity) -> None:
+    def _store_identity(self, identity: PanelIdentity) -> None:
         """Persist the identity so it survives the panel going quiet."""
-        entry = getattr(self, "_entry", None)
-        if entry is None or entry.data.get("cid") == identity.cid:
+        entry = self._entry
+        if entry is None or identity.cid is None:
+            return
+        if entry.data.get("cid") == identity.cid and entry.data.get("pid") == identity.pid:
             return
         try:
             self._hass.config_entries.async_update_entry(
@@ -328,43 +335,85 @@ class BleLedPixelAPI:
             )
             _LOGGER.debug("Stored identity for %s: cid=%s pid=%s",
                           self._address, identity.cid, identity.pid)
-        except Exception as err:  # noqa: BLE001
+        except Exception as err:  # noqa: BLE001 - diagnostics must not break setup
             _LOGGER.debug("Could not store identity: %s", err)
 
-    def _read_identity(self):
-        """Read cid/pid from the panel's last seen advertisement.
+        # Device info is queried once and cached, so an identity that arrives
+        # afterwards has to be patched in or the sensors keep showing nothing.
+        if self._device_info is not None:
+            self._device_info["cid"] = identity.cid
+            self._device_info["pid"] = identity.pid
+            self._device_info["cidpid"] = identity.cidpid
+            self._device_info["brand"] = identity.brand
+
+    @property
+    def identity(self) -> PanelIdentity:
+        """Product identity, from the live advertisement or the stored one.
+
+        Does not need a connection: cid and pid are advertised, not queried.
+        """
+        live = self._read_identity()
+        return live if live.cid is not None else self._cached_identity()
+
+    def start_identity_watch(self) -> None:
+        """Cache the product identity whenever the panel advertises.
+
+        A panel stops advertising the moment it is connected, and the
+        device-info query only runs once a link is up -- so by the time
+        anything asks for cid and pid there is usually nothing on air to read,
+        and the entry had nothing stored to fall back on. Listening for
+        advertisements catches the identity in the window where it is actually
+        being broadcast, which is exactly when the panel is disconnected.
+        """
+        if self._unsubscribe_identity is not None:
+            return
+
+        # Whatever the Bluetooth manager already has cached, before waiting for
+        # the next advertisement.
+        self._store_identity(self._read_identity())
+
+        @callback
+        def _advertisement_seen(service_info, change) -> None:
+            self._store_identity(parse_identity(service_info.manufacturer_data))
+
+        try:
+            self._unsubscribe_identity = bluetooth.async_register_callback(
+                self._hass,
+                _advertisement_seen,
+                {"address": self._address},
+                bluetooth.BluetoothScanningMode.PASSIVE,
+            )
+        except Exception as err:  # noqa: BLE001 - diagnostics must not break setup
+            _LOGGER.debug("Could not watch advertisements for %s: %s",
+                          self._address, err)
+
+    def stop_identity_watch(self) -> None:
+        """Stop listening for advertisements."""
+        if self._unsubscribe_identity is None:
+            return
+        try:
+            self._unsubscribe_identity()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not stop the identity watch: %s", err)
+        self._unsubscribe_identity = None
+
+    def _read_identity(self) -> PanelIdentity:
+        """Read cid and pid from the panel's last seen advertisement.
 
         Never raises: an identity is a nice-to-have, and a panel that has not
         advertised recently should not stop the rest of the device info from
         being used.
         """
         try:
-            from homeassistant.components import bluetooth
-
             service_info = bluetooth.async_last_service_info(
                 self._hass, self._address, connectable=True
             )
-            if service_info is not None:
-                identity = parse_identity(service_info.manufacturer_data)
-                if identity.cid is not None:
-                    self._store_identity(identity)
-                    return identity
-
-            # A connected panel stops advertising, so there may be nothing
-            # current to read. Fall back to what was seen when it was last
-            # discovered -- the identity is a property of the hardware and
-            # does not change.
-            cached = self._cached_identity()
-            if cached.cid is not None:
-                _LOGGER.debug("Using cached identity for %s: cid=%s pid=%s",
-                              self._address, cached.cid, cached.pid)
-            else:
-                _LOGGER.debug("No advertisement and nothing cached for %s",
-                              self._address)
-            return cached
+            if service_info is None:
+                return PanelIdentity(None, None, None, None)
+            return parse_identity(service_info.manufacturer_data)
         except Exception as err:  # noqa: BLE001 - diagnostics must not break setup
             _LOGGER.debug("Could not read product identity: %s", err)
-            return PanelIdentity(None, None, None)
+            return PanelIdentity(None, None, None, None)
 
     async def get_device_info(self) -> dict[str, Any] | None:
         """Query device information and store it (with retry logic)."""
@@ -386,7 +435,8 @@ class BleLedPixelAPI:
                     # cid/pid ride in the advertisement, not in this response,
                     # and they decide which hardware generation a device type
                     # refers to -- so read them first and pass the pid in.
-                    identity = self._read_identity()
+                    identity = self.identity
+                    self._store_identity(identity)
                     self._device_info = parse_device_response(response, identity.pid)
                     self._device_info["cid"] = identity.cid
                     self._device_info["pid"] = identity.pid

@@ -49,6 +49,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Create API instance with hass for Bluetooth proxy support
     api = BleLedPixelAPI(hass, address, entry=entry)
+
+    # Start this before connecting. A panel stops advertising once it is
+    # connected, so the product identity is only on air while the link is
+    # down -- catching it here is what makes it survive the connect.
+    api.start_identity_watch()
     
     # Try to connect, but do not fail the setup when the panel is not reachable
     # right now. A battery-less BLE panel comes and goes: at startup Home
@@ -82,7 +87,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # panel was not in Home Assistant's Bluetooth cache at setup time.
     await api.start_watcher()
 
-    # Reload the entry whenever options change (e.g. dimension overrides)
+    # Reload the entry whenever options change (e.g. dimension overrides).
+    # Remember what it was set up with, because the listener fires on any
+    # change to the entry -- including the identity the advertisement watcher
+    # writes into entry.data, which must not restart the integration.
+    api.setup_options = dict(entry.options)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     # Set up platforms
@@ -100,6 +109,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
         # Disconnect from device
         api: BleLedPixelAPI = hass.data[DOMAIN].pop(entry.entry_id)
+        api.stop_identity_watch()
         await api.stop_watcher()
         try:
             await api.disconnect()
@@ -111,6 +121,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
+    """Reload the config entry, but only when its options actually changed."""
+    api = hass.data.get(DOMAIN, {}).get(entry.entry_id)
+    if api is not None and getattr(api, "setup_options", None) == dict(entry.options):
+        _LOGGER.debug("Entry data changed without an options change; not reloading")
+        return
+
     await async_unload_entry(hass, entry)
     await async_setup_entry(hass, entry)

@@ -12,6 +12,7 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
+from .advertisement import PanelIdentity, parse_identity
 from .bluetooth.scanner import discover_panels
 from .const import (
     DOMAIN,
@@ -70,6 +71,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def __init__(self):
         """Initialize config flow."""
         self._discovered_devices: dict[str, dict[str, Any]] = {}
+        self._identity = PanelIdentity(None, None, None, None)
+
+    def _identity_data(self) -> dict[str, Any]:
+        """Entry data for the identity, empty when nothing could be read."""
+        if self._identity.cid is None:
+            return {}
+        return {
+            "cid": self._identity.cid,
+            "pid": self._identity.pid,
+            "around": self._identity.around,
+            "adv_device_type": self._identity.device_type,
+        }
 
     @staticmethod
     def async_get_options_flow(
@@ -241,6 +254,13 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle Bluetooth discovery."""
         address = discovery_info.address
         name = discovery_info.name or f"LED panel {address[-8:]}"
+
+        # The discovery advertisement is the most reliable place to read the
+        # product identity: the panel is by definition disconnected here, so
+        # it is still broadcasting. Once it is connected it goes quiet.
+        self._identity = parse_identity(
+            getattr(discovery_info, "manufacturer_data", None)
+        )
         
         # Check if already configured
         await self.async_set_unique_id(address)
@@ -281,6 +301,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data={
                     CONF_ADDRESS: placeholders["address"],
                     CONF_NAME: placeholders["name"],
+                    **self._identity_data(),
                 },
             )
 

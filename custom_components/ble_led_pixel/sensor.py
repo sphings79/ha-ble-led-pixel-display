@@ -69,6 +69,10 @@ SENSOR_DESCRIPTIONS = [
     ),
 ]
 
+# These come from the advertisement, so they are known whether or not a link
+# is up -- unlike everything else here, which needs the device-info query.
+ADVERTISED_KEYS = frozenset({"cidpid", "brand"})
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -129,6 +133,17 @@ class BleLedPixelSensor(SensorEntity):
     async def async_update(self) -> None:
         """Update the sensor state."""
         try:
+            if self.entity_description.key in ADVERTISED_KEYS:
+                identity = self._api.identity
+                value = (
+                    identity.cidpid
+                    if self.entity_description.key == "cidpid"
+                    else identity.brand
+                )
+                self._attr_native_value = value
+                self._available = value is not None
+                return
+
             if not self._api.is_connected:
                 self._available = False
                 return

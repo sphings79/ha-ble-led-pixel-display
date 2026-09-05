@@ -127,6 +127,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [1.3.4] - 2026-09-05
+
+### Fixed
+
+- **The identity cache added in 1.3.3 had nothing to fill it.** cid and pid are
+  read from the advertisement, but a panel stops advertising the moment it is
+  connected -- and the only place that read them ran right after connecting. So
+  Product ID and Brand stayed unknown no matter how often the panel was seen.
+  The advertisement is now watched directly, which catches the identity in the
+  window it is actually broadcast: while the panel is disconnected.
+- **Bluetooth discovery threw away the identity it already had.** The config
+  flow stored only address and name, although the discovery advertisement is
+  the most reliable source there is -- the panel is disconnected by definition
+  at that point. It is now kept with the entry.
+- **Product ID and Brand no longer require a connection.** They come from the
+  advertisement, not from the device-info query, so they stayed unavailable
+  whenever the panel was offline even though the values were known.
+- **An entry data change no longer reloads the integration.** The options
+  listener fires on any change to the config entry, so writing the identity
+  would have restarted the whole entry. It now reloads only when the options
+  actually changed.
+
 ## [1.3.3] - 2026-09-05
 
 ### Added
