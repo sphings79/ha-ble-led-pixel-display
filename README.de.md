@@ -64,9 +64,25 @@ Jedes Panel, das sich als `LED_BLE_*` mit der Service-UUID `0000fa01-0000-1000-8
 | **BGLight** | Gleiches Protokoll |
 | Generische „iPixel Color"-Panels | Alles, wo die Hersteller-App iPixel Color heißt |
 
+Marken, deren Angebote die Steuerung über die iPixel-Color-App angeben, deren
+Produkt-ID aber noch niemand gemeldet hat:
+
+| Marke | Gesehen als |
+| --- | --- |
+| **Fockety** | 32×32, 5×5 Zoll, „for iPixel Color APP" (Amazon `B0DQJWBCPV`) |
+| **CHICIRIS** | Flexibles IP65-Panel, 1280 RGB-LEDs — das entspricht 64×20 (Amazon `B0DNFPDCKP`) |
+| **LUXONIC** | 32×32 Auto- und Ladenschild (Amazon `B0BCYBRP84`) |
+
+Die Trennung ist Absicht. Bei B.K. Light stammt die Kennung von echter Hardware,
+bei HYPERLITE und EZYEVY aus der Konfiguration des Herstellers — bei diesen drei
+dagegen nur aus einer Händlerbeschreibung. Wer so ein Panel besitzt, macht über
+den [Meldeweg](#dein-panel-steht-nicht-in-der-liste) einen bestätigten Eintrag daraus.
+
 Die Auflösung wird vom Gerät selbst gemeldet, üblich ist 64×16. Tatsächlich beobachtet wurden bisher 32×32, 64×16, 64×20 und 96×16. Meldet dein Panel falsche Maße, siehe [Fehlersuche](#fehlersuche).
 
 Hinter all dem steckt dieselbe Hardware eines einzigen Herstellers — **Shenzhen Heaton Technology Co., Ltd.**, von dem auch die iPixel-Color-App selbst stammt. Die Panels sind Weißmarken-Ware: Die Marke auf der Verpackung sagt nichts über die Elektronik darin aus, und eine neue kann mit jedem Händler dazukommen. Deshalb existiert nirgends eine vollständige Markenliste, und deshalb wächst die Tabelle oben über Meldungen statt aus einem Hersteller-Dokument.
+
+Wie weit das reicht, zeigt die Elektronik: In jedem bisher untersuchten Panel steckt derselbe Mikrocontroller **JieLi AC6951C** mit ZBIT-SPI-Flash — unabhängig vom Namen auf der Verpackung.
 
 ### Dein Panel steht nicht in der Liste?
 
