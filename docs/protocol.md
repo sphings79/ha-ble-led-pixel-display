@@ -1310,3 +1310,65 @@ is dramatically cheaper over Bluetooth.
 Showing an empty slot does not blank the panel: it cycles through the slots
 that do hold something. The number of slots is not documented anywhere and the
 device does not report it.
+
+## Appendix B: Cross-check against Bk-Light-AppBypass
+
+[Pupariaa/Bk-Light-AppBypass](https://github.com/Pupariaa/Bk-Light-AppBypass) is
+an independent reimplementation for the same panels, written without reference
+to the vendor app. It targets exactly the two models sold at Action -- 32x32
+(**ACT1026**) and 64x16 (**ACT1025**) -- and confirms several things this
+document derived from the decompiled app.
+
+### B.1 Connection handshake
+
+The project opens a session with four writes before sending any content. The
+vendor app issues the same sequence, so this is not an artefact of one
+implementation:
+
+| Step | Frame | Opcode | Meaning |
+|---|---|---|---|
+| 1 | `08 00 01 80 HH MM SS 00` | `0x8001` | Set clock, from the host's local time |
+| 2 | `04 00 05 80` | `0x8005` | Undocumented, sent on every connect |
+| 3 | `05 00 12 80 07` | `0x8012` | Set orientation |
+| 4 | `07 00 08 80 01 00 CH` | `0x8008` | Show slot / select channel |
+
+Step 2 is the interesting one. `0x8005` appears in no command table, produces no
+notification, and the panels work whether or not it is sent. Both
+implementations send it anyway, which suggests it is a state reset the firmware
+tolerates being skipped rather than a required step. This integration does not
+send it.
+
+Step 4 is the same opcode this document lists as "show slot" in A.8. AppBypass
+treats the trailing byte as a channel number rather than a picture slot; the
+frame is identical either way.
+
+### B.2 Effect codes
+
+AppBypass names the text effects, which the vendor app only numbers:
+
+| Code | Effect |
+|---|---|
+| 0 | Fixed |
+| 1 | Scroll left |
+| 2 | Scroll right |
+| 3 | Reserved -- 32x32 only |
+| 4 | Reserved -- 32x32 only |
+| 5 | Blinking |
+| 6 | Breathing |
+| 7 | Snowflake |
+| 8 | Laser |
+
+Codes 3 and 4 are rejected by `pypixelcolor` on panels that are not 32x32,
+because they can put a device into a boot loop. The `send_text` action offers
+the remaining seven by name.
+
+Note that the range runs to **8**, not 7. Every traffic-derived table stops at
+7, so effect 8 was unreachable from Home Assistant until now.
+
+### B.3 What it does not add
+
+AppBypass has no read commands either. It sends the device-info query and
+parses the response for geometry, exactly as described in A.3, and has no way
+to ask a panel whether it is currently on. Four independent sources -- this
+project, `pypixelcolor`, `go-ipxl` and AppBypass -- agree that the protocol is
+write-only apart from device info.

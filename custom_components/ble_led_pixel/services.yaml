@@ -196,15 +196,28 @@ send_text:
     animation:
       name: Animation
       description: >-
-        Animation type (0-7), as defined by pypixelcolor itself. Values 3
-        and 4 are automatically rejected by the library on panels that
-        aren't 32x32, to avoid a device bootloop.
+        Effect the panel applies to the text. Values 3 and 4 are rejected by
+        the library on panels that are not 32x32, to avoid a device bootloop,
+        so they are not offered here.
       required: false
       default: 0
       selector:
-        number:
-          min: 0
-          max: 7
+        select:
+          options:
+            - label: "Fixed"
+              value: "0"
+            - label: "Scroll left"
+              value: "1"
+            - label: "Scroll right"
+              value: "2"
+            - label: "Blinking"
+              value: "5"
+            - label: "Breathing"
+              value: "6"
+            - label: "Snowflake"
+              value: "7"
+            - label: "Laser"
+              value: "8"
     speed:
       name: Speed
       description: Animation speed (0-100)

@@ -14,6 +14,12 @@
   **English** · [Deutsch](README.de.md)
 </div>
 
+<div align="center">
+  <img src="assets/panels.gif" alt="Animation: a 64x16 BLE LED pixel panel cycling through H 99M 62, PV 2400W, SoC 78% and B 1557W, beside a 32x32 panel showing a heart, a sun, a battery and a lightning bolt" width="100%">
+
+  <sub>Left: live text on a 64×16 panel. Right: images on a 32×32 panel — both driven from Home Assistant.</sub>
+</div>
+
 ## Table of contents
 
 - [What this integration does](#what-this-integration-does)
@@ -52,7 +58,7 @@ Any panel that advertises as `LED_BLE_*` with service UUID `0000fa01-0000-1000-8
 
 | Brand | Notes |
 | --- | --- |
-| **B.K. Light** | Sold at Action. Packaging reads "LED pixel board" (13×13 cm, 32×32) and "LED fun screen" (37×9 cm, 64×16); shop listings are localised, e.g. "Led-pixelbord" and "Led-pixel scherm" in the Netherlands. Product id `000702`. |
+| **B.K. Light** | Sold at Action. Packaging reads "LED pixel board" (article **ACT1026**, 13×13 cm, 32×32) and "LED fun screen" (article **ACT1025**, 37×9 cm, 64×16); shop listings are localised, e.g. "Led-pixelbord" and "Led-pixel scherm" in the Netherlands. Product id `000702`. |
 | **HYPERLITE** | Product ids `002501`–`002509`, `002513`, `002514` |
 | **EZYEVY** | Product ids `002510`–`002512` |
 | **BGLight** | Same protocol |

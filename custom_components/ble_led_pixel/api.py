@@ -23,7 +23,7 @@ from .device.text import make_text_command
 from .device.image import make_image_command
 from homeassistant.components import bluetooth
 
-from .advertisement import parse_identity
+from .advertisement import PanelIdentity, parse_identity
 from .fonts import resolve_font_for_library
 from .device.info import build_device_info_command, parse_device_response
 from .device.mdi_icon import build_mdi_icon_png
@@ -298,6 +298,39 @@ class BleLedPixelAPI:
             _LOGGER.error("Error setting clock mode: %s", err)
             return False
     
+    def _cached_identity(self):
+        """Identity stored on the config entry, if one was ever read."""
+        entry = getattr(self, "_entry", None)
+        if entry is None:
+            return PanelIdentity(None, None, None, None)
+        return PanelIdentity(
+            cid=entry.data.get("cid"),
+            pid=entry.data.get("pid"),
+            around=entry.data.get("around"),
+            device_type=entry.data.get("adv_device_type"),
+        )
+
+    def _store_identity(self, identity) -> None:
+        """Persist the identity so it survives the panel going quiet."""
+        entry = getattr(self, "_entry", None)
+        if entry is None or entry.data.get("cid") == identity.cid:
+            return
+        try:
+            self._hass.config_entries.async_update_entry(
+                entry,
+                data={
+                    **entry.data,
+                    "cid": identity.cid,
+                    "pid": identity.pid,
+                    "around": identity.around,
+                    "adv_device_type": identity.device_type,
+                },
+            )
+            _LOGGER.debug("Stored identity for %s: cid=%s pid=%s",
+                          self._address, identity.cid, identity.pid)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not store identity: %s", err)
+
     def _read_identity(self):
         """Read cid/pid from the panel's last seen advertisement.
 
@@ -305,17 +338,30 @@ class BleLedPixelAPI:
         advertised recently should not stop the rest of the device info from
         being used.
         """
-        from .advertisement import PanelIdentity
         try:
             from homeassistant.components import bluetooth
 
             service_info = bluetooth.async_last_service_info(
                 self._hass, self._address, connectable=True
             )
-            if service_info is None:
-                _LOGGER.debug("No recent advertisement for %s", self._address)
-                return PanelIdentity(None, None, None)
-            return parse_identity(service_info.manufacturer_data)
+            if service_info is not None:
+                identity = parse_identity(service_info.manufacturer_data)
+                if identity.cid is not None:
+                    self._store_identity(identity)
+                    return identity
+
+            # A connected panel stops advertising, so there may be nothing
+            # current to read. Fall back to what was seen when it was last
+            # discovered -- the identity is a property of the hardware and
+            # does not change.
+            cached = self._cached_identity()
+            if cached.cid is not None:
+                _LOGGER.debug("Using cached identity for %s: cid=%s pid=%s",
+                              self._address, cached.cid, cached.pid)
+            else:
+                _LOGGER.debug("No advertisement and nothing cached for %s",
+                              self._address)
+            return cached
         except Exception as err:  # noqa: BLE001 - diagnostics must not break setup
             _LOGGER.debug("Could not read product identity: %s", err)
             return PanelIdentity(None, None, None)

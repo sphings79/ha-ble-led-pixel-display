@@ -147,8 +147,12 @@ def async_setup_services(hass: HomeAssistant) -> None:
             # list, because the library's built-in font names change between
             # versions and users may add their own.
             vol.Optional("font", default="VCR_OSD_MONO"): cv.string,
+            # Effect codes as documented by Pupariaa/Bk-Light-AppBypass:
+            # 0 fixed, 1 scroll left, 2 scroll right, 5 blinking,
+            # 6 breathing, 7 snowflake, 8 laser. 3 and 4 are rejected by the
+            # library on non-32x32 panels because they can bootloop a device.
             vol.Optional("animation", default=0): vol.All(
-                vol.Coerce(int), vol.Range(min=0, max=7)
+                vol.Coerce(int), vol.Range(min=0, max=8)
             ),
             vol.Optional("speed", default=80): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=100)

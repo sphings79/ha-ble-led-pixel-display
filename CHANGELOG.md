@@ -127,6 +127,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [1.3.3] - 2026-09-05
+
+### Added
+
+- **Animated proof in the README** that the panels really do render images: a
+  64x16 panel cycling through live values beside a 32x32 panel showing a heart,
+  a sun, a battery and a lightning bolt.
+- **Named text effects.** `send_text` offered a bare number 0-7; the effects are
+  now selectable by name -- Fixed, Scroll left, Scroll right, Blinking,
+  Breathing, Snowflake, Laser. The range also runs to **8**, not 7: every
+  traffic-derived table stopped one short, so the Laser effect was unreachable.
+- **Action article numbers** in the supported-devices table: ACT1026 for the
+  32x32 panel, ACT1025 for the 64x16 one.
+- `docs/protocol.md` Appendix B: a cross-check against Bk-Light-AppBypass,
+  covering the connect handshake, the undocumented opcode `0x8005`, the effect
+  code names, and a fourth independent confirmation that no read command for
+  device state exists.
+
+### Fixed
+
+- **Product ID and Brand went unknown after a reconnect.** A connected panel
+  stops advertising, so there was often no advertisement left to parse. The
+  identity is a property of the hardware and does not change, so it is now
+  stored on the config entry the first time it is seen and reused when the
+  panel is quiet.
+
 ## [Unreleased]
 
 ### Added
