@@ -5,9 +5,11 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
+from math import floor
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
+    from homeassistant.config_entries import ConfigEntry
 
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -23,7 +25,9 @@ from .device.info import build_device_info_command, parse_device_response
 from .device.mdi_icon import build_mdi_icon_png
 from .device.composer import build_layout_media
 from .display.text_renderer import render_text_to_png
+from .display.emoji_renderer import render_emoji_to_png
 from .exceptions import iPIXELConnectionError
+from .const import OPT_OVERRIDE_DIMENSIONS, OPT_PANEL_WIDTH, OPT_PANEL_HEIGHT
 
 try:
     from pypixelcolor.commands.show_slot import show_slot as pypixelcolor_show_slot
@@ -36,19 +40,37 @@ _LOGGER = logging.getLogger(__name__)
 class iPIXELAPI:
     """iPIXEL Color device API client - simplified facade."""
 
-    def __init__(self, hass: HomeAssistant, address: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        address: str,
+        entry: "ConfigEntry | None" = None,
+    ) -> None:
         """Initialize the API client.
 
         Args:
             hass: Home Assistant instance
             address: Bluetooth MAC address
+            entry: Config entry holding integration options (dimension overrides, etc.)
         """
         self._hass = hass
         self._address = address
+        self._entry = entry
         self._bluetooth = BluetoothClient(hass, address)
         self._power_state = False
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
+
+    def _resolved_dimensions(self, base_info: dict[str, Any]) -> tuple[int, int]:
+        """Return (width, height) honoring options-flow overrides if set."""
+        if self._entry is None:
+            return base_info["width"], base_info["height"]
+        options = self._entry.options
+        if not options.get(OPT_OVERRIDE_DIMENSIONS):
+            return base_info["width"], base_info["height"]
+        width = options.get(OPT_PANEL_WIDTH) or base_info["width"]
+        height = options.get(OPT_PANEL_HEIGHT) or base_info["height"]
+        return width, height
         
     async def connect(self) -> bool:
         """Connect to the iPIXEL device."""
@@ -162,38 +184,51 @@ class iPIXELAPI:
             return False
     
     async def get_device_info(self) -> dict[str, Any] | None:
-        """Query device information and store it."""
+        """Query device information and store it (with retry logic)."""
         if self._device_info is not None:
             return self._device_info
             
-        try:
-            command = build_device_info_command()
+        max_retries = 3
 
-            response = await self._bluetooth.send_command_wait_response(command, timeout=5.0)
+        for attempt in range(max_retries):
+            try:
+                command = build_device_info_command()
 
-            if response:
-                self._device_info = parse_device_response(response)
-            else:
+                # Uses the persistent notification subscription instead of a
+                # start_notify/stop_notify cycle per call, which is what caused
+                # the "Notify acquired" errors PR #30 worked around.
+                response = await self._bluetooth.send_command_wait_response(command, timeout=10.0)
+
+                if response:
+                    self._device_info = parse_device_response(response)
+                    _LOGGER.info("Device info retrieved on attempt %d: %s", attempt + 1, self._device_info)
+                    return self._device_info
+
                 raise Exception("No response received")
             
-            _LOGGER.info("Device info retrieved: %s", self._device_info)
-            return self._device_info
-            
-        except Exception as err:
-            _LOGGER.error("Failed to get device info: %s", err)
-            # Return default values
-            self._device_info = {
-                "width": 64,
-                "height": 16,
-                "device_type": 0,
-                "device_type_str": "Unknown",
-                "led_type": 0,
-                "mcu_version": "Unknown",
-                "wifi_version": "Unknown",
-                "has_wifi": False,
-                "password_flag": 255
-            }
-            return self._device_info
+            except asyncio.TimeoutError:
+                _LOGGER.warning("Timeout waiting for device info (attempt %d/%d)", attempt + 1, max_retries)
+            except Exception as err:
+                _LOGGER.warning("Attempt %d/%d failed to get device info: %s", attempt + 1, max_retries, err)
+                
+            # Short delay before next attempt
+            if attempt < max_retries - 1:
+                await asyncio.sleep(1.0)
+                
+        # If we reach here, all retries failed. Return default values.
+        _LOGGER.error("All %d attempts failed to get device info. Using defaults.", max_retries)
+        self._device_info = {
+            "width": 64,
+            "height": 16,
+            "device_type": 0,
+            "device_type_str": "Unknown",
+            "led_type": 0,
+            "mcu_version": "Unknown",
+            "wifi_version": "Unknown",
+            "has_wifi": False,
+            "password_flag": 255
+        }
+        return self._device_info
     
     async def display_text(self, text: str, antialias: bool = True, font_size: float | None = None, font: str | None = None, line_spacing: int = 0, text_color: str = "ffffff", bg_color: str = "000000") -> bool:
         """Display text as image using PIL and pypixelcolor with color gradient mapping.
@@ -208,10 +243,10 @@ class iPIXELAPI:
             bg_color: Background color in hex format (e.g., '000000')
         """
         try:
-            # Get device dimensions
-            device_info = await self.get_device_info()
-            width = device_info["width"]
-            height = device_info["height"]
+            # Get device dimensions (honors options-flow override if set)
+            base_info = await self.get_device_info()
+            width, height = self._resolved_dimensions(base_info)
+            device_info = {**base_info, "width": width, "height": height}
 
             # Render text to PNG with color gradient
             png_data = render_text_to_png(text, width, height, antialias, font_size, font, line_spacing, text_color, bg_color)
@@ -607,7 +642,8 @@ class iPIXELAPI:
         font: str = "CUSONG",
         animation: int = 0,
         speed: int = 80,
-        rainbow_mode: int = 0
+        rainbow_mode: int = 0,
+        font_size: int = 16
     ) -> bool:
         """Display text using pypixelcolor.
 
@@ -619,14 +655,21 @@ class iPIXELAPI:
             animation: Animation type (0-7)
             speed: Animation speed (0-100)
             rainbow_mode: Rainbow mode (0-9)
+            font_size: Font size (16, 32, 48, 64) defaults to 16
 
         Returns:
             True if text was sent successfully
         """
         try:
-            # Get device info for height
-            device_info = await self.get_device_info()
-            device_height = device_info["height"]
+            # Get device info for height (honors options-flow override if set)
+            base_info = await self.get_device_info()
+            _, device_height = self._resolved_dimensions(base_info)
+
+            if font_size > device_height:
+                font_size = device_height
+            if font_size < 16:
+                font_size = 16
+            char_height = floor(font_size / 16) * 16
 
             # Generate text commands using pypixelcolor
             commands = make_text_command(
@@ -638,7 +681,7 @@ class iPIXELAPI:
                 speed=speed,
                 rainbow_mode=rainbow_mode,
                 save_slot=0,
-                device_height=device_height
+                char_height=char_height
             )
 
             # Send all command frames
@@ -668,6 +711,69 @@ class iPIXELAPI:
 
         except Exception as err:
             _LOGGER.error("Error displaying pypixelcolor text: %s", err)
+            return False
+
+    async def display_emoji(
+        self,
+        emoji: str,
+        bg_color: str = "000000",
+        width_override: int | None = None,
+        height_override: int | None = None,
+    ) -> bool:
+        """Display an emoji as a Twemoji image, downloaded async and cached locally.
+
+        Unlike display_text_pypixelcolor (which delegates emoji handling to
+        pypixelcolor and currently triggers a blocking HTTP call inside the
+        event loop), this method downloads the Twemoji PNG asynchronously,
+        caches it under hass.config.path(".storage/ipixel_emoji_cache"), and
+        composes it onto a canvas matching the device dimensions.
+
+        Args:
+            emoji: Unicode emoji character (e.g. '🔔', '🚨', '⚠️')
+            bg_color: Background color in hex (default '000000')
+            width_override: Optional canvas width override. Useful when the
+                firmware reports incorrect dimensions for the physical panel.
+                Defaults to device_info width.
+            height_override: Optional canvas height override.
+
+        Returns:
+            True if the emoji was rendered and sent successfully.
+        """
+        try:
+            base_info = await self.get_device_info()
+            width = width_override or base_info["width"]
+            height = height_override or base_info["height"]
+            device_info = {**base_info, "width": width, "height": height}
+
+            png_data = await render_emoji_to_png(self._hass, emoji, width, height, bg_color)
+            if png_data is None:
+                _LOGGER.error("Could not render emoji %r (download or cache miss)", emoji)
+                return False
+
+            commands = make_image_command(
+                image_bytes=png_data,
+                file_extension=".png",
+                resize_method="crop",
+                device_info_dict=device_info,
+            )
+
+            if not self.is_connected:
+                await self.connect()
+
+            for i, command in enumerate(commands):
+                success = await self._bluetooth.send_command(command)
+                if not success:
+                    _LOGGER.error("Failed to send emoji frame %d/%d", i + 1, len(commands))
+                    return False
+
+            _LOGGER.info(
+                "Emoji %r displayed (%dx%d, %d frames)",
+                emoji, width, height, len(commands),
+            )
+            return True
+
+        except Exception as err:
+            _LOGGER.exception("Error displaying emoji %r: %s", emoji, err)
             return False
 
     def _notification_handler(self, sender: Any, data: bytearray) -> None:
