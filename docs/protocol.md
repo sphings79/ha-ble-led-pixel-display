@@ -1325,22 +1325,31 @@ The project opens a session with four writes before sending any content. The
 vendor app issues the same sequence, so this is not an artefact of one
 implementation:
 
-| Step | Frame | Opcode | Meaning |
-|---|---|---|---|
-| 1 | `08 00 01 80 HH MM SS 00` | `0x8001` | Set clock, from the host's local time |
-| 2 | `04 00 05 80` | `0x8005` | Undocumented, sent on every connect |
-| 3 | `05 00 12 80 07` | `0x8012` | Set orientation |
-| 4 | `07 00 08 80 01 00 CH` | `0x8008` | Show slot / select channel |
+| Step | Frame | Opcode | AppBypass calls it | What the vendor app calls it |
+|---|---|---|---|---|
+| 1 | `08 00 01 80 00 00 00 LL` | `0x8001` | Set clock | Device-info query (`getLedType`), `LL` = language |
+| 2 | `04 00 05 80` | `0x8005` | Undocumented | Firmware version query (`getHwInfo`) |
+| 3 | `05 00 12 80 07` | `0x8012` | Set orientation | Set weekday (`setWeek`), `07` = day of week |
+| 4 | `07 00 08 80 01 00 CH` | `0x8008` | Show slot / select channel | Show slot -- same reading |
 
-Step 2 is the interesting one. `0x8005` appears in no command table, produces no
-notification, and the panels work whether or not it is sent. Both
-implementations send it anyway, which suggests it is a state reset the firmware
-tolerates being skipped rather than a required step. This integration does not
-send it.
+Three of those four labels are wrong, and the decompiled app settles it. See
+Appendix C for the full command inventory and the evidence.
 
-Step 4 is the same opcode this document lists as "show slot" in A.8. AppBypass
-treats the trailing byte as a channel number rather than a picture slot; the
-frame is identical either way.
+`0x8001` is the device-info request, not a clock write: the app sends zeros in
+bytes 4-6 and the UI language in byte 7, and the panel answers with its
+geometry. A clock does travel over `0x8001`, but only in an 11-byte variant
+laid out `YY MM DD WD hh mm ss` -- a different order from the `HH MM SS` that
+AppBypass assumed.
+
+`0x8005` is not undocumented and not a state reset. It is a read: the panel
+answers `08 00 05 80` plus four version bytes. It looks inert because nothing
+visible happens, and AppBypass never read the reply.
+
+`0x8012` sets the weekday for the clock display. Orientation is `0x8006`
+(`setUpsideDown`), a different opcode entirely. The `07` AppBypass observed is
+a day number, not an orientation flag.
+
+Only step 4 holds up: `0x8008` shows a stored slot, as A.8 describes.
 
 ### B.2 Effect codes
 
@@ -1367,8 +1376,301 @@ Note that the range runs to **8**, not 7. Every traffic-derived table stops at
 
 ### B.3 What it does not add
 
-AppBypass has no read commands either. It sends the device-info query and
-parses the response for geometry, exactly as described in A.3, and has no way
-to ask a panel whether it is currently on. Four independent sources -- this
-project, `pypixelcolor`, `go-ipxl` and AppBypass -- agree that the protocol is
-write-only apart from device info.
+AppBypass has no way to read the power state either. It sends the device-info
+query and parses the response for geometry, and asks for nothing else. That
+still holds after the full app analysis: there are exactly two read commands,
+device info and firmware version, and neither reports whether the panel is on.
+See C.3.
+
+## Appendix C: Full command inventory from the vendor app
+
+Appendix A recovered individual answers from iPixel Color 3.7.7
+(`com.wifiled.ipixels`). This appendix is the systematic pass: every command
+the app can send, every reply it can receive, and the transport underneath.
+
+Method and its limits are in C.12. Where a value comes from a decompiled
+constant that jadx attributed to the wrong class, the real value was resolved
+against the library source in the same APK rather than assumed.
+
+### C.1 Frame format
+
+Every frame, in both directions:
+
+```
+[0] [1]   total length, little-endian, counting these two bytes
+[2] [3]   command, little-endian -- opcode = data[3] << 8 | data[2]
+[4] ...   payload
+```
+
+Two header families exist. Control commands are short and fixed. Bulk
+transfers (image, GIF, text, video, camera, templates) use a longer header
+described in C.4.
+
+### C.2 Control commands
+
+All confirmed against `SendCore` and `BaseSend`. `MIN` marks bytes jadx
+rendered as `ByteCompanionObject.MIN_VALUE`, which is `0x80`.
+
+| Opcode | Frame | Method | Meaning |
+|---|---|---|---|
+| `0x0006` | `07 00 06 00 md sp dc` | `sendSportData` | Riding/sport readout: mode, speed, decimal |
+| `0x0101` | `04 00 01 01` | `sendExitCmd` | Leave the current mode |
+| `0x0102` | `LL LL 02 01 nn nn i…` | `sendChannelDelIndex` | Delete slots, count then index list |
+| `0x0103` | `05 00 03 01 sp` | `setTextSpeed` | Text scroll speed |
+| `0x0104` | `05 00 04 01 md` | `setDiyFunMode` | DIY / fun mode |
+| `0x0106` | `0B 00 06 01 md ts sd YY MM DD WD` | `sendColockMode` | Clock: style, tick marks, show date, date |
+| `0x0107` | `05 00 07 01 on` | `sendLedOnOff` | Display on/off |
+| `0x0200` | `06 00 00 02 lv md` | `sendRhythm` | Music rhythm mode, level |
+| `0x0201` | `10 00 01 02 md b0…b10` | `sendRhythmChart` | 11 spectrum bars, each scaled to 0-15 |
+| `0x0204` | `08 00 04 02 fl p1 p2 p3` | `setPwd` | Set panel password |
+| `0x0205` | `07 00 05 02 p1 p2 p3` | `verifyPwd` | Verify password |
+| `0x8001` | `08 00 01 80 00 00 00 LL` | `getLedType` | **Read** device info; `LL` = UI language |
+| `0x8001` | `09 00 01 80 00 00 00 LL WD` | `getLedType` | Same, cid `0001` with pid 54-57 |
+| `0x8001` | `0B 00 01 80 YY MM DD WD hh mm ss` | `getLedTypeMecha` | Same plus a full clock set |
+| `0x8003` | `04 00 03 80` | `deleteAllData` | Erase all stored content |
+| `0x8004` | `05 00 04 80 br` | `setLedLight` | Brightness |
+| `0x8005` | `04 00 05 80` | `getHwInfo` | **Read** firmware versions |
+| `0x8006` | `05 00 06 80 fl` | `setUpsideDown` | Orientation / flip |
+| `0x8007` | `06 00 07 80 ix LL` | remote control | Show built-in preset `ix`, 1-20 |
+| `0x8008` | `05 00 08 80 nn` | show slot | Display stored slot |
+| `0x8009` | `05 00 09 80 fl` | `setSecondChronograph` | Stopwatch start/stop |
+| `0x800A` | `08 00 0A 80 a1 a0 b1 b0` | `setScoreboard` | Two scores, each big-endian uint16 |
+| `0x800D` | `07 00 0D 80 fl mm ss` | `setCountDown` | Countdown timer |
+| `0x8012` | `05 00 12 80 wd` | `setWeek` | Weekday for the clock display |
+| `0x55AA` | `05 00 AA 55 02` | `upDataOTA2900Start` | Enter OTA (2900 family) |
+| `0xC0nn` | `0D 00 nn C0 pk c c c c s s s s` | `updateOtaMcuOrWifiStep1` | OTA start: `nn` = target, packet count, CRC32, size |
+
+Passwords are two ASCII digits per byte. Length is six digits, except cid
+`0035`/pid `01` and cid `0001`/pid `130`, which use four.
+
+The brightness argument is a percentage. The app also has a second, purely
+local brightness path (`changeLight`) that scales the pixel data before
+sending -- worth knowing when a picture looks dimmer than the brightness
+setting suggests.
+
+### C.3 What the panel sends back
+
+This is the complete read surface. It is short.
+
+Notifications carrying a result are always five bytes, `05 00 <cmd> <status>`,
+and the app treats the status byte as:
+
+| Status | Meaning | What the app does |
+|---|---|---|
+| `0` | CRC mismatch | Discards both send queues and retransmits the whole payload |
+| `1` | 12 KB block accepted | Drops that block, sends the next |
+| `2` | Seen only for `0x0000` (camera) | -- |
+| `3` | Transfer complete | Drops both queues, reports success |
+
+The opcodes that appear in these replies are exactly `0x0000`, `0x0002`,
+`0x0003`, `0x0004`, `0x0100`, `0x8000` and `0x8011`; `0x8000` and `0x8011`
+never appear as commands, only as replies.
+
+Beyond acknowledgements there are two reads:
+
+**Device info**, the reply to `0x8001`. Byte 4 is the device type that decides
+geometry (see A.5). When the reply is at least 11 bytes, **byte 10 is the
+password flag** -- `1` means the panel expects `0x0205` before it accepts
+content.
+
+**Firmware versions**, the reply to `0x8005`:
+
+```
+08 00 05 80 <mcu major> <mcu minor> <wifi major> <wifi minor>
+```
+
+The app renders the MCU version as `major` concatenated with `minor`
+zero-padded to two digits, then reads it as an integer: bytes `4, 6` become
+`406`. Two OTA families are recognised by range, 200-1399 and 2800-4600.
+
+There is no command that reports whether the panel is on, what it is
+displaying, its brightness, or its orientation. Every setting is write-only and
+the app keeps its own copy in `AppConfig` and in preferences. This is the
+fourth independent confirmation, and the only one taken from the vendor's own
+code rather than from observed traffic.
+
+### C.4 Bulk transfers
+
+Content types, their opcodes and their framing:
+
+| Type | Name | Opcode | Header | CRC32 | Notes |
+|---|---|---|---|---|---|
+| 0 | camera | `0x0000` | 9 | no | Live camera frames |
+| 1 | video | `0x0001` | 9 | yes | CRC over the whole payload |
+| 2 | image | `0x0002` | 9 | yes | Sub-type marker `0x00` |
+| 3 | GIF | `0x0003` | 9 | yes | Sub-type marker `0x02` |
+| 4 | text | `0x0100` | 10 | yes | Sub-type marker `0x00` |
+| 5 | DIY image | `0x0105` | 5 | no | No total-length field |
+| 6 | DIY undo | `0x0000` | 9 | no | |
+| 7 | template | `0x0004` | 9 | yes | Multi-zone layouts |
+
+The header, as built by `payloadChannel`:
+
+```
+[0..1]   total length = chunk length + 9, or + 15 when CRC applies
+[2..3]   type opcode, little-endian
+[4]      option: 0 = first chunk, 2 = continue
+[5..8]   int32: full payload length (types 2,3,4,7) or chunk length
+--- only when the type carries a CRC ---
+[9..12]  CRC32, over the full payload for types 1,2,3,4,7, else over the chunk
+[13]     sub-type marker, 0x00 or 0x02 per the table above
+[14]     slot index
+[15..]   chunk data
+```
+
+Chunks are `ledFrameSize` bytes -- 4096 on most panels, **12288** on LED types
+0, 2 and 21, which includes the 32x32 panels. Getting this wrong is why images
+never worked on a 32x32 before; see A.5.
+
+Flow control is per 12 KB regardless of chunk size: the sender waits for a
+status `1` before releasing the next block, retries three times, and starts the
+whole payload over on a status `0`. The app's `cur12k_no_answer` failure is
+this timeout.
+
+Slot indices come from a running counter (`ChannelIndex`), so ordinary sends
+land in successive slots unless a slot is named explicitly.
+
+### C.5 Text is a bitmask, not pixels
+
+The panels have no font engine. `TextAgreement` rasterises text on the phone
+with Android's own text stack -- including per-script shaping for Arabic,
+Thai, Tamil, Devanagari, Khmer, Russian and Vietnamese, each with its own
+processor class -- and then reduces the bitmap to **one bit per pixel**:
+
+- rows padded to a multiple of 8 pixels
+- bit set where the pixel is non-transparent
+- packed LSB-first, so bit 0 of a byte is the leftmost of its eight pixels
+
+Colour is not in the payload. Images (type 2) carry BGR bytes; text (type 4)
+carries a mask. That is why text and images take different code paths and why
+a text colour can be changed without resending the glyphs.
+
+### C.6 Built-in presets
+
+`0x8007` shows a preset stored in firmware, with no data transfer at all:
+`06 00 07 80 <index> <language>`, index 1-20. Two different sets ship
+depending on the device family -- a road-sign set (emergency, high beam, left,
+right, baby on board, ...) and a mood set (sprint, happy, exhausted, ...).
+
+For an integration this is the cheapest possible display change: six bytes
+against a full frame buffer.
+
+### C.7 Password protection
+
+If device info reports the password flag, the panel rejects content until
+`0x0205` succeeds. The app stores the password per BLE address in
+SharedPreferences and retries silently on reconnect. Some models additionally
+carry a password in the advertisement, which the app compares against its
+stored copy, and it applies an RSSI floor of -52 dBm to those -- effectively
+requiring the phone to be next to the panel.
+
+### C.8 Transport
+
+**Bluetooth LE.** GATT service `000000fa-0000-1000-8000-00805f9b34fb`, write
+characteristic `0000fa02-…`. Notifications are enabled on every characteristic
+that advertises the NOTIFY property rather than a fixed UUID. The app requests
+**MTU 512** and then writes in **509-byte** units, falling back to 20 bytes
+until the negotiation succeeds. Scan window 15 s, three connect retries.
+
+**Wi-Fi.** Panels with a Wi-Fi module accept the identical protocol over a TCP
+socket to **192.168.4.1:80**, in the panel's own access point, with a 12288-byte
+write limit. `AppConfig.connectType` selects the path: 0 = socket, 1 = BLE.
+
+The app can also drive **two panels at once** (`BleManager` and `BleManager2`),
+with a left/right pairing used by the vehicle "eye" displays, kept in step by
+`sendSynchronization`.
+
+### C.9 Cloud content API
+
+The app's image and animation archive is a signed HTTP API:
+
+```
+POST https://manage.heaton.com.cn/api/rm/getMaterialUnderCategory
+     ?sign=<md5>&timestamp=<unix seconds>&random=<8 chars>
+Body: AES-encrypted, text/plain
+```
+
+The signature is the lowercase MD5 of the parameters, sorted by key, joined
+`k=v` with `&`, URL-encoded, with `random`, `timestamp` and a fixed `app_key`
+mixed in. The body is the same sorted string under **AES-256-CBC/PKCS7**,
+Base64, with the ASCII IV `0000000000000000`; the key is the same 32-character
+string as the `app_key`. Responses are encrypted the same way.
+
+Query parameters are `appid` (137), `sort`, `page`, `count`, `category_name`,
+`type`, `label`, `width`, `height`, `file_lang` and `filter_tags`.
+
+Which categories a given panel may ask for is not open-ended: `assets/sucai_define.json`
+in the APK maps 49 size/product combinations to their catalogue. For the 32x32
+panels, cidpid `000702` and `003401`:
+
+- label `Product_000702`
+- animations in the categories 热点 (hotspot), 表情 (emoji), 驾驶 (driving), 时节 (seasonal), 创意 (creative)
+- pictures in the category `iPixels`
+
+For 64x16, cidpid `000701` and `000704` share the label `Product_000704,Product_000701`
+and add 2in1 and 商业 (business) categories.
+
+`assets/homeConfig.json` carries the brand grouping used in A.6. It lists only
+the `0025` group; the `0007` group is absent from it, which is why the B.K.
+Light mapping had to come from hardware.
+
+Two notes before anyone builds on this. The key is the vendor's, not ours:
+using it means making requests against their servers on their credentials, and
+that is a decision to take deliberately rather than by shipping it in an
+integration. And the archive is their content, under whatever licence they
+hold it -- recovering the mechanism says nothing about the right to
+redistribute what it returns.
+
+### C.10 What the app does that no integration does
+
+Recovered while enumerating the UI, as a map of what the hardware is capable
+of:
+
+- **Camera and video streaming** -- live frames scaled to the panel via
+  libyuv and FFmpeg, at type `0x0000`/`0x0001`
+- **Music-reactive mode** -- an 11-band spectrum pushed at `0x0201`, fed from
+  the microphone or the music player
+- **Games** rendered on the panel: Snake, Tetris, Pong, plus a "men down" mode
+- **Scoreboard** (`0x800A`), **countdown** (`0x800D`), **stopwatch** (`0x8009`)
+- **Alarm clock and scheduled content** -- an image plus a weekday, hour,
+  minute, duration and buzzer flag, all in one 24-byte header
+- **Multi-zone templates** -- several independent regions in one frame, type 7
+- **Riding mode** with speed readout (`0x0006`)
+- **Paired panels** driven as a left/right unit
+
+Most of this is a phone-side feature that happens to end in one of the
+documented opcodes. The genuinely device-side capabilities an integration could
+still gain are the built-in presets (C.6), the scoreboard, the countdown and
+the stopwatch.
+
+### C.11 Corrections this analysis forced
+
+- `0x8012` is **set weekday**, not set orientation. Orientation is `0x8006`.
+- `0x8005` is a **firmware version read**, not an undocumented no-op.
+- `0x8001` is the **device-info query**; its 8-byte form carries a language
+  byte, not `HH MM SS`.
+- The text effect range runs to **8**, not 7.
+- Device info byte 10 is a **password flag**, previously unread.
+
+The advertisement layout in `advertisement.py` was checked against
+`BleManager$bleScanCallback$1` and matches the app exactly, including the
+big-endian company id `0x5452` that Home Assistant reports byte-swapped, and
+the marker byte `0x72` at offset 1.
+
+### C.12 Method, and what it does not cover
+
+jadx 1.5 over four DEX files, 9493 classes, of which 321 failed to decompile
+cleanly. The app's own packages are 994 files and about 222000 lines.
+`SendCore.payloadChannel` was among the failures and was recovered separately
+with `--show-bad-code`; its reconstruction is consistent with the sibling
+method `payloadTemChannel`, which decompiled cleanly.
+
+Command frames were extracted mechanically -- every byte-array literal in the
+app's packages whose first two bytes equal its own length -- rather than by
+reading for them, so the table in C.2 is complete for constant frames. Frames
+assembled entirely from variables would not be caught by that filter; the ones
+in C.2 that take arguments were read individually to confirm.
+
+Not covered: the games' internal logic, the FFmpeg video pipeline beyond its
+output format, the OTA payload format past its start commands, and the
+per-script text shaping beyond the fact that it exists.
