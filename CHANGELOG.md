@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ran into its timeout and logged "Something is blocking Home Assistant from
   wrapping up the start up phase". It now runs as a background task.
 
-## [1.1.0] - 2026-09-05
+## [1.2.0] - 2026-09-05
 
 ### Added
 
