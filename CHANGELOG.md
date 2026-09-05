@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-09-05
+
+### Fixed
+
+- **The integration still called itself iPIXEL throughout the interface.** The
+  1.0.0 rename only changed the domain string, so the discovery dialog read
+  "Confirm iPIXEL Device", the options flow "iPIXEL Color options", and every
+  device appeared as "LED Matrix Display von iPIXEL". Config flow, options flow
+  and both translations are rewritten.
+- **Device info claimed a manufacturer that does not exist.** These panels are
+  sold under several brands and the protocol reports none, so the field is gone
+  rather than guessed. Model is now "LED Pixel Panel".
+- The "no devices found" message now names the actual cause: a panel connected
+  to a phone app stops advertising and cannot be discovered.
+- 118 internal identifiers renamed from the `iPIXEL*` prefix to `BleLedPixel*`.
+  The emoji cache moved to `.storage/ble_led_pixel_emoji_cache`.
+
 ## [Unreleased]
 
 ### Added
