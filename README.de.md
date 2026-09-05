@@ -52,7 +52,7 @@ Jedes Panel, das sich als `LED_BLE_*` mit der Service-UUID `0000fa01-0000-1000-8
 
 | Marke | Anmerkung |
 | --- | --- |
-| **B.K. Light** | Bei Action: „LED pixel board" 13×13 cm (32×32) und „LED fun screen" 37×9 cm (64×16). Produkt-ID `000702`. |
+| **B.K. Light** | Bei Action. Auf der Verpackung steht „LED pixel board" (13×13 cm, 32×32) bzw. „LED fun screen" (37×9 cm, 64×16); die Shop-Bezeichnung ist je nach Land übersetzt, in den Niederlanden etwa „Led-pixelbord" und „Led-pixel scherm". Produkt-ID `000702`. |
 | **HYPERLITE** | Produkt-IDs `002501`–`002509`, `002513`, `002514` |
 | **EZYEVY** | Produkt-IDs `002510`–`002512` |
 | **BGLight** | Gleiches Protokoll |
@@ -345,4 +345,4 @@ Inoffizielle, von der Community gebaute Integration. Nicht verbunden mit, unters
 
 ---
 
-<sub>Home Assistant LED-Matrix · Bluetooth-LE-Pixeldisplay · BGLight Home Assistant · B.K. Light LED Pixel Board Action · iPixel Color Integration · LED_BLE · 64x16 Pixel-Panel · HACS Custom Integration · Sensorwert auf LED-Panel anzeigen · animiertes GIF auf LED-Matrix · Material Design Icon auf Display · Lauftext-Ticker · Energie-Dashboard Wandanzeige · PV-Erzeugung anzeigen · Batterie-Ladestand Panel · ohne Cloud · lokales Bluetooth · pypixelcolor</sub>
+<sub>Home Assistant LED-Matrix · Bluetooth-LE-Pixeldisplay · BGLight Home Assistant · B.K. Light LED Pixel Board Action · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color Integration · LED_BLE · 64x16 Pixel-Panel · HACS Custom Integration · Sensorwert auf LED-Panel anzeigen · animiertes GIF auf LED-Matrix · Material Design Icon auf Display · Lauftext-Ticker · Energie-Dashboard Wandanzeige · PV-Erzeugung anzeigen · Batterie-Ladestand Panel · ohne Cloud · lokales Bluetooth · pypixelcolor</sub>
