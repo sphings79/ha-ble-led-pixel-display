@@ -58,13 +58,15 @@ Any panel that advertises as `LED_BLE_*` with service UUID `0000fa01-0000-1000-8
 
 | Brand | Notes |
 | --- | --- |
-| **B.K. Light** | Sold at Action. Packaging reads "LED pixel board" (article **ACT1026**, 13×13 cm, 32×32) and "LED fun screen" (article **ACT1025**, 37×9 cm, 64×16); shop listings are localised, e.g. "Led-pixelbord" and "Led-pixel scherm" in the Netherlands. Product id `000702`. |
-| **HYPERLITE** | Product ids `002501`–`002509`, `002513`, `002514` |
-| **EZYEVY** | Product ids `002510`–`002512` |
+| **B.K. Light** | Sold at Action. Packaging reads "LED pixel board" (article **ACT1026**, 13×13 cm, 32×32) and "LED fun screen" (article **ACT1025**, 37×9 cm, 64×16); shop listings are localised, e.g. "Led-pixelbord" (article **3217439**) and "Led-pixel scherm" (article **3217438**) in the Netherlands. Product id `000702`. |
+| **HYPERLITE** | Product ids `002501`–`002509`, `002513`, `002514`. Sold on Amazon as programmable scrolling signs. |
+| **EZYEVY** | Product ids `002510`–`002512`. Sold on Amazon, including a 76×11 inch shop sign. |
 | **BGLight** | Same protocol |
 | Generic "iPixel Color" panels | Whatever the vendor app is called iPixel Color |
 
-Panel resolution is read from the device itself; 64×16 is the usual size. If your panel reports the wrong dimensions, see [Troubleshooting](#troubleshooting).
+Panel resolution is read from the device itself; 64×16 is the usual size. Sizes seen in the wild so far are 32×32, 64×16, 64×20 and 96×16. If your panel reports the wrong dimensions, see [Troubleshooting](#troubleshooting).
+
+All of these are the same hardware from one manufacturer — **Shenzhen Heaton Technology Co., Ltd.**, who also publish the iPixel Color app itself. The panels are white-label goods, so the brand on the box says nothing about the electronics inside and a new one can appear with any reseller. That is why no complete brand list exists anywhere, and why the table above grows through reports rather than from a vendor document.
 
 ### Your panel is not listed?
 

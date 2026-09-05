@@ -58,13 +58,15 @@ Jedes Panel, das sich als `LED_BLE_*` mit der Service-UUID `0000fa01-0000-1000-8
 
 | Marke | Anmerkung |
 | --- | --- |
-| **B.K. Light** | Bei Action. Auf der Verpackung steht „LED pixel board" (Artikel **ACT1026**, 13×13 cm, 32×32) bzw. „LED fun screen" (Artikel **ACT1025**, 37×9 cm, 64×16); die Shop-Bezeichnung ist je nach Land übersetzt, in den Niederlanden etwa „Led-pixelbord" und „Led-pixel scherm". Produkt-ID `000702`. |
-| **HYPERLITE** | Produkt-IDs `002501`–`002509`, `002513`, `002514` |
-| **EZYEVY** | Produkt-IDs `002510`–`002512` |
+| **B.K. Light** | Bei Action. Auf der Verpackung steht „LED pixel board" (Artikel **ACT1026**, 13×13 cm, 32×32) bzw. „LED fun screen" (Artikel **ACT1025**, 37×9 cm, 64×16); die Shop-Bezeichnung ist je nach Land übersetzt, in den Niederlanden etwa „Led-pixelbord" (Artikel **3217439**) und „Led-pixel scherm" (Artikel **3217438**). Produkt-ID `000702`. |
+| **HYPERLITE** | Produkt-IDs `002501`–`002509`, `002513`, `002514`. Bei Amazon als programmierbare Laufschrift verkauft. |
+| **EZYEVY** | Produkt-IDs `002510`–`002512`. Bei Amazon, unter anderem ein 76×11 Zoll großes Ladenschild. |
 | **BGLight** | Gleiches Protokoll |
 | Generische „iPixel Color"-Panels | Alles, wo die Hersteller-App iPixel Color heißt |
 
-Die Auflösung wird vom Gerät selbst gemeldet, üblich ist 64×16. Meldet dein Panel falsche Maße, siehe [Fehlersuche](#fehlersuche).
+Die Auflösung wird vom Gerät selbst gemeldet, üblich ist 64×16. Tatsächlich beobachtet wurden bisher 32×32, 64×16, 64×20 und 96×16. Meldet dein Panel falsche Maße, siehe [Fehlersuche](#fehlersuche).
+
+Hinter all dem steckt dieselbe Hardware eines einzigen Herstellers — **Shenzhen Heaton Technology Co., Ltd.**, von dem auch die iPixel-Color-App selbst stammt. Die Panels sind Weißmarken-Ware: Die Marke auf der Verpackung sagt nichts über die Elektronik darin aus, und eine neue kann mit jedem Händler dazukommen. Deshalb existiert nirgends eine vollständige Markenliste, und deshalb wächst die Tabelle oben über Meldungen statt aus einem Hersteller-Dokument.
 
 ### Dein Panel steht nicht in der Liste?
 
