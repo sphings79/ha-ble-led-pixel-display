@@ -73,6 +73,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ran into its timeout and logged "Something is blocking Home Assistant from
   wrapping up the start up phase". It now runs as a background task.
 
+## [1.1.0] - 2026-09-05
+
+### Added
+
+- **Full device type table**, recovered from the vendor app. pypixelcolor
+  resolves device types 128-147 to 20 LED types; the app carries types up to
+  159 and 36 LED types, so twelve models -- every 64-pixel-tall one -- had no
+  dimensions at all. Also brings the per-type frame buffer size, which matters:
+  32x32 panels take 12288 bytes, not the 4096 default or the 1024 go-ipxl
+  assumes.
+- **Product ID and Brand sensors.** cid and pid are read from the panel's
+  advertisement. They identify the model, and for device types 129, 130 and 137
+  the pid decides which hardware generation it is -- same resolution, different
+  buffers. Known brands are named: HYPERLITE and EZYEVY.
+
+### Fixed
+
+- Panels whose firmware reports the wrong dimensions now get them from the
+  device type instead. An unknown device type is logged with a request to
+  report it, and the panel's own numbers are kept rather than guessed at.
+
 ## [Unreleased]
 
 ### Added

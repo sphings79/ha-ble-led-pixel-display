@@ -23,6 +23,7 @@ from .device.text import make_text_command
 from .device.image import make_image_command
 from homeassistant.components import bluetooth
 
+from .advertisement import parse_identity
 from .fonts import resolve_font_for_library
 from .device.info import build_device_info_command, parse_device_response
 from .device.mdi_icon import build_mdi_icon_png
@@ -295,6 +296,28 @@ class BleLedPixelAPI:
             _LOGGER.error("Error setting clock mode: %s", err)
             return False
     
+    def _read_identity(self):
+        """Read cid/pid from the panel's last seen advertisement.
+
+        Never raises: an identity is a nice-to-have, and a panel that has not
+        advertised recently should not stop the rest of the device info from
+        being used.
+        """
+        from .advertisement import PanelIdentity
+        try:
+            from homeassistant.components import bluetooth
+
+            service_info = bluetooth.async_last_service_info(
+                self._hass, self._address, connectable=True
+            )
+            if service_info is None:
+                _LOGGER.debug("No recent advertisement for %s", self._address)
+                return PanelIdentity(None, None, None)
+            return parse_identity(service_info.manufacturer_data)
+        except Exception as err:  # noqa: BLE001 - diagnostics must not break setup
+            _LOGGER.debug("Could not read product identity: %s", err)
+            return PanelIdentity(None, None, None)
+
     async def get_device_info(self) -> dict[str, Any] | None:
         """Query device information and store it (with retry logic)."""
         if self._device_info is not None:
@@ -312,7 +335,15 @@ class BleLedPixelAPI:
                 response = await self._bluetooth.send_command_wait_response(command, timeout=10.0)
 
                 if response:
-                    self._device_info = parse_device_response(response)
+                    # cid/pid ride in the advertisement, not in this response,
+                    # and they decide which hardware generation a device type
+                    # refers to -- so read them first and pass the pid in.
+                    identity = self._read_identity()
+                    self._device_info = parse_device_response(response, identity.pid)
+                    self._device_info["cid"] = identity.cid
+                    self._device_info["pid"] = identity.pid
+                    self._device_info["cidpid"] = identity.cidpid
+                    self._device_info["brand"] = identity.brand
                     _LOGGER.info("Device info retrieved on attempt %d: %s", attempt + 1, self._device_info)
                     return self._device_info
 
@@ -338,7 +369,11 @@ class BleLedPixelAPI:
             "mcu_version": "Unknown",
             "wifi_version": "Unknown",
             "has_wifi": False,
-            "password_flag": 255
+            "password_flag": 255,
+            "cid": None,
+            "pid": None,
+            "cidpid": None,
+            "brand": None,
         }
         return self._device_info
     

@@ -52,6 +52,21 @@ SENSOR_DESCRIPTIONS = [
         icon="mdi:wifi",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
+    # Product identity, read from the advertisement rather than the device
+    # info response. cid and pid together identify the model, and for some
+    # device types the pid decides which hardware generation it is.
+    SensorEntityDescription(
+        key="cidpid",
+        name="Product ID",
+        icon="mdi:identifier",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    SensorEntityDescription(
+        key="brand",
+        name="Brand",
+        icon="mdi:tag",
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 ]
 
 
