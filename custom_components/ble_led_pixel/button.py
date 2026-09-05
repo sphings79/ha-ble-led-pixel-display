@@ -55,7 +55,6 @@ class BleLedPixelUpdateButton(ButtonEntity):
         self._name = name
         self._attr_name = "Update Display"
         self._attr_unique_id = f"{address}_update_button"
-        self._attr_entity_description = "Manually update display with current text and settings"
         
         # Device info for grouping in device registry
         self._attr_device_info = panel_device_info(api, address, name)
@@ -92,7 +91,6 @@ class BleLedPixelSyncTimeButton(ButtonEntity):
         self._name = name
         self._attr_name = "Sync Time"
         self._attr_unique_id = f"{address}_sync_time_button"
-        self._attr_entity_description = "Sync current time to device clock"
 
         # Device info for grouping in device registry
         self._attr_device_info = panel_device_info(api, address, name)

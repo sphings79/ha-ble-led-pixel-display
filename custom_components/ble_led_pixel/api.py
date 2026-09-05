@@ -103,6 +103,9 @@ class BleLedPixelAPI:
         # Options this instance was set up with; __init__ compares against it
         # so an entry.data change does not trigger a reload.
         self.setup_options: dict[str, Any] = {}
+        # Last (requested, effective) font size reported, so the note is
+        # logged when the value changes rather than on every refresh.
+        self._font_size_note: tuple[int, int] | None = None
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
 
@@ -1233,11 +1236,33 @@ class BleLedPixelAPI:
             base_info = await self.get_device_info()
             _, device_height = self._resolved_dimensions(base_info)
 
+            # The panel's own text renderer works in whole rows of 16px, so
+            # the requested size is capped at the panel height, raised to at
+            # least 16, and then rounded down to a multiple of 16. Anything in
+            # between has no effect, and a 0 meaning "auto" in image mode
+            # becomes 16 here. Say so rather than let the number entity look
+            # finer-grained than it is.
+            requested = font_size
             if font_size > device_height:
                 font_size = device_height
             if font_size < 16:
                 font_size = 16
             char_height = floor(font_size / 16) * 16
+            if char_height != requested:
+                note = (requested, char_height)
+                if self._font_size_note != note:
+                    self._font_size_note = note
+                    _LOGGER.info(
+                        "Font size %s is not available in text mode; using %spx. "
+                        "This mode renders in whole 16px rows, so only 16, 32, "
+                        "48 and 64 differ%s.",
+                        "auto" if requested == 0 else f"{requested}px",
+                        char_height,
+                        " (and the panel is only "
+                        f"{device_height}px tall)" if device_height < 64 else "",
+                    )
+            else:
+                self._font_size_note = None
 
             # Generate text commands using pypixelcolor
             commands = make_text_command(

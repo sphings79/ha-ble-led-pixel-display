@@ -62,7 +62,6 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
         self._attr_name = "Font Size"
         self._attr_unique_id = f"{address}_font_size"
         self._attr_native_value = 0.0  # 0 means auto-sizing
-        self._attr_entity_description = "Font size in pixels (0 = auto-sizing, supports decimals)"
         
         # Device info for grouping in device registry
         self._attr_device_info = panel_device_info(api, address, name)
@@ -129,7 +128,6 @@ class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
         self._attr_name = "Line Spacing"
         self._attr_unique_id = f"{address}_line_spacing"
         self._attr_native_value = 0  # Default to no extra spacing
-        self._attr_entity_description = "Extra spacing between lines in pixels (for multiline text)"
         
         # Device info for grouping in device registry
         self._attr_device_info = panel_device_info(api, address, name)
@@ -193,7 +191,6 @@ class BleLedPixelBrightness(NumberEntity, RestoreEntity):
         self._attr_name = "Brightness"
         self._attr_unique_id = f"{address}_brightness"
         self._attr_native_value = 50  # Default brightness is 50%
-        self._attr_entity_description = "Display brightness level (1-100)"
         
         # Device info for grouping in device registry
         self._attr_device_info = panel_device_info(api, address, name)

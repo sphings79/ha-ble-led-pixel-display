@@ -192,6 +192,26 @@ Farbrampen aus der App: Spectrum, Navy to blush, Cyan to gold, Blue to cyan,
 Spectrum vivid, Colour wheel, Warm wheel und Warm wheel wide. Die Nummer des
 Verlaufs bleibt im Namen stehen, damit nichts von unserer Wortwahl abhängt.
 
+### Schriftgröße und Zeilenabstand je Modus
+
+Die beiden verhalten sich je nach Anzeigemodus unterschiedlich, was man den
+Entitäten nicht ansieht.
+
+| | Modus `textimage` | Modus `text` |
+| --- | --- | --- |
+| **Font Size** | `0` heißt automatisch; jeder Wert in 0,5er-Schritten wirkt | Nur ganze 16px-Zeilen — der Wert wird auf die Panelhöhe gedeckelt, auf mindestens 16 angehoben und dann auf ein Vielfaches von 16 abgerundet. Auf einem 32px hohen Panel bleiben 16 und 32. `0` wird zu 16, ein Automatikmodus existiert hier also nicht. |
+| **Line Spacing** | wirkt, 0–20px | **ohne Wirkung** |
+
+Der Grund liegt darin, wo der Text entsteht. Im Modus `textimage` rendert diese
+Integration den Text in ein Bild und schickt Pixel, kontrolliert das Layout
+also selbst. Im Modus `text` bekommt das Panel eine Bitmaske plus Eigenschaften
+und setzt den Text in der Firmware — dort gibt es kein Feld für Zeilenabstand,
+und gearbeitet wird in ganzen 16px-Zeilen.
+
+Beide Einstellungen bleiben im Modus `text` sichtbar statt ausgegraut zu sein,
+und das Log meldet, wenn ein Wert nicht wie eingestellt verwendet werden kann —
+einmal pro Änderung, nicht bei jeder Aktualisierung.
+
 ## Installation
 
 ### HACS (empfohlen)

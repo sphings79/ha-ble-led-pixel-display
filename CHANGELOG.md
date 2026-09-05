@@ -127,6 +127,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.1.1] - 2026-09-05
+
+### Fixed
+
+- **Font size and line spacing silently meant different things per mode, and
+  said nothing about it.** In text mode the panel lays the text out itself:
+  line spacing has no field in the protocol and is ignored outright, and the
+  font size is capped at the panel height, raised to at least 16 and rounded
+  down to a multiple of 16 -- so a 32px panel really only offers 16 and 32,
+  and a `0` meaning auto-fit becomes 16. Both settings stay visible, but the
+  log now says when a value cannot be used as given, once per change rather
+  than on every refresh. The behaviour is documented in both READMEs.
+- **Removed 14 dead `_attr_entity_description` assignments.** Home Assistant
+  expects `entity_description` to be an `EntityDescription` object and never
+  reads an `_attr_` variant, so those strings were shown nowhere and only
+  looked like documentation.
+
 ## [2.1.0] - 2026-09-05
 
 ### Breaking

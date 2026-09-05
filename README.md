@@ -189,6 +189,26 @@ Spectrum, Navy to blush, Cyan to gold, Blue to cyan, Spectrum vivid, Colour
 wheel, Warm wheel and Warm wheel wide. The gradient number stays in the label
 so nothing rests on our choice of adjectives.
 
+### Font size and line spacing, per mode
+
+These two behave differently depending on the display mode, which is not
+obvious from the entities themselves.
+
+| | Mode `textimage` | Mode `text` |
+| --- | --- | --- |
+| **Font Size** | `0` means auto-fit; any value in 0.5 steps is honoured | Whole 16px rows only — the value is capped at the panel height, raised to at least 16, then rounded down to a multiple of 16. On a 32px panel that leaves 16 and 32. `0` becomes 16, so there is no auto-fit. |
+| **Line Spacing** | Honoured, 0–20px | **No effect.** |
+
+The reason is where the text is drawn. In `textimage` mode this integration
+renders the text into a picture and sends pixels, so it controls the layout.
+In `text` mode the panel receives a bitmask plus properties and lays the text
+out in firmware, which offers no field for line spacing and works in whole
+16px rows.
+
+Both settings stay visible in `text` mode rather than being greyed out, and
+the log says when a value cannot be used as given — once per change, not on
+every refresh.
+
 ## Installation
 
 ### HACS (recommended)

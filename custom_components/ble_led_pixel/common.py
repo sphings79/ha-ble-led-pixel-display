@@ -19,6 +19,11 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Last line spacing warned about, per panel. Text mode refreshes as often
+# as an automation writes to it, so the warning is emitted when the value
+# changes rather than on every update.
+_LINE_SPACING_NOTED: dict[str, int] = {}
+
 
 def rgb_to_hex(r: int, g: int, b: int) -> str:
     """Convert RGB tuple to hex color string."""
@@ -331,6 +336,24 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         if font_size is None:
             font_size = 16
         font_size = int(font_size)
+
+        # Line spacing is a property of the picture this integration renders
+        # itself, and text mode does not render one: the panel receives a
+        # bitmask plus properties and lays the text out in firmware. There is
+        # no field for it, so a value set here cannot be honoured. Say so
+        # instead of letting the entity look effective.
+        line_spacing = await _get_entity_setting(
+            hass, device_name, "number", "line_spacing", int, api._address
+        )
+        if line_spacing and _LINE_SPACING_NOTED.get(api._address) != line_spacing:
+            _LINE_SPACING_NOTED[api._address] = line_spacing
+            _LOGGER.warning(
+                "Line spacing is set to %spx but has no effect in text mode - "
+                "the panel lays text out itself. Switch the mode to textimage "
+                "to control spacing.", line_spacing,
+            )
+        elif not line_spacing:
+            _LINE_SPACING_NOTED.pop(api._address, None)
 
         # Gradient, chosen by label in the select entity and mapped to the
         # code the panel expects. An unknown or stale label falls back to off

@@ -72,7 +72,6 @@ class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
         self._name = name
         self._attr_name = "Font"
         self._attr_unique_id = f"{address}_font_select"
-        self._attr_entity_description = "Select font for text display"
 
         # Get available fonts from all locations
         self._attr_options = get_available_fonts()
@@ -146,7 +145,6 @@ class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
         self._name = name
         self._attr_name = "Mode"
         self._attr_unique_id = f"{address}_mode_select"
-        self._attr_entity_description = "Select display mode (textimage, clock, rhythm, fun)"
 
         # Set available mode options
         self._attr_options = AVAILABLE_MODES
@@ -226,9 +224,6 @@ class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
         # would accept and then quietly ignore.
         info = api.device_info or {}
         count = clock_style_count(info.get("width"), info.get("height"))
-        self._attr_entity_description = (
-            f"Select clock display style (0-{count - 1})"
-        )
         self._attr_options = [str(i) for i in range(count)]
         self._attr_current_option = "1"  # Default style
 
@@ -312,7 +307,6 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
 
         self._attr_name = "Text Effect"
         self._attr_unique_id = f"{address}_text_effect_select"
-        self._attr_entity_description = "How text is animated on the panel"
         self._attr_options = list(TEXT_EFFECTS)
         self._attr_current_option = DEFAULT_TEXT_EFFECT
 
@@ -403,7 +397,6 @@ class BleLedPixelTextGradientSelect(SelectEntity, RestoreEntity):
 
         self._attr_name = "Text Gradient"
         self._attr_unique_id = f"{address}_text_gradient_select"
-        self._attr_entity_description = "Colour gradient applied to text"
         self._attr_options = list(TEXT_GRADIENTS)
         self._attr_current_option = DEFAULT_TEXT_GRADIENT
 
