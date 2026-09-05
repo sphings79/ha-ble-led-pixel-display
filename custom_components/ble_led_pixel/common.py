@@ -321,10 +321,13 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         if speed is None:
             speed = 80  # Default speed
 
-        # Font size - need new number entity
+        # Font size. Missing when the entity has not been created yet or is
+        # unavailable, which is the normal state of a panel that is offline --
+        # so this has to survive None. 16 matches both the API's own default
+        # and the smallest size it will accept.
         font_size = await _get_entity_setting(hass, device_name, "number", "font_size", float, api._address)
         if font_size is None:
-            speed = 16  # Default font_size
+            font_size = 16
         font_size = int(font_size)
 
         # Rainbow mode - need new number entity

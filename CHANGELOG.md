@@ -127,6 +127,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.0.1] - 2026-09-05
+
+### Fixed
+
+- **Text mode crashed when the font size entity was unavailable.** Two
+  mistakes in three lines: the fallback was written to `speed` instead of
+  `font_size`, silently resetting the scroll speed to 16, and the following
+  `int(font_size)` then raised a `TypeError` on `None`. It triggered exactly
+  when a panel was offline, which is when its entities report unavailable --
+  so the code meant to handle a missing value was the code that broke.
+
 ## [2.0.0] - 2026-09-05
 
 ### Breaking
