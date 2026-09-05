@@ -194,3 +194,11 @@ test_font_rendering.py
 .claude/
 # Project-specific
 .DS_Store
+
+# Reverse-engineering artefacts: vendor APKs and anything unpacked from them.
+# Redistributing the vendor app would be a copyright problem, and the files
+# are large. Keep them local.
+*.apk
+*.apkm
+*.xapk
+/apk-analysis/

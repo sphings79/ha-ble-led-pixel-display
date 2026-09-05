@@ -97,7 +97,12 @@ class BleLedPixelAPI:
         """Start the reconnect loop, unless one is already running."""
         if self._reconnect_task is not None and not self._reconnect_task.done():
             return
-        self._reconnect_task = self._hass.async_create_task(self._reconnect_loop())
+        # Background task: async_create_task() would make Home Assistant wait
+        # for this loop before finishing its start-up phase, and the loop is
+        # meant to run indefinitely.
+        self._reconnect_task = self._hass.async_create_background_task(
+            self._reconnect_loop(), name=f"ble_led_pixel reconnect {self._address}"
+        )
 
     async def _reconnect_loop(self) -> None:
         """Reconnect with a growing backoff until the link is up again."""

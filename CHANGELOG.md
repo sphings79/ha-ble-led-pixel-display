@@ -63,6 +63,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   return. Setup now completes, the entities exist immediately, and the watcher
   connects as soon as the panel advertises.
 
+## [1.1.1] - 2026-09-05
+
+### Fixed
+
+- **The reconnect loop delayed Home Assistant's start-up.** 1.1.0 scheduled it
+  with `async_create_task()`, which Home Assistant counts towards the start-up
+  phase and waits for — while the loop is meant to run indefinitely. Start-up
+  ran into its timeout and logged "Something is blocking Home Assistant from
+  wrapping up the start up phase". It now runs as a background task.
+
 ## [Unreleased]
 
 ### Added
