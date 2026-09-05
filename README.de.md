@@ -73,7 +73,7 @@ Produkt-ID aber noch niemand gemeldet hat:
 | **Fockety** | 32×32, 5×5 Zoll, „for iPixel Color APP" (Amazon `B0DQJWBCPV`) |
 | **CHICIRIS** | Modell `CHICIRISy9830bntme`, flexibles IP65-Panel, 1280 RGB-LEDs bei 20×64, 34,8 × 10,16 cm (Amazon `B0DNFPDCKP`) |
 | **LUXONIC** | 32×32 Auto- und Ladenschild (Amazon `B0BCYBRP84`) |
-| **Monster** (Jem Accessories) | 32×32-Autopanel, 6×6 Zoll, Modell `MAM7-1001-ICM` (Amazon `B0DC7KY83V`, außerdem Walmart und Home Depot). Läuft unter eigenem App-Namen, *Monster Pixel Light* — ein umbenannter Build von iPixel Color: Jede Beschriftung aus dessen Store-Screenshots steht wörtlich in der String-Tabelle der iPixel-Color-APK. |
+| **Monster** (Jem Accessories) | 32×32-Autopanel, 6×6 Zoll, Modell `MAM7-1001-ICM` (Amazon `B0DC7KY83V`, außerdem Walmart und Home Depot). Läuft unter eigenem App-Namen, *Monster Pixel Light* — ein umbenannter Build von iPixel Color. Beide APKs deklarieren denselben BLE-UUID-Satz (`0000fa02`, `0000fee8`, `0000fee9`, `0000ae00`–`0000ae02`, `00002902`) und teilen sich 103.000 Einträge der String-Tabelle; die App spricht also dieses Protokoll. Das Panel selbst ist nicht an Hardware bestätigt. |
 
 Die Trennung ist Absicht. Bei B.K. Light stammt die Kennung von echter Hardware,
 bei HYPERLITE und EZYEVY aus der Konfiguration des Herstellers — bei Fockety,
