@@ -109,7 +109,7 @@ The brand table has two sources of differing quality: the `0025` range comes fro
 
 ## The bundled picture gallery
 
-The integration ships **149 pictures**, drawn for a 32×32 panel, 23 of them animated. Nothing to download, no file paths, no `/config/www/`: pick one and it goes to the panel.
+The integration ships **157 pictures**, drawn for a 32×32 panel, 24 of them animated. Nothing to download, no file paths, no `/config/www/`: pick one and it goes to the panel.
 
 The quickest way is the **Gallery** select entity on the device page — choose a picture and it appears. The same list is available to automations through the `show_gallery_image` action, which additionally accepts a slot to store the picture in.
 
@@ -118,7 +118,7 @@ The quickest way is the **Gallery** select entity on the device page — choose 
 | **Status** | Doors, windows, locks, motion, alarm, water leak, smoke, presence, lights, heating, cooling, appliances, garage, blinds, TV, air quality |
 | **Energy** | Battery levels, charging, grid import and export, solar panel, plug, meter, high consumption |
 | **Weather** | Sun, cloud, rain, snow, thunderstorm, fog, wind, moon, rainbow, hot, cold, humidity |
-| **Occasion** | Alarm clock, timer, calendar, birthday, Christmas (tree, Santa, reindeer, candy cane, bauble, stocking), Easter (bunny, chick, basket, lamb), Halloween (pumpkin, ghost, bat, spider, witch hat, gravestone), fireworks, bin day |
+| **Occasion** | Alarm clock, timer, calendar, birthday, Christmas (tree, Santa, reindeer, candy cane, bauble, stocking), Easter (bunny, chick, basket, lamb), Halloween (pumpkin, ghost, bat, spider, witch hat, gravestone), Valentine's (two hearts, rose, Cupid's arrow, love letter, chocolates, kiss, ring, falling hearts), fireworks, bin day |
 | **Notification** | Doorbell, incoming call, message, e-mail, warning, error, all-good, info, question, muted |
 | **Decoration** | Smileys, animals, food, fire, music, heartbeat, rocket, invader, Pac-Man |
 | **Symbol** | Arrows, Wi-Fi, Bluetooth, working spinner |

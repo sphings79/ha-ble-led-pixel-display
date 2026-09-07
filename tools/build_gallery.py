@@ -54,6 +54,30 @@ def animation(motif_id: str, name: str, category: str, frames: int, duration_ms:
     return wrap
 
 
+def _heart(c: Canvas, cx: float, cy: float, rx: float, ry: float, colour) -> None:
+    """Fill the classic heart curve. Everything heart-shaped goes through here."""
+    for y in range(c.height):
+        for x in range(c.width):
+            nx = (x - cx) / rx
+            ny = -(y - cy) / ry
+            if (nx * nx + ny * ny - 1) ** 3 - nx * nx * ny ** 3 <= 0:
+                c.px(x, y, colour)
+
+
+def _outline(c: Canvas, body_colour, edge_colour) -> None:
+    """Darken the one-pixel rim of whatever is currently `body_colour`."""
+    body = [[c.pixels[y][x] == body_colour for x in range(c.width)] for y in range(c.height)]
+    for y in range(c.height):
+        for x in range(c.width):
+            if not body[y][x]:
+                continue
+            if any(
+                not (0 <= x + dx < c.width and 0 <= y + dy < c.height and body[y + dy][x + dx])
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+            ):
+                c.px(x, y, edge_colour)
+
+
 # --------------------------------------------------------------------------
 # Status
 # --------------------------------------------------------------------------
@@ -207,24 +231,9 @@ def doorbell() -> Canvas:
 @motif("heart", "Heart", "Decoration")
 def heart() -> Canvas:
     c = Canvas()
-    for y in range(32):
-        for x in range(32):
-            nx = (x - 15.5) / 14.5
-            ny = -(y - 18.0) / 13.5
-            if (nx * nx + ny * ny - 1) ** 3 - nx * nx * ny ** 3 <= 0:
-                c.px(x, y, P["R"])
-    body = [[c.pixels[y][x] == P["R"] for x in range(32)] for y in range(32)]
-    for y in range(32):                       # one-pixel darker outline all round
-        for x in range(32):
-            if not body[y][x]:
-                continue
-            edge = any(
-                not (0 <= x + dx < 32 and 0 <= y + dy < 32 and body[y + dy][x + dx])
-                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
-            )
-            if edge:
-                c.px(x, y, P["r"])
-    c.amap([".WW.", "WWWW", ".WW."], ox=9, oy=10)   # specular highlight
+    _heart(c, 15.5, 18.0, 14.5, 13.5, P["R"])
+    _outline(c, P["R"], P["r"])
+    c.amap([".WW.", "WWWW", ".WW."], ox=9, oy=10)         # specular highlight
     return c
 
 
@@ -1478,12 +1487,7 @@ def equalizer(frame: int, total: int) -> Canvas:
 def heartbeat(frame: int, total: int) -> Canvas:
     c = Canvas()
     scale = (1.0, 1.12, 1.0, 0.92, 1.0, 1.06)[frame]
-    for y in range(32):
-        for x in range(32):
-            nx = (x - 15.5) / (14.5 * scale)
-            ny = -(y - 18.0) / (13.5 * scale)
-            if (nx * nx + ny * ny - 1) ** 3 - nx * nx * ny ** 3 <= 0:
-                c.px(x, y, P["R"])
+    _heart(c, 15.5, 18.0, 14.5 * scale, 13.5 * scale, P["R"])
     c.amap([".WW.", "WWWW", ".WW."], ox=9, oy=10)
     return c
 
@@ -2212,6 +2216,114 @@ def bat(frame: int, total: int) -> Canvas:
         )
     c.fdisc(14, 11, 1.2, P["R"])
     c.fdisc(18, 11, 1.2, P["R"])
+    return c
+
+
+# --------------------------------------------------------------------------
+# Valentine's Day
+# --------------------------------------------------------------------------
+
+
+@motif("two-hearts", "Two hearts", "Occasion")
+def two_hearts() -> Canvas:
+    c = Canvas()
+    _heart(c, 22.0, 22.0, 9.0, 8.5, P["p"])               # the one behind, to the right
+    _outline(c, P["p"], P["P"])
+    _heart(c, 11.0, 13.0, 10.0, 9.5, P["R"])              # the one in front
+    _outline(c, P["R"], P["r"])
+    c.amap([".WW", "WWW"], ox=5, oy=8)
+    return c
+
+
+@motif("cupid-arrow", "Struck by Cupid", "Occasion")
+def cupid_arrow() -> Canvas:
+    c = Canvas()
+    _heart(c, 16.0, 19.0, 12.5, 11.5, P["R"])
+    _outline(c, P["R"], P["r"])
+    for d in (0, 1):                                      # shaft, right through it
+        c.line(1, 29 + d, 30, 8 + d, P["C"])
+    c.fpoly([(31, 6), (24, 8), (27, 13)], P["G"])         # head
+    c.fpoly([(1, 31), (2, 24), (7, 28)], P["W"])          # fletching
+    return c
+
+
+@motif("rose", "Rose", "Occasion")
+def rose() -> Canvas:
+    c = Canvas()
+    c.frect(15, 16, 17, 31, P["n"])                       # stem
+    c.fpoly([(15, 21), (4, 19), (6, 25), (15, 24)], P["g"])     # leaves
+    c.fpoly([(17, 26), (28, 24), (26, 30), (17, 29)], P["g"])
+    # petals nested off-centre, so the bloom coils rather than reading as
+    # a target the way concentric rings do
+    for radius, colour, cx, cy in (
+        (10, "r", 16.0, 11.0),
+        (8.2, "R", 16.8, 11.6),
+        (6.2, "r", 17.4, 12.1),
+        (4.4, "R", 17.8, 12.5),
+        (2.6, "r", 18.0, 12.8),
+    ):
+        c.fdisc(cx, cy, radius, P[colour])
+    return c
+
+
+@motif("love-letter", "Love letter", "Occasion")
+def love_letter() -> Canvas:
+    c = Canvas()
+    c.frect(2, 8, 29, 26, P["W"])
+    c.rect(2, 8, 29, 26, P["G"])
+    c.line(2, 8, 16, 18, P["G"]); c.line(3, 8, 17, 18, P["G"])
+    c.line(29, 8, 16, 18, P["G"]); c.line(28, 8, 15, 18, P["G"])
+    _heart(c, 16.0, 20.0, 6.0, 5.5, P["R"])               # wax seal
+    _outline(c, P["R"], P["r"])
+    return c
+
+
+@motif("chocolate-box", "Chocolates", "Occasion")
+def chocolate_box() -> Canvas:
+    c = Canvas()
+    _heart(c, 16.0, 19.0, 14.0, 13.0, P["r"])             # heart-shaped box
+    _heart(c, 16.0, 18.0, 12.5, 11.5, P["R"])
+    for y in range(32):                                   # ribbon, clipped to the lid
+        for x in range(32):
+            if 14 <= x <= 17 and c.pixels[y][x] in (P["R"], P["r"]):
+                c.px(x, y, P["Y"])
+    c.fdisc(10, 7, 4, P["Y"])                             # bow, drawn on top
+    c.fdisc(22, 7, 4, P["Y"])
+    c.fdisc(10, 7, 1.8, P["A"])
+    c.fdisc(22, 7, 1.8, P["A"])
+    c.frect(14, 5, 17, 10, P["Y"])
+    return c
+
+
+@motif("kiss", "Kiss", "Occasion")
+def kiss() -> Canvas:
+    c = Canvas()
+    c.fpoly([(2, 16), (9, 8), (16, 14), (23, 8), (30, 16)], P["R"])   # upper lip
+    c.fpoly([(2, 16), (16, 27), (30, 16)], P["R"])                    # lower lip
+    _outline(c, P["R"], P["r"])
+    c.frect(6, 16, 26, 16, P["r"])                        # the parting
+    c.fellipse(11, 20, 4, 2, P["p"])                      # sheen
+    return c
+
+
+@motif("ring", "Ring", "Occasion")
+def ring() -> Canvas:
+    c = Canvas()
+    c.fdisc(16, 22, 9, P["A"])                            # band
+    c.fdisc(16, 22, 6.5, (0, 0, 0))
+    c.fpoly([(16, 2), (10, 8), (16, 14), (22, 8)], P["c"])      # stone
+    c.fpoly([(16, 2), (13, 8), (16, 14)], P["W"])
+    c.frect(13, 12, 19, 14, P["A"])                       # setting
+    return c
+
+
+@animation("falling-hearts", "Falling hearts", "Occasion", frames=6, duration_ms=180)
+def falling_hearts(frame: int, total: int) -> Canvas:
+    c = Canvas()
+    drops = ((6, 0, 3.2), (16, 2, 4.2), (25, 4, 3.0), (11, 3, 2.6), (21, 1, 3.6))
+    for cx, phase, size in drops:
+        y = ((frame + phase) % total) * (34 / total) - 2
+        _heart(c, cx, y, size, size * 0.95, P["R"] if size > 3 else P["p"])
     return c
 
 

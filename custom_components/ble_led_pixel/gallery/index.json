@@ -1041,5 +1041,61 @@
     "category": "Occasion",
     "file": "bat.gif",
     "animated": true
+  },
+  {
+    "id": "two-hearts",
+    "name": "Two hearts",
+    "category": "Occasion",
+    "file": "two-hearts.png",
+    "animated": false
+  },
+  {
+    "id": "cupid-arrow",
+    "name": "Struck by Cupid",
+    "category": "Occasion",
+    "file": "cupid-arrow.png",
+    "animated": false
+  },
+  {
+    "id": "rose",
+    "name": "Rose",
+    "category": "Occasion",
+    "file": "rose.png",
+    "animated": false
+  },
+  {
+    "id": "love-letter",
+    "name": "Love letter",
+    "category": "Occasion",
+    "file": "love-letter.png",
+    "animated": false
+  },
+  {
+    "id": "chocolate-box",
+    "name": "Chocolates",
+    "category": "Occasion",
+    "file": "chocolate-box.png",
+    "animated": false
+  },
+  {
+    "id": "kiss",
+    "name": "Kiss",
+    "category": "Occasion",
+    "file": "kiss.png",
+    "animated": false
+  },
+  {
+    "id": "ring",
+    "name": "Ring",
+    "category": "Occasion",
+    "file": "ring.png",
+    "animated": false
+  },
+  {
+    "id": "falling-hearts",
+    "name": "Falling hearts",
+    "category": "Occasion",
+    "file": "falling-hearts.gif",
+    "animated": true
   }
 ]
