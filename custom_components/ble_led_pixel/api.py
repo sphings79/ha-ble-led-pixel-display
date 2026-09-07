@@ -42,6 +42,7 @@ from .device.image import make_image_command
 from homeassistant.components import bluetooth
 
 from .advertisement import PanelIdentity, parse_identity
+from .gallery import async_load_gallery, find as find_motif
 from .fonts import resolve_font_for_library
 from .unknown_panel import async_report_unknown_panel
 from .device.info import (
@@ -54,7 +55,12 @@ from .device.mdi_icon import build_mdi_icon_png
 from .device.composer import build_layout_media
 from .display.text_renderer import render_text_to_png
 from .display.emoji_renderer import render_emoji_to_png
-from .const import RECONNECT_BACKOFF_START, RECONNECT_BACKOFF_MAX
+from .const import (
+    MAX_WRITABLE_SLOT,
+    MIN_WRITABLE_SLOT,
+    RECONNECT_BACKOFF_MAX,
+    RECONNECT_BACKOFF_START,
+)
 from .exceptions import BleLedPixelConnectionError, BleLedPixelFeatureUnsupported
 from .const import (
     OPT_FORCE_FEATURES,
@@ -1090,6 +1096,85 @@ class BleLedPixelAPI:
         except Exception as err:
             _LOGGER.error("Error sending image file '%s': %s", file_path, err)
             return False
+
+    async def show_gallery_image(
+        self,
+        motif: str,
+        save_slot: int = 0,
+        resize_method: str = "fit",
+    ) -> bool:
+        """Show one of the bundled pictures.
+
+        The pictures are drawn for a 32x32 panel, so the default here is "fit"
+        rather than send_image_file's "crop": on a wide panel a crop would take
+        a 32-pixel-tall slice out of the middle and throw the rest away.
+
+        Args:
+            motif: Motif id, name, or the "Category - Name" label the select
+                entity shows. All three resolve to the same picture.
+            save_slot: 1-10 to also store it on the panel, 0 to just show it.
+            resize_method: 'fit' (default) or 'crop'.
+
+        Returns:
+            True when the picture was sent.
+        """
+        motifs = await async_load_gallery(self._hass)
+        found = find_motif(motifs, motif)
+        if found is None:
+            _LOGGER.error(
+                "No bundled picture called %r. The gallery holds %d motifs.",
+                motif,
+                len(motifs),
+            )
+            return False
+
+        return await self.send_image_file(
+            str(found.path), resize_method=resize_method, save_slot=save_slot
+        )
+
+    async def preload_gallery(self, motifs: list[str], first_slot: int = 1) -> bool:
+        """Store several bundled pictures on the panel, one per slot.
+
+        A stored picture is recalled with seven bytes instead of a full frame
+        buffer, so anything shown repeatedly is worth putting here. The panel
+        takes ten writable slots, which is the real limit on how many
+        favourites can live on it.
+
+        Args:
+            motifs: Motif ids, names or labels, in the order they should sit
+                in the slots.
+            first_slot: Slot the first picture goes to, 1-10.
+
+        Returns:
+            True only when every picture was stored.
+        """
+        available = await async_load_gallery(self._hass)
+        ok = True
+        for offset, wanted in enumerate(motifs):
+            slot = first_slot + offset
+            if slot > MAX_WRITABLE_SLOT:
+                _LOGGER.error(
+                    "Panel has slots %d-%d, so %r and anything after it was skipped",
+                    MIN_WRITABLE_SLOT,
+                    MAX_WRITABLE_SLOT,
+                    wanted,
+                )
+                return False
+
+            found = find_motif(available, wanted)
+            if found is None:
+                _LOGGER.error("No bundled picture called %r, skipping", wanted)
+                ok = False
+                continue
+
+            if not await self.send_image_file(
+                str(found.path), resize_method="fit", save_slot=slot
+            ):
+                ok = False
+                continue
+            _LOGGER.info("Stored %s in slot %d", found.motif_id, slot)
+
+        return ok
 
     async def send_test_pattern(self) -> bool:
         """DIAGNOSTIC ONLY: send a 4-quadrant colored test pattern.

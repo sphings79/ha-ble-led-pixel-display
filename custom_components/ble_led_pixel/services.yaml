@@ -575,6 +575,325 @@ send_layout:
           min: 0
           max: 10
 
+show_gallery_image:
+  name: Show Gallery Picture
+  description: >
+    Show one of the pictures bundled with the integration. No file path and
+    nothing to download - the pictures ship with the integration and are drawn
+    for a 32x32 panel. The "Gallery" select entity offers the same list as a
+    dropdown on the device page.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    motif:
+      name: Picture
+      description: >
+        Which picture to show. Accepts the id, the plain name, or the
+        "Category - Name" label the Gallery select entity shows.
+      required: true
+      example: "washing-machine"
+      selector:
+        select:
+          custom_value: true
+          mode: dropdown
+          options:
+          # gallery-options-start -- written by tools/build_gallery.py
+          - label: "Decoration - Beer"
+            value: "beer"
+          - label: "Decoration - Cat"
+            value: "cat"
+          - label: "Decoration - Coffee"
+            value: "coffee"
+          - label: "Decoration - Cool"
+            value: "smiley-cool"
+          - label: "Decoration - Dog"
+            value: "dog"
+          - label: "Decoration - Fire"
+            value: "fire"
+          - label: "Decoration - Flower"
+            value: "flower"
+          - label: "Decoration - Gaming"
+            value: "game-controller"
+          - label: "Decoration - Happy"
+            value: "smiley-happy"
+          - label: "Decoration - Heart"
+            value: "heart"
+          - label: "Decoration - Heartbeat"
+            value: "heartbeat"
+          - label: "Decoration - Invader"
+            value: "invader"
+          - label: "Decoration - Key"
+            value: "key"
+          - label: "Decoration - Music"
+            value: "equalizer"
+          - label: "Decoration - Pac-Man"
+            value: "pacman"
+          - label: "Decoration - Pizza"
+            value: "pizza"
+          - label: "Decoration - Rocket"
+            value: "rocket"
+          - label: "Decoration - Sad"
+            value: "smiley-sad"
+          - label: "Decoration - Skull"
+            value: "skull"
+          - label: "Decoration - Wink"
+            value: "smiley-wink"
+          - label: "Energy - Battery charging"
+            value: "battery-charging"
+          - label: "Energy - Battery full"
+            value: "battery-full"
+          - label: "Energy - Battery half"
+            value: "battery-half"
+          - label: "Energy - Battery low"
+            value: "battery-low"
+          - label: "Energy - Car charging"
+            value: "car-charging"
+          - label: "Energy - Eco"
+            value: "eco"
+          - label: "Energy - Energy meter"
+            value: "energy-meter"
+          - label: "Energy - Grid export"
+            value: "grid-export"
+          - label: "Energy - Grid import"
+            value: "grid-import"
+          - label: "Energy - High consumption"
+            value: "high-load"
+          - label: "Energy - Power plug"
+            value: "power-plug"
+          - label: "Energy - Solar power"
+            value: "solar-power"
+          - label: "Notification - All good"
+            value: "ok"
+          - label: "Notification - Doorbell"
+            value: "doorbell"
+          - label: "Notification - E-mail"
+            value: "envelope"
+          - label: "Notification - Error"
+            value: "error"
+          - label: "Notification - Incoming call"
+            value: "phone-call"
+          - label: "Notification - Info"
+            value: "info"
+          - label: "Notification - Message"
+            value: "message"
+          - label: "Notification - Muted"
+            value: "mute"
+          - label: "Notification - Question"
+            value: "question"
+          - label: "Notification - Warning"
+            value: "warning"
+          - label: "Occasion - Alarm clock"
+            value: "alarm-clock"
+          - label: "Occasion - Bin day"
+            value: "trash-day"
+          - label: "Occasion - Birthday"
+            value: "birthday-cake"
+          - label: "Occasion - Calendar"
+            value: "calendar"
+          - label: "Occasion - Candle"
+            value: "advent-candle"
+          - label: "Occasion - Christmas tree"
+            value: "christmas-tree"
+          - label: "Occasion - Clock"
+            value: "clock"
+          - label: "Occasion - Easter"
+            value: "easter-egg"
+          - label: "Occasion - Fireworks"
+            value: "fireworks"
+          - label: "Occasion - Ghost"
+            value: "ghost"
+          - label: "Occasion - Gift"
+            value: "gift"
+          - label: "Occasion - Halloween"
+            value: "halloween-pumpkin"
+          - label: "Occasion - Recycling"
+            value: "recycling"
+          - label: "Occasion - Shopping"
+            value: "shopping"
+          - label: "Occasion - Snowman"
+            value: "snowman"
+          - label: "Occasion - Star"
+            value: "star"
+          - label: "Occasion - Timer"
+            value: "hourglass"
+          - label: "Status - Air quality"
+            value: "air-quality"
+          - label: "Status - Alarm armed"
+            value: "alarm-armed"
+          - label: "Status - Alarm triggered"
+            value: "alarm-triggered"
+          - label: "Status - Blinds"
+            value: "blinds"
+          - label: "Status - Cooling"
+            value: "cooling"
+          - label: "Status - Dishwasher"
+            value: "dishwasher"
+          - label: "Status - Door closed"
+            value: "door-closed"
+          - label: "Status - Door open"
+            value: "door-open"
+          - label: "Status - Fan"
+            value: "fan"
+          - label: "Status - Garage closed"
+            value: "garage-closed"
+          - label: "Status - Garage open"
+            value: "garage-open"
+          - label: "Status - Heating"
+            value: "heating"
+          - label: "Status - Light off"
+            value: "light-off"
+          - label: "Status - Light on"
+            value: "light-on"
+          - label: "Status - Locked"
+            value: "lock-locked"
+          - label: "Status - Mail"
+            value: "mailbox"
+          - label: "Status - Motion"
+            value: "motion"
+          - label: "Status - No connection"
+            value: "wifi-offline"
+          - label: "Status - Nobody home"
+            value: "presence-away"
+          - label: "Status - Robot vacuum"
+            value: "robot-vacuum"
+          - label: "Status - Shower"
+            value: "shower"
+          - label: "Status - Sleeping"
+            value: "sleep"
+          - label: "Status - Smoke"
+            value: "smoke"
+          - label: "Status - Someone home"
+            value: "presence-home"
+          - label: "Status - Speaker"
+            value: "speaker"
+          - label: "Status - TV"
+            value: "tv"
+          - label: "Status - Tumble dryer"
+            value: "dryer"
+          - label: "Status - Unlocked"
+            value: "lock-unlocked"
+          - label: "Status - Washing machine"
+            value: "washing-machine"
+          - label: "Status - Water leak"
+            value: "water-leak"
+          - label: "Status - Water the plants"
+            value: "plant-water"
+          - label: "Status - Window closed"
+            value: "window-closed"
+          - label: "Status - Window open"
+            value: "window-open"
+          - label: "Symbol - Arrow down"
+            value: "arrow-down"
+          - label: "Symbol - Arrow left"
+            value: "arrow-left"
+          - label: "Symbol - Arrow right"
+            value: "arrow-right"
+          - label: "Symbol - Arrow up"
+            value: "arrow-up"
+          - label: "Symbol - Bike"
+            value: "bike"
+          - label: "Symbol - Bluetooth"
+            value: "bluetooth"
+          - label: "Symbol - Car"
+            value: "car"
+          - label: "Symbol - Connected"
+            value: "wifi"
+          - label: "Symbol - Flight"
+            value: "plane"
+          - label: "Symbol - Train"
+            value: "train"
+          - label: "Symbol - Working"
+            value: "spinner"
+          - label: "Weather - Clear night"
+            value: "moon"
+          - label: "Weather - Cloudy"
+            value: "cloudy"
+          - label: "Weather - Cold"
+            value: "cold"
+          - label: "Weather - Fog"
+            value: "fog"
+          - label: "Weather - Heavy rain"
+            value: "heavy-rain"
+          - label: "Weather - Hot"
+            value: "hot"
+          - label: "Weather - Humidity"
+            value: "humidity"
+          - label: "Weather - Partly cloudy"
+            value: "partly-cloudy"
+          - label: "Weather - Rain"
+            value: "rain"
+          - label: "Weather - Rainbow"
+            value: "rainbow"
+          - label: "Weather - Snow"
+            value: "snow"
+          - label: "Weather - Sunny"
+            value: "sunny"
+          - label: "Weather - Sunrise"
+            value: "sunrise"
+          - label: "Weather - Thunderstorm"
+            value: "thunderstorm"
+          - label: "Weather - Wind"
+            value: "wind"
+          # gallery-options-end
+    resize_method:
+      name: Resize Method
+      description: >
+        "fit" (default) scales the whole picture to the panel and pads with
+        black. "crop" fills the panel and cuts off what does not fit, which on
+        a wide panel takes a narrow slice out of the middle.
+      required: false
+      default: "fit"
+      selector:
+        select:
+          options:
+            - "fit"
+            - "crop"
+    save_slot:
+      name: Save Slot
+      description: Also store the picture in this panel slot, 1-10 (0 = do not store)
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 10
+
+preload_gallery:
+  name: Preload Gallery Pictures
+  description: >
+    Store several bundled pictures in the panel's own memory, one per slot.
+    A stored picture is then recalled with seven bytes instead of a whole
+    frame buffer, so anything shown repeatedly is worth putting here. The
+    panel takes ten writable slots; recall them with "Show stored picture".
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    motifs:
+      name: Pictures
+      description: >
+        Pictures to store, in the order they should occupy the slots. Ids,
+        names or labels, up to ten of them.
+      required: true
+      example: |
+        - washing-machine
+        - door-open
+        - rain
+      selector:
+        object:
+    first_slot:
+      name: First Slot
+      description: Slot the first picture goes into, 1-10
+      required: false
+      default: 1
+      selector:
+        number:
+          min: 1
+          max: 10
+
 send_image_file:
   name: Send Image File
   description: >

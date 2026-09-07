@@ -24,6 +24,7 @@
 
 - [Was die Integration macht](#was-die-integration-macht)
 - [Unterstützte Geräte](#unterstützte-geräte)
+- [Die mitgelieferte Bildergalerie](#die-mitgelieferte-bildergalerie)
 - [Aktionen](#aktionen)
 - [Installation](#installation)
 - [Entitäten](#entitäten)
@@ -105,6 +106,49 @@ Nachschlagen musst du sie aber nicht. Ein unbekanntes Panel erzeugt einen Hinwei
 Sobald die Kennung in der Tabelle steht, verschwindet der Hinweis von selbst.
 
 Die Markentabelle hat zwei unterschiedlich belastbare Quellen: Der Bereich `0025` stammt aus der Konfiguration des Herstellers, `000702` wurde dagegen an echter Hardware ermittelt. Alles andere ist wirklich unbekannt und nicht etwa bewusst weggelassen.
+
+## Die mitgelieferte Bildergalerie
+
+Die Integration bringt **118 Bilder** mit, gezeichnet für ein 32×32-Panel, 20 davon animiert. Nichts herunterzuladen, keine Dateipfade, kein `/config/www/`: Bild aussuchen, fertig.
+
+Am schnellsten geht es über die Entität **Gallery** auf der Geräteseite — Bild im Dropdown wählen, es erscheint. Dieselbe Liste steht Automationen über die Aktion `show_gallery_image` zur Verfügung, die zusätzlich einen Speicherplatz annimmt.
+
+| Kategorie | Was drin ist |
+| --- | --- |
+| **Status** | Türen, Fenster, Schlösser, Bewegung, Alarm, Wasser, Rauch, Anwesenheit, Licht, Heizung, Kühlung, Geräte, Garage, Jalousien, TV, Luftqualität |
+| **Energie** | Batteriestände, Ladevorgang, Netzbezug und Einspeisung, Solarmodul, Stecker, Zähler, hoher Verbrauch |
+| **Wetter** | Sonne, Wolken, Regen, Schnee, Gewitter, Nebel, Wind, Mond, Regenbogen, heiß, kalt, Luftfeuchte |
+| **Anlass** | Wecker, Timer, Kalender, Geburtstag, Weihnachten, Halloween, Ostern, Schneemann, Feuerwerk, Mülltag |
+| **Benachrichtigung** | Klingel, Anruf, Nachricht, E-Mail, Warnung, Fehler, alles gut, Info, Frage, stumm |
+| **Deko** | Smileys, Tiere, Essen, Feuer, Musik, Herzschlag, Rakete, Invader, Pac-Man |
+| **Symbol** | Pfeile, WLAN, Bluetooth, Arbeits-Spinner |
+
+```yaml
+action: ble_led_pixel.show_gallery_image
+target:
+  entity_id: text.arbeitszimmer_display
+data:
+  motif: washing-machine
+```
+
+Häufig gezeigte Bilder lohnt es sich, im Panel selbst abzulegen. Ein gespeichertes Bild wird mit sieben Byte aufgerufen statt mit einem ganzen Framebuffer — bei 32×32 also 7 statt 12288 Byte. Das Panel hat **zehn** beschreibbare Plätze:
+
+```yaml
+action: ble_led_pixel.preload_gallery
+target:
+  entity_id: text.arbeitszimmer_display
+data:
+  motifs:
+    - washing-machine
+    - door-open
+    - rain
+```
+
+Danach holt `show_slot` mit Platz 1, 2 oder 3 sie sofort zurück.
+
+**Warum 32×32.** Pixelgrafik skaliert nicht wie Vektorgrafik — ein Motiv, das bei 32×32 lesbar ist, wird bei 16 zu Matsch und bei 64 klobig. Die unterstützten Panels kommen in dreißig Geometrien, ein einzelner Satz passt also nirgends überall. `show_gallery_image` steht deshalb standardmäßig auf `fit`: Das ganze Bild wird verkleinert und mit Schwarz aufgefüllt, statt auf einem breiten Panel einen schmalen Streifen aus der Mitte zu schneiden.
+
+Jedes Bild entsteht in `tools/build_gallery.py` aus Rechtecken, Linien, Kreisen und Polygonen — nichts nachgezeichnet, keine fremden Bildsätze, die Galerie trägt also die Lizenz dieses Repos. Zum Ändern die Zeichenfunktion anpassen und das Skript erneut laufen lassen; es schreibt Bilder, `index.json` und das Dropdown der Aktion gemeinsam neu.
 
 ## Aktionen
 

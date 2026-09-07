@@ -26,7 +26,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import service
 
-from .const import DOMAIN
+from .const import DOMAIN, MAX_WRITABLE_SLOT, MIN_WRITABLE_SLOT
 
 ICON_ITEM_SCHEMA = vol.Schema({
     vol.Required("icon"): cv.string,
@@ -236,6 +236,37 @@ def async_setup_services(hass: HomeAssistant) -> None:
             ),
         },
         func="async_send_layout",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "show_gallery_image",
+        entity_domain=Platform.TEXT,
+        schema={
+            vol.Required("motif"): cv.string,
+            vol.Optional("save_slot", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=MAX_WRITABLE_SLOT)
+            ),
+            vol.Optional("resize_method", default="fit"): vol.In(["fit", "crop"]),
+        },
+        func="async_show_gallery_image",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
+        "preload_gallery",
+        entity_domain=Platform.TEXT,
+        schema={
+            vol.Required("motifs"): vol.All(
+                cv.ensure_list, [cv.string], vol.Length(min=1, max=MAX_WRITABLE_SLOT)
+            ),
+            vol.Optional("first_slot", default=MIN_WRITABLE_SLOT): vol.All(
+                vol.Coerce(int), vol.Range(min=MIN_WRITABLE_SLOT, max=MAX_WRITABLE_SLOT)
+            ),
+        },
+        func="async_preload_gallery",
     )
 
     service.async_register_platform_entity_service(

@@ -1,0 +1,828 @@
+[
+  {
+    "id": "door-open",
+    "name": "Door open",
+    "category": "Status",
+    "file": "door-open.png",
+    "animated": false
+  },
+  {
+    "id": "water-leak",
+    "name": "Water leak",
+    "category": "Status",
+    "file": "water-leak.png",
+    "animated": false
+  },
+  {
+    "id": "solar-power",
+    "name": "Solar power",
+    "category": "Energy",
+    "file": "solar-power.png",
+    "animated": false
+  },
+  {
+    "id": "rain",
+    "name": "Rain",
+    "category": "Weather",
+    "file": "rain.png",
+    "animated": false
+  },
+  {
+    "id": "christmas-tree",
+    "name": "Christmas tree",
+    "category": "Occasion",
+    "file": "christmas-tree.png",
+    "animated": false
+  },
+  {
+    "id": "doorbell",
+    "name": "Doorbell",
+    "category": "Notification",
+    "file": "doorbell.png",
+    "animated": false
+  },
+  {
+    "id": "heart",
+    "name": "Heart",
+    "category": "Decoration",
+    "file": "heart.png",
+    "animated": false
+  },
+  {
+    "id": "washing-machine",
+    "name": "Washing machine",
+    "category": "Status",
+    "file": "washing-machine.gif",
+    "animated": true
+  },
+  {
+    "id": "door-closed",
+    "name": "Door closed",
+    "category": "Status",
+    "file": "door-closed.png",
+    "animated": false
+  },
+  {
+    "id": "window-open",
+    "name": "Window open",
+    "category": "Status",
+    "file": "window-open.png",
+    "animated": false
+  },
+  {
+    "id": "window-closed",
+    "name": "Window closed",
+    "category": "Status",
+    "file": "window-closed.png",
+    "animated": false
+  },
+  {
+    "id": "motion",
+    "name": "Motion",
+    "category": "Status",
+    "file": "motion.png",
+    "animated": false
+  },
+  {
+    "id": "lock-locked",
+    "name": "Locked",
+    "category": "Status",
+    "file": "lock-locked.png",
+    "animated": false
+  },
+  {
+    "id": "lock-unlocked",
+    "name": "Unlocked",
+    "category": "Status",
+    "file": "lock-unlocked.png",
+    "animated": false
+  },
+  {
+    "id": "alarm-armed",
+    "name": "Alarm armed",
+    "category": "Status",
+    "file": "alarm-armed.png",
+    "animated": false
+  },
+  {
+    "id": "alarm-triggered",
+    "name": "Alarm triggered",
+    "category": "Status",
+    "file": "alarm-triggered.png",
+    "animated": false
+  },
+  {
+    "id": "smoke",
+    "name": "Smoke",
+    "category": "Status",
+    "file": "smoke.png",
+    "animated": false
+  },
+  {
+    "id": "presence-home",
+    "name": "Someone home",
+    "category": "Status",
+    "file": "presence-home.png",
+    "animated": false
+  },
+  {
+    "id": "presence-away",
+    "name": "Nobody home",
+    "category": "Status",
+    "file": "presence-away.png",
+    "animated": false
+  },
+  {
+    "id": "light-on",
+    "name": "Light on",
+    "category": "Status",
+    "file": "light-on.png",
+    "animated": false
+  },
+  {
+    "id": "light-off",
+    "name": "Light off",
+    "category": "Status",
+    "file": "light-off.png",
+    "animated": false
+  },
+  {
+    "id": "heating",
+    "name": "Heating",
+    "category": "Status",
+    "file": "heating.png",
+    "animated": false
+  },
+  {
+    "id": "cooling",
+    "name": "Cooling",
+    "category": "Status",
+    "file": "cooling.png",
+    "animated": false
+  },
+  {
+    "id": "dishwasher",
+    "name": "Dishwasher",
+    "category": "Status",
+    "file": "dishwasher.png",
+    "animated": false
+  },
+  {
+    "id": "mailbox",
+    "name": "Mail",
+    "category": "Status",
+    "file": "mailbox.png",
+    "animated": false
+  },
+  {
+    "id": "garage-open",
+    "name": "Garage open",
+    "category": "Status",
+    "file": "garage-open.png",
+    "animated": false
+  },
+  {
+    "id": "garage-closed",
+    "name": "Garage closed",
+    "category": "Status",
+    "file": "garage-closed.png",
+    "animated": false
+  },
+  {
+    "id": "wifi-offline",
+    "name": "No connection",
+    "category": "Status",
+    "file": "wifi-offline.png",
+    "animated": false
+  },
+  {
+    "id": "dryer",
+    "name": "Tumble dryer",
+    "category": "Status",
+    "file": "dryer.gif",
+    "animated": true
+  },
+  {
+    "id": "fan",
+    "name": "Fan",
+    "category": "Status",
+    "file": "fan.gif",
+    "animated": true
+  },
+  {
+    "id": "robot-vacuum",
+    "name": "Robot vacuum",
+    "category": "Status",
+    "file": "robot-vacuum.gif",
+    "animated": true
+  },
+  {
+    "id": "battery-full",
+    "name": "Battery full",
+    "category": "Energy",
+    "file": "battery-full.png",
+    "animated": false
+  },
+  {
+    "id": "battery-half",
+    "name": "Battery half",
+    "category": "Energy",
+    "file": "battery-half.png",
+    "animated": false
+  },
+  {
+    "id": "battery-low",
+    "name": "Battery low",
+    "category": "Energy",
+    "file": "battery-low.png",
+    "animated": false
+  },
+  {
+    "id": "grid-import",
+    "name": "Grid import",
+    "category": "Energy",
+    "file": "grid-import.png",
+    "animated": false
+  },
+  {
+    "id": "grid-export",
+    "name": "Grid export",
+    "category": "Energy",
+    "file": "grid-export.png",
+    "animated": false
+  },
+  {
+    "id": "power-plug",
+    "name": "Power plug",
+    "category": "Energy",
+    "file": "power-plug.png",
+    "animated": false
+  },
+  {
+    "id": "high-load",
+    "name": "High consumption",
+    "category": "Energy",
+    "file": "high-load.png",
+    "animated": false
+  },
+  {
+    "id": "energy-meter",
+    "name": "Energy meter",
+    "category": "Energy",
+    "file": "energy-meter.png",
+    "animated": false
+  },
+  {
+    "id": "eco",
+    "name": "Eco",
+    "category": "Energy",
+    "file": "eco.png",
+    "animated": false
+  },
+  {
+    "id": "battery-charging",
+    "name": "Battery charging",
+    "category": "Energy",
+    "file": "battery-charging.gif",
+    "animated": true
+  },
+  {
+    "id": "car-charging",
+    "name": "Car charging",
+    "category": "Energy",
+    "file": "car-charging.gif",
+    "animated": true
+  },
+  {
+    "id": "sunny",
+    "name": "Sunny",
+    "category": "Weather",
+    "file": "sunny.png",
+    "animated": false
+  },
+  {
+    "id": "cloudy",
+    "name": "Cloudy",
+    "category": "Weather",
+    "file": "cloudy.png",
+    "animated": false
+  },
+  {
+    "id": "partly-cloudy",
+    "name": "Partly cloudy",
+    "category": "Weather",
+    "file": "partly-cloudy.png",
+    "animated": false
+  },
+  {
+    "id": "fog",
+    "name": "Fog",
+    "category": "Weather",
+    "file": "fog.png",
+    "animated": false
+  },
+  {
+    "id": "moon",
+    "name": "Clear night",
+    "category": "Weather",
+    "file": "moon.png",
+    "animated": false
+  },
+  {
+    "id": "rainbow",
+    "name": "Rainbow",
+    "category": "Weather",
+    "file": "rainbow.png",
+    "animated": false
+  },
+  {
+    "id": "hot",
+    "name": "Hot",
+    "category": "Weather",
+    "file": "hot.png",
+    "animated": false
+  },
+  {
+    "id": "cold",
+    "name": "Cold",
+    "category": "Weather",
+    "file": "cold.png",
+    "animated": false
+  },
+  {
+    "id": "sunrise",
+    "name": "Sunrise",
+    "category": "Weather",
+    "file": "sunrise.png",
+    "animated": false
+  },
+  {
+    "id": "heavy-rain",
+    "name": "Heavy rain",
+    "category": "Weather",
+    "file": "heavy-rain.gif",
+    "animated": true
+  },
+  {
+    "id": "snow",
+    "name": "Snow",
+    "category": "Weather",
+    "file": "snow.gif",
+    "animated": true
+  },
+  {
+    "id": "thunderstorm",
+    "name": "Thunderstorm",
+    "category": "Weather",
+    "file": "thunderstorm.gif",
+    "animated": true
+  },
+  {
+    "id": "wind",
+    "name": "Wind",
+    "category": "Weather",
+    "file": "wind.gif",
+    "animated": true
+  },
+  {
+    "id": "alarm-clock",
+    "name": "Alarm clock",
+    "category": "Occasion",
+    "file": "alarm-clock.png",
+    "animated": false
+  },
+  {
+    "id": "calendar",
+    "name": "Calendar",
+    "category": "Occasion",
+    "file": "calendar.png",
+    "animated": false
+  },
+  {
+    "id": "birthday-cake",
+    "name": "Birthday",
+    "category": "Occasion",
+    "file": "birthday-cake.png",
+    "animated": false
+  },
+  {
+    "id": "gift",
+    "name": "Gift",
+    "category": "Occasion",
+    "file": "gift.png",
+    "animated": false
+  },
+  {
+    "id": "halloween-pumpkin",
+    "name": "Halloween",
+    "category": "Occasion",
+    "file": "halloween-pumpkin.png",
+    "animated": false
+  },
+  {
+    "id": "easter-egg",
+    "name": "Easter",
+    "category": "Occasion",
+    "file": "easter-egg.png",
+    "animated": false
+  },
+  {
+    "id": "snowman",
+    "name": "Snowman",
+    "category": "Occasion",
+    "file": "snowman.png",
+    "animated": false
+  },
+  {
+    "id": "ghost",
+    "name": "Ghost",
+    "category": "Occasion",
+    "file": "ghost.png",
+    "animated": false
+  },
+  {
+    "id": "star",
+    "name": "Star",
+    "category": "Occasion",
+    "file": "star.png",
+    "animated": false
+  },
+  {
+    "id": "hourglass",
+    "name": "Timer",
+    "category": "Occasion",
+    "file": "hourglass.gif",
+    "animated": true
+  },
+  {
+    "id": "advent-candle",
+    "name": "Candle",
+    "category": "Occasion",
+    "file": "advent-candle.gif",
+    "animated": true
+  },
+  {
+    "id": "fireworks",
+    "name": "Fireworks",
+    "category": "Occasion",
+    "file": "fireworks.gif",
+    "animated": true
+  },
+  {
+    "id": "ok",
+    "name": "All good",
+    "category": "Notification",
+    "file": "ok.png",
+    "animated": false
+  },
+  {
+    "id": "error",
+    "name": "Error",
+    "category": "Notification",
+    "file": "error.png",
+    "animated": false
+  },
+  {
+    "id": "warning",
+    "name": "Warning",
+    "category": "Notification",
+    "file": "warning.png",
+    "animated": false
+  },
+  {
+    "id": "info",
+    "name": "Info",
+    "category": "Notification",
+    "file": "info.png",
+    "animated": false
+  },
+  {
+    "id": "question",
+    "name": "Question",
+    "category": "Notification",
+    "file": "question.png",
+    "animated": false
+  },
+  {
+    "id": "message",
+    "name": "Message",
+    "category": "Notification",
+    "file": "message.png",
+    "animated": false
+  },
+  {
+    "id": "envelope",
+    "name": "E-mail",
+    "category": "Notification",
+    "file": "envelope.png",
+    "animated": false
+  },
+  {
+    "id": "mute",
+    "name": "Muted",
+    "category": "Notification",
+    "file": "mute.png",
+    "animated": false
+  },
+  {
+    "id": "phone-call",
+    "name": "Incoming call",
+    "category": "Notification",
+    "file": "phone-call.gif",
+    "animated": true
+  },
+  {
+    "id": "smiley-happy",
+    "name": "Happy",
+    "category": "Decoration",
+    "file": "smiley-happy.png",
+    "animated": false
+  },
+  {
+    "id": "smiley-sad",
+    "name": "Sad",
+    "category": "Decoration",
+    "file": "smiley-sad.png",
+    "animated": false
+  },
+  {
+    "id": "smiley-wink",
+    "name": "Wink",
+    "category": "Decoration",
+    "file": "smiley-wink.png",
+    "animated": false
+  },
+  {
+    "id": "smiley-cool",
+    "name": "Cool",
+    "category": "Decoration",
+    "file": "smiley-cool.png",
+    "animated": false
+  },
+  {
+    "id": "cat",
+    "name": "Cat",
+    "category": "Decoration",
+    "file": "cat.png",
+    "animated": false
+  },
+  {
+    "id": "dog",
+    "name": "Dog",
+    "category": "Decoration",
+    "file": "dog.png",
+    "animated": false
+  },
+  {
+    "id": "coffee",
+    "name": "Coffee",
+    "category": "Decoration",
+    "file": "coffee.png",
+    "animated": false
+  },
+  {
+    "id": "pizza",
+    "name": "Pizza",
+    "category": "Decoration",
+    "file": "pizza.png",
+    "animated": false
+  },
+  {
+    "id": "beer",
+    "name": "Beer",
+    "category": "Decoration",
+    "file": "beer.png",
+    "animated": false
+  },
+  {
+    "id": "game-controller",
+    "name": "Gaming",
+    "category": "Decoration",
+    "file": "game-controller.png",
+    "animated": false
+  },
+  {
+    "id": "rocket",
+    "name": "Rocket",
+    "category": "Decoration",
+    "file": "rocket.png",
+    "animated": false
+  },
+  {
+    "id": "skull",
+    "name": "Skull",
+    "category": "Decoration",
+    "file": "skull.png",
+    "animated": false
+  },
+  {
+    "id": "invader",
+    "name": "Invader",
+    "category": "Decoration",
+    "file": "invader.png",
+    "animated": false
+  },
+  {
+    "id": "flower",
+    "name": "Flower",
+    "category": "Decoration",
+    "file": "flower.png",
+    "animated": false
+  },
+  {
+    "id": "key",
+    "name": "Key",
+    "category": "Decoration",
+    "file": "key.png",
+    "animated": false
+  },
+  {
+    "id": "arrow-up",
+    "name": "Arrow up",
+    "category": "Symbol",
+    "file": "arrow-up.png",
+    "animated": false
+  },
+  {
+    "id": "arrow-down",
+    "name": "Arrow down",
+    "category": "Symbol",
+    "file": "arrow-down.png",
+    "animated": false
+  },
+  {
+    "id": "arrow-left",
+    "name": "Arrow left",
+    "category": "Symbol",
+    "file": "arrow-left.png",
+    "animated": false
+  },
+  {
+    "id": "arrow-right",
+    "name": "Arrow right",
+    "category": "Symbol",
+    "file": "arrow-right.png",
+    "animated": false
+  },
+  {
+    "id": "bluetooth",
+    "name": "Bluetooth",
+    "category": "Symbol",
+    "file": "bluetooth.png",
+    "animated": false
+  },
+  {
+    "id": "wifi",
+    "name": "Connected",
+    "category": "Symbol",
+    "file": "wifi.png",
+    "animated": false
+  },
+  {
+    "id": "fire",
+    "name": "Fire",
+    "category": "Decoration",
+    "file": "fire.gif",
+    "animated": true
+  },
+  {
+    "id": "equalizer",
+    "name": "Music",
+    "category": "Decoration",
+    "file": "equalizer.gif",
+    "animated": true
+  },
+  {
+    "id": "heartbeat",
+    "name": "Heartbeat",
+    "category": "Decoration",
+    "file": "heartbeat.gif",
+    "animated": true
+  },
+  {
+    "id": "spinner",
+    "name": "Working",
+    "category": "Symbol",
+    "file": "spinner.gif",
+    "animated": true
+  },
+  {
+    "id": "pacman",
+    "name": "Pac-Man",
+    "category": "Decoration",
+    "file": "pacman.gif",
+    "animated": true
+  },
+  {
+    "id": "humidity",
+    "name": "Humidity",
+    "category": "Weather",
+    "file": "humidity.png",
+    "animated": false
+  },
+  {
+    "id": "air-quality",
+    "name": "Air quality",
+    "category": "Status",
+    "file": "air-quality.png",
+    "animated": false
+  },
+  {
+    "id": "blinds",
+    "name": "Blinds",
+    "category": "Status",
+    "file": "blinds.png",
+    "animated": false
+  },
+  {
+    "id": "tv",
+    "name": "TV",
+    "category": "Status",
+    "file": "tv.png",
+    "animated": false
+  },
+  {
+    "id": "speaker",
+    "name": "Speaker",
+    "category": "Status",
+    "file": "speaker.png",
+    "animated": false
+  },
+  {
+    "id": "plant-water",
+    "name": "Water the plants",
+    "category": "Status",
+    "file": "plant-water.png",
+    "animated": false
+  },
+  {
+    "id": "shower",
+    "name": "Shower",
+    "category": "Status",
+    "file": "shower.png",
+    "animated": false
+  },
+  {
+    "id": "sleep",
+    "name": "Sleeping",
+    "category": "Status",
+    "file": "sleep.png",
+    "animated": false
+  },
+  {
+    "id": "trash-day",
+    "name": "Bin day",
+    "category": "Occasion",
+    "file": "trash-day.png",
+    "animated": false
+  },
+  {
+    "id": "recycling",
+    "name": "Recycling",
+    "category": "Occasion",
+    "file": "recycling.png",
+    "animated": false
+  },
+  {
+    "id": "shopping",
+    "name": "Shopping",
+    "category": "Occasion",
+    "file": "shopping.png",
+    "animated": false
+  },
+  {
+    "id": "car",
+    "name": "Car",
+    "category": "Symbol",
+    "file": "car.png",
+    "animated": false
+  },
+  {
+    "id": "bike",
+    "name": "Bike",
+    "category": "Symbol",
+    "file": "bike.png",
+    "animated": false
+  },
+  {
+    "id": "plane",
+    "name": "Flight",
+    "category": "Symbol",
+    "file": "plane.png",
+    "animated": false
+  },
+  {
+    "id": "train",
+    "name": "Train",
+    "category": "Symbol",
+    "file": "train.png",
+    "animated": false
+  },
+  {
+    "id": "clock",
+    "name": "Clock",
+    "category": "Occasion",
+    "file": "clock.gif",
+    "animated": true
+  }
+]

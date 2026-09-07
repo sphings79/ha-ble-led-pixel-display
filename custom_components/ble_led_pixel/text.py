@@ -344,6 +344,31 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
             _LOGGER.error("Failed to send image file '%s'", file_path)
             raise HomeAssistantError(f"Failed to send image file '{file_path}' - check the logs for details")
 
+    async def async_show_gallery_image(
+        self,
+        motif: str,
+        save_slot: int = 0,
+        resize_method: str = "fit",
+    ) -> None:
+        """Show a bundled picture (service: show_gallery_image)."""
+        success = await self._api.show_gallery_image(
+            motif=motif,
+            save_slot=save_slot,
+            resize_method=resize_method,
+        )
+        if not success:
+            raise HomeAssistantError(
+                f"Could not show the bundled picture '{motif}' - check the logs for details"
+            )
+
+    async def async_preload_gallery(self, motifs: list[str], first_slot: int = 1) -> None:
+        """Store bundled pictures in the panel's slots (service: preload_gallery)."""
+        success = await self._api.preload_gallery(motifs=motifs, first_slot=first_slot)
+        if not success:
+            raise HomeAssistantError(
+                "Not every picture could be stored on the panel - check the logs for details"
+            )
+
     async def async_show_emoji(
         self,
         emoji: str,

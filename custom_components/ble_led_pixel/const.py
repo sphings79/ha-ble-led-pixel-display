@@ -115,3 +115,9 @@ TEXT_GRADIENTS: dict[str, int] = {
 }
 
 DEFAULT_TEXT_GRADIENT = "Off"
+
+# Slots the panel accepts a picture into. Reading goes up to 255 (show_slot,
+# delete_slot), but every write path the vendor app uses stops at ten, so the
+# gallery preload does too.
+MIN_WRITABLE_SLOT = 1
+MAX_WRITABLE_SLOT = 10

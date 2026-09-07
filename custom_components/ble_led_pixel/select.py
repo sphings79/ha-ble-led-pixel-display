@@ -29,6 +29,7 @@ from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import update_panel_display
 from .fonts import get_available_fonts
+from .gallery import Motif, async_load_gallery
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,13 +45,21 @@ async def async_setup_entry(
     
     api = hass.data[DOMAIN][entry.entry_id]
     
-    async_add_entities([
+    entities = [
         BleLedPixelFontSelect(hass, api, entry, address, name),
         BleLedPixelModeSelect(hass, api, entry, address, name),
         BleLedPixelClockStyleSelect(hass, api, entry, address, name),
         BleLedPixelTextEffectSelect(hass, api, entry, address, name),
         BleLedPixelTextGradientSelect(hass, api, entry, address, name),
-    ])
+    ]
+
+    # A select with no options is not something Home Assistant can render, so
+    # the gallery entity only appears when there are pictures to offer.
+    motifs = await async_load_gallery(hass)
+    if motifs:
+        entities.append(BleLedPixelGallerySelect(hass, api, entry, address, name, motifs))
+
+    async_add_entities(entities)
 
 
 class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
@@ -456,3 +465,60 @@ class BleLedPixelTextGradientSelect(SelectEntity, RestoreEntity):
                 await update_panel_display(self.hass, self._name, self._api)
         except Exception as err:  # noqa: BLE001 - a refresh must not break the select
             _LOGGER.debug("Could not refresh after the gradient change: %s", err)
+
+
+class BleLedPixelGallerySelect(SelectEntity, RestoreEntity):
+    """Pick one of the bundled pictures and send it straight to the panel.
+
+    This is the shortest path from "I want a picture up there" to a picture
+    being up there: no file paths, no service call, just a dropdown on the
+    device page that also works as an automation target.
+    """
+
+    _attr_icon = "mdi:image-multiple"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: BleLedPixelAPI,
+        entry: ConfigEntry,
+        address: str,
+        name: str,
+        motifs: list[Motif],
+    ) -> None:
+        """Initialize the gallery select."""
+        self.hass = hass
+        self._api = api
+        self._entry = entry
+        self._address = address
+        self._name = name
+        self._motifs = motifs
+        self._attr_name = "Gallery"
+        self._attr_unique_id = f"{address}_gallery_select"
+        self._attr_options = [motif.label for motif in motifs]
+        self._attr_current_option = None
+        self._attr_device_info = panel_device_info(api, address, name)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore which picture was picked last, without re-sending it."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is not None and last_state.state in self._attr_options:
+            self._attr_current_option = last_state.state
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the picture picked last."""
+        return self._attr_current_option
+
+    async def async_select_option(self, option: str) -> None:
+        """Send the chosen picture to the panel."""
+        if option not in self._attr_options:
+            _LOGGER.error("Unknown gallery picture: %s", option)
+            return
+
+        if await self._api.show_gallery_image(option):
+            self._attr_current_option = option
+            self.async_write_ha_state()
+        else:
+            _LOGGER.error("Could not send gallery picture %s to the panel", option)
