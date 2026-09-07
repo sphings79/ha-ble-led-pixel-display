@@ -127,6 +127,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.4.0-beta.2] - 2026-09-07
+
+### Added
+
+- **Forty-one more pictures**, taking the gallery from 118 to 159 and the
+  animations from 20 to 24.
+
+- **Road signs**: stop, no entry, give way, speed limit, pedestrian crossing,
+  no parking, roadworks, and a traffic light animating the German sequence
+  with realistic dwell times.
+
+- **Home office**: in a meeting, do not disturb, free, a blinking on-air sign,
+  headset, video call, muted microphone, desk.
+
+- **Valentine's Day**: two hearts, Cupid's arrow, a rose, a love letter, a box
+  of chocolates, a kiss, a ring, and falling hearts as an animation.
+
+- **Post**: a delivered letter, carrying a stamp so it does not read as the
+  plain e-mail envelope, and a parcel with packing tape and an address label.
+  The gallery had only a mailbox, which says post is waiting rather than what
+  arrived.
+
+- **Christmas, Easter and Halloween grew into proper sets**: Santa, a Santa
+  hat, reindeer, candy cane, bauble and stocking; bunny, chick, basket and
+  lamb; bat, spider, witch hat, gravestone and sweets.
+
+### Technical Details
+
+- A sign needs a word on it, and nothing taller than five pixels fits inside a
+  shape while leaving the shape readable, so `pixelart.py` gained a 3x5
+  uppercase face defined pixel by pixel rather than an imported font file.
+  Several glyphs are squarer than their real counterparts on purpose: a
+  diagonal drawn in three columns reads as noise at this size.
+- The heart curve was written out inline in two motifs and would have been in
+  eight, so it moved into `_heart()`, with `_outline()` alongside it for the
+  one-pixel rim several motifs each computed for themselves.
+
 ## [2.4.0-beta.1] - 2026-09-07
 
 ### Added
