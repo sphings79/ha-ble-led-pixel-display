@@ -239,12 +239,11 @@ send_text:
           max: 9
 
 send_test_pattern:
-  name: "[DIAGNOSTICO] Send Test Pattern"
+  name: "[DIAGNOSTIC] Send Test Pattern"
   description: >-
-    Invia un pattern a 4 quadranti colorati (rosso/verde/blu/giallo) delle
-    dimensioni riportate dal device, per capire empiricamente come il
-    buffer logico si dispone sul pannello fisico. Da rimuovere una volta
-    chiarita la mappatura.
+    Send a four-quadrant colour pattern (red/green/blue/yellow) at the size
+    the device reports, to work out empirically how the logical buffer maps
+    onto the physical panel. Remove once that mapping is confirmed.
   target:
     entity:
       integration: ble_led_pixel
@@ -253,9 +252,9 @@ send_test_pattern:
 send_layout:
   name: Send Layout
   description: >-
-    Compone un'icona MDI, un'immagine e/o fino a 4 testi, ciascuno
-    posizionabile indipendentemente (angolo in alto a sinistra), e li
-    invia come un'unica immagine al pannello.
+    Compose an MDI icon, an image and up to four texts, each positioned
+    independently by its top-left corner, and send them to the panel as a
+    single image.
   target:
     entity:
       integration: ble_led_pixel
@@ -263,14 +262,14 @@ send_layout:
   fields:
     icon:
       name: Icon
-      description: Icona MDI, es. "mdi:battery-outline". Omettere per non mostrarne una.
+      description: MDI icon, e.g. "mdi:battery-outline". Leave empty to show none.
       required: false
       example: "mdi:weather-sunny"
       selector:
         icon:
     icon_x:
       name: Icon X
-      description: Posizione X (angolo in alto a sinistra dell'icona), in pixel
+      description: X position of the icon's top-left corner, in pixels
       required: false
       default: 0
       selector:
@@ -279,7 +278,7 @@ send_layout:
           max: 999
     icon_y:
       name: Icon Y
-      description: Posizione Y (angolo in alto a sinistra dell'icona), in pixel
+      description: Y position of the icon's top-left corner, in pixels
       required: false
       default: 0
       selector:
@@ -288,7 +287,7 @@ send_layout:
           max: 999
     icon_size:
       name: Icon Size
-      description: Dimensione icona in pixel (quadrata). Se omesso, usa la dimensione minore del pannello.
+      description: Icon size in pixels (square). Defaults to the panel's shorter side.
       required: false
       selector:
         number:
@@ -296,21 +295,21 @@ send_layout:
           max: 999
     icon_color:
       name: Icon Color
-      description: Colore dell'icona
+      description: Icon colour
       required: false
       default: [255, 255, 255]
       selector:
         color_rgb:
     icon_blink:
       name: Icon Blink
-      description: Se attivo, l'icona lampeggia (accesa/spenta a intervalli)
+      description: When on, the icon blinks on and off at a fixed interval
       required: false
       default: false
       selector:
         boolean:
     icon_blink_interval_ms:
       name: Icon Blink Interval
-      description: Durata di ogni stato (acceso o spento) del lampeggio, in millisecondi
+      description: How long each blink state (on or off) lasts, in milliseconds
       required: false
       default: 500
       selector:
@@ -320,12 +319,11 @@ send_layout:
     icons:
       name: Icons (multiple)
       description: >-
-        Lista di fino a 4 icone MDI indipendenti (ciascuna con la propria
-        posizione/dimensione/colore/lampeggio), utilizzabile solo da
-        YAML. Se presente, ha priorità sui campi icon/icon_x/ecc. sopra.
-        Formato di ogni elemento: icon (obbligatorio), x, y, size,
-        color_hex, blink, blink_interval_ms. Non scorrono mai, ma possono
-        lampeggiare.
+        Up to four independent MDI icons, each with its own position, size,
+        colour and blink setting. YAML only. When present it takes precedence
+        over the icon/icon_x/... fields above. Each entry takes: icon
+        (required), x, y, size, color_hex, blink, blink_interval_ms. Icons
+        never scroll, but they can blink.
       required: false
       example: |
         - icon: "mdi:weather-sunny"
@@ -343,16 +341,16 @@ send_layout:
     image_path:
       name: Image Path
       description: >-
-        Percorso assoluto di un file immagine/GIF da inserire (solo il
-        primo frame se è animata), leggibile da Home Assistant (es.
-        sotto /config/www/). Omettere per non inserirne una.
+        Absolute path to an image or GIF to place in the layout (only the
+        first frame is used if it is animated), readable by Home Assistant,
+        for example under /config/www/. Leave empty to place none.
       required: false
       example: "/config/www/logo.png"
       selector:
         text:
     image_x:
       name: Image X
-      description: Posizione X (angolo in alto a sinistra dell'immagine), in pixel
+      description: X position of the image's top-left corner, in pixels
       required: false
       default: 0
       selector:
@@ -361,7 +359,7 @@ send_layout:
           max: 999
     image_y:
       name: Image Y
-      description: Posizione Y (angolo in alto a sinistra dell'immagine), in pixel
+      description: Y position of the image's top-left corner, in pixels
       required: false
       default: 0
       selector:
@@ -370,7 +368,7 @@ send_layout:
           max: 999
     image_width:
       name: Image Width
-      description: Se impostato, ridimensiona l'immagine a questa larghezza in pixel
+      description: When set, resizes the image to this width in pixels
       required: false
       selector:
         number:
@@ -378,7 +376,7 @@ send_layout:
           max: 999
     image_height:
       name: Image Height
-      description: Se impostato, ridimensiona l'immagine a questa altezza in pixel
+      description: When set, resizes the image to this height in pixels
       required: false
       selector:
         number:
@@ -386,14 +384,14 @@ send_layout:
           max: 999
     text:
       name: Text
-      description: Testo da mostrare. Omettere per non mostrarne uno.
+      description: Text to show. Leave empty to show none.
       required: false
       example: "21°C"
       selector:
         text:
     text_x:
       name: Text X
-      description: Posizione X (angolo in alto a sinistra del testo), in pixel
+      description: X position of the text's top-left corner, in pixels
       required: false
       default: 0
       selector:
@@ -402,7 +400,7 @@ send_layout:
           max: 999
     text_y:
       name: Text Y
-      description: Posizione Y (angolo in alto a sinistra del testo), in pixel
+      description: Y position of the text's top-left corner, in pixels
       required: false
       default: 0
       selector:
@@ -411,7 +409,7 @@ send_layout:
           max: 999
     text_size:
       name: Text Size
-      description: Dimensione font in pixel (anche frazionaria) - scala il testo dinamicamente
+      description: Font size in pixels, fractional allowed - scales the text dynamically
       required: false
       default: 6
       selector:
@@ -422,9 +420,9 @@ send_layout:
     text_font:
       name: Text Font
       description: >-
-        Font bundlato. "3x5-de" è il più piccolo disponibile. "Lepidos" è
-        un font pixel 3x7 (CC0/pubblico dominio) - dà risultati migliori
-        a dimensioni multiple di 16 (16, 32...).
+        Bundled font. "3x5-de" is the smallest available. "Lepidos" is a 3x7
+        pixel font (CC0 / public domain) and looks best at sizes that are
+        multiples of 16 (16, 32, ...).
       required: false
       selector:
         select:
@@ -437,7 +435,7 @@ send_layout:
             - "WP7xn"
     text_color:
       name: Text Color
-      description: Colore del testo
+      description: Text colour
       required: false
       default: [255, 255, 255]
       selector:
@@ -445,12 +443,11 @@ send_layout:
     text_wrap:
       name: Text Wrap
       description: >-
-        Se attivo (default), va a capo automaticamente quando il testo
-        supera il bordo destro del pannello. "\n" nel testo forza comunque
-        un a-capo indipendentemente da questa opzione. Nota: il wrap
-        ridistribuisce le parole e non preserva spazi esatti - disattivalo
-        se ti servono spazi iniziali/finali/interni precisi (es. per
-        allineamento manuale).
+        When on (the default), text wraps automatically once it passes the
+        panel's right edge. A "\n" in the text always forces a line break,
+        regardless of this option. Note that wrapping redistributes words and
+        does not preserve exact spacing - turn it off when you need precise
+        leading, trailing or inner spaces, for example to align by hand.
       required: false
       default: true
       selector:
@@ -458,9 +455,9 @@ send_layout:
     text_align:
       name: Text Align
       description: >-
-        Allineamento orizzontale del testo entro il proprio blocco:
-        "left" (default), "right" o "center". Conta soprattutto con più
-        righe (separate da "\n") di larghezza diversa.
+        Horizontal alignment of the text within its own block: "left"
+        (default), "right" or "center". Matters mostly with several lines
+        (separated by "\n") of differing width.
       required: false
       default: "left"
       selector:
@@ -471,7 +468,7 @@ send_layout:
             - "center"
     text_line_spacing:
       name: Text Line Spacing
-      description: Spazio verticale extra tra le righe, in pixel
+      description: Extra vertical space between lines, in pixels
       required: false
       default: 1
       selector:
@@ -481,24 +478,24 @@ send_layout:
     text_scroll:
       name: Text Scroll
       description: >-
-        Se attivo, il testo troppo largo per stare nello spazio disponibile
-        scorre in loop continuo (GIF animata) invece di essere tagliato.
-        Nessun effetto se il testo entra già. Per ridurre il tempo di
-        trasferimento su GIF pesanti, aumenta scroll_step (meno frame).
+        When on, text too wide for the space available scrolls in a
+        continuous loop (as an animated GIF) instead of being cut off. No
+        effect when the text already fits. To shorten transfer time on heavy
+        GIFs, raise scroll_step, which produces fewer frames.
       required: false
       default: false
       selector:
         boolean:
     text_blink:
       name: Text Blink
-      description: Se attivo, il testo lampeggia (acceso/spento a intervalli)
+      description: When on, the text blinks on and off at a fixed interval
       required: false
       default: false
       selector:
         boolean:
     text_blink_interval_ms:
       name: Text Blink Interval
-      description: Durata di ogni stato (acceso o spento) del lampeggio, in millisecondi
+      description: How long each blink state (on or off) lasts, in milliseconds
       required: false
       default: 500
       selector:
@@ -506,17 +503,16 @@ send_layout:
           min: 50
           max: 5000
     texts:
-      name: Texts (multipli)
+      name: Texts (multiple)
       description: >-
-        Lista di fino a 4 testi indipendenti (ciascuno con la propria
-        posizione/dimensione/font/colore/wrap/align/scroll/lampeggio),
-        utilizzabile solo da YAML. Se presente, ha priorità sui campi
-        text/text_x/ecc. sopra. Formato di ogni elemento: text
-        (obbligatorio), x, y, size, font, color_hex, wrap, align, scroll,
-        line_spacing, blink, blink_interval_ms.
+        Up to four independent texts, each with its own position, size, font,
+        colour, wrap, alignment, scroll and blink setting. YAML only. When
+        present it takes precedence over the text/text_x/... fields above.
+        Each entry takes: text (required), x, y, size, font, color_hex, wrap,
+        align, scroll, line_spacing, blink, blink_interval_ms.
       required: false
       example: |
-        - text: "Salotto"
+        - text: "Living room"
           x: 0
           y: 0
           size: 6
@@ -525,7 +521,7 @@ send_layout:
           y: 8
           size: 8
           scroll: true
-        - text: "ALLARME"
+        - text: "ALARM"
           x: 0
           y: 16
           size: 8
@@ -536,8 +532,8 @@ send_layout:
     scroll_step:
       name: Scroll Speed
       description: >-
-        Pixel di spostamento per frame, condiviso da tutti i testi in
-        scorrimento (più alto = più veloce ma meno fluido)
+        Pixels moved per frame, shared by every scrolling text. Higher is
+        faster but less smooth.
       required: false
       default: 2
       selector:
@@ -564,14 +560,14 @@ send_layout:
           max: 200
     bg_color:
       name: Background Color
-      description: Colore di sfondo del pannello
+      description: Panel background colour
       required: false
       default: [0, 0, 0]
       selector:
         color_rgb:
     save_slot:
       name: Save Slot
-      description: Slot di memoria del device in cui salvare (0 = non salvare)
+      description: Device memory slot to store the picture in (0 = do not store)
       required: false
       default: 0
       selector:
@@ -581,10 +577,11 @@ send_layout:
 
 send_image_file:
   name: Send Image File
-  description: >-
-    Invia un file immagine o GIF già esistente e leggibile da Home
-    Assistant (es. sotto /config/www/). Supporta PNG, GIF (incluse GIF
-    animate, inviate così come sono), JPEG, BMP, TIFF, WEBP, HEIC/HEIF.
+  description: >
+    Send an image or GIF that already exists and is readable by Home
+    Assistant, for example under /config/www/. Supports PNG, GIF (animated
+    GIFs are sent as they are, frame by frame), JPEG, BMP, TIFF, WEBP and
+    HEIC/HEIF.
   target:
     entity:
       integration: ble_led_pixel
@@ -592,16 +589,16 @@ send_image_file:
   fields:
     file_path:
       name: File Path
-      description: Percorso assoluto del file, es. /config/www/mia_animazione.gif
+      description: Absolute path to the file, e.g. /config/www/my_animation.gif
       required: true
-      example: "/config/www/mia_animazione.gif"
+      example: "/config/www/my_animation.gif"
       selector:
         text:
     resize_method:
       name: Resize Method
-      description: >-
-        "crop" riempie il pannello e taglia l'eccesso, "fit" adatta
-        l'intera immagine con bordi neri
+      description: >
+        "crop" fills the panel and cuts off what does not fit, "fit" scales
+        the whole image down and pads it with black.
       required: false
       default: "crop"
       selector:
@@ -611,7 +608,7 @@ send_image_file:
             - "fit"
     save_slot:
       name: Save Slot
-      description: Slot di memoria del device in cui salvare (0 = non salvare)
+      description: Device memory slot to store the picture in (0 = do not store)
       required: false
       default: 0
       selector:
