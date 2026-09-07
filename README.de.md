@@ -109,7 +109,7 @@ Die Markentabelle hat zwei unterschiedlich belastbare Quellen: Der Bereich `0025
 
 ## Die mitgelieferte Bildergalerie
 
-Die Integration bringt **118 Bilder** mit, gezeichnet für ein 32×32-Panel, 20 davon animiert. Nichts herunterzuladen, keine Dateipfade, kein `/config/www/`: Bild aussuchen, fertig.
+Die Integration bringt **149 Bilder** mit, gezeichnet für ein 32×32-Panel, 23 davon animiert. Nichts herunterzuladen, keine Dateipfade, kein `/config/www/`: Bild aussuchen, fertig.
 
 Am schnellsten geht es über die Entität **Gallery** auf der Geräteseite — Bild im Dropdown wählen, es erscheint. Dieselbe Liste steht Automationen über die Aktion `show_gallery_image` zur Verfügung, die zusätzlich einen Speicherplatz annimmt.
 
@@ -118,10 +118,12 @@ Am schnellsten geht es über die Entität **Gallery** auf der Geräteseite — B
 | **Status** | Türen, Fenster, Schlösser, Bewegung, Alarm, Wasser, Rauch, Anwesenheit, Licht, Heizung, Kühlung, Geräte, Garage, Jalousien, TV, Luftqualität |
 | **Energie** | Batteriestände, Ladevorgang, Netzbezug und Einspeisung, Solarmodul, Stecker, Zähler, hoher Verbrauch |
 | **Wetter** | Sonne, Wolken, Regen, Schnee, Gewitter, Nebel, Wind, Mond, Regenbogen, heiß, kalt, Luftfeuchte |
-| **Anlass** | Wecker, Timer, Kalender, Geburtstag, Weihnachten, Halloween, Ostern, Schneemann, Feuerwerk, Mülltag |
+| **Anlass** | Wecker, Timer, Kalender, Geburtstag, Weihnachten (Baum, Weihnachtsmann, Rentier, Zuckerstange, Kugel, Strumpf), Ostern (Hase, Küken, Korb, Lamm), Halloween (Kürbis, Geist, Fledermaus, Spinne, Hexenhut, Grabstein), Feuerwerk, Mülltag |
 | **Benachrichtigung** | Klingel, Anruf, Nachricht, E-Mail, Warnung, Fehler, alles gut, Info, Frage, stumm |
 | **Deko** | Smileys, Tiere, Essen, Feuer, Musik, Herzschlag, Rakete, Invader, Pac-Man |
 | **Symbol** | Pfeile, WLAN, Bluetooth, Arbeits-Spinner |
+| **Schild** | Stop, Einfahrt verboten, Vorfahrt gewähren, Tempolimit, Fußgängerüberweg, Parkverbot, Baustelle, Ampel |
+| **Büro** | In einem Meeting, bitte nicht stören, frei, On Air, Headset, Videoanruf, Mikrofon stumm, Schreibtisch |
 
 ```yaml
 action: ble_led_pixel.show_gallery_image
@@ -148,7 +150,7 @@ Danach holt `show_slot` mit Platz 1, 2 oder 3 sie sofort zurück.
 
 **Warum 32×32.** Pixelgrafik skaliert nicht wie Vektorgrafik — ein Motiv, das bei 32×32 lesbar ist, wird bei 16 zu Matsch und bei 64 klobig. Die unterstützten Panels kommen in dreißig Geometrien, ein einzelner Satz passt also nirgends überall. `show_gallery_image` steht deshalb standardmäßig auf `fit`: Das ganze Bild wird verkleinert und mit Schwarz aufgefüllt, statt auf einem breiten Panel einen schmalen Streifen aus der Mitte zu schneiden.
 
-Jedes Bild entsteht in `tools/build_gallery.py` aus Rechtecken, Linien, Kreisen und Polygonen — nichts nachgezeichnet, keine fremden Bildsätze, die Galerie trägt also die Lizenz dieses Repos. Zum Ändern die Zeichenfunktion anpassen und das Skript erneut laufen lassen; es schreibt Bilder, `index.json` und das Dropdown der Aktion gemeinsam neu.
+Jedes Bild entsteht in `tools/build_gallery.py` aus Rechtecken, Linien, Kreisen und Polygonen; die wenigen mit Schrift nutzen eine 3×5-Schrift, die Pixel für Pixel im Repo definiert ist, keinen fremden Font. Nichts nachgezeichnet, keine fremden Bildsätze — die Galerie trägt also die Lizenz dieses Repos. Zum Ändern die Zeichenfunktion anpassen und das Skript erneut laufen lassen; es schreibt Bilder, `index.json` und das Dropdown der Aktion gemeinsam neu.
 
 ## Aktionen
 

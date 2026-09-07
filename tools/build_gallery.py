@@ -17,7 +17,7 @@ import math
 from pathlib import Path
 
 from pixelart import PALETTE as P
-from pixelart import Canvas, contact_sheet
+from pixelart import Canvas, contact_sheet, text_width
 
 OUT = Path(__file__).resolve().parent.parent / "custom_components" / "ble_led_pixel" / "gallery"
 
@@ -1782,6 +1782,437 @@ def _write_service_options(index: list[dict]) -> None:
         + "\n".join(lines) + "\n" + OPTIONS_END + tail
     )
     print(f"services.yaml dropdown updated with {len(lines)} options")
+
+
+# --------------------------------------------------------------------------
+# Road signs
+# --------------------------------------------------------------------------
+
+
+@motif("stop", "Stop", "Sign")
+def stop() -> Canvas:
+    c = Canvas()
+    oct_pts = [(11, 2), (21, 2), (30, 11), (30, 21), (21, 30), (11, 30), (2, 21), (2, 11)]
+    c.fpoly(oct_pts, P["W"])
+    c.fpoly([(12, 4), (20, 4), (28, 12), (28, 20), (20, 28), (12, 28), (4, 20), (4, 12)], P["r"])
+    c.text_centred(16, 14, "STOP", P["W"])
+    return c
+
+
+@motif("no-entry", "No entry", "Sign")
+def no_entry() -> Canvas:
+    c = Canvas()
+    c.fdisc(16, 16, 15, P["W"])
+    c.fdisc(16, 16, 13, P["r"])
+    c.frect(6, 14, 26, 19, P["W"])
+    return c
+
+
+@motif("give-way", "Give way", "Sign")
+def give_way() -> Canvas:
+    c = Canvas()
+    c.fpoly([(1, 4), (31, 4), (16, 30)], P["r"])
+    c.fpoly([(7, 8), (25, 8), (16, 24)], P["W"])
+    return c
+
+
+@motif("speed-30", "Speed limit", "Sign")
+def speed_30() -> Canvas:
+    c = Canvas()
+    c.fdisc(16, 16, 15, P["r"])
+    c.fdisc(16, 16, 10, P["W"])
+    c.text_centred(16, 14, "30", P["K"])
+    return c
+
+
+@motif("pedestrian-crossing", "Crossing", "Sign")
+def pedestrian_crossing() -> Canvas:
+    c = Canvas()
+    c.frect(2, 2, 29, 29, P["W"])
+    c.frect(4, 4, 27, 27, P["d"])
+    for x in range(6, 26, 5):                             # zebra stripes
+        c.frect(x, 22, x + 2, 26, P["W"])
+    c.fdisc(15, 9, 2.4, P["W"])                           # walker
+    c.fpoly([(13, 12), (18, 12), (17, 19), (14, 19)], P["W"])
+    c.line(13, 13, 9, 17, P["W"]); c.line(18, 13, 21, 16, P["W"])
+    c.line(14, 19, 11, 25, P["W"]); c.line(17, 19, 20, 25, P["W"])
+    return c
+
+
+@motif("no-parking", "No parking", "Sign")
+def no_parking() -> Canvas:
+    c = Canvas()
+    c.fdisc(16, 16, 15, P["r"])
+    c.fdisc(16, 16, 12, P["d"])
+    for d in (-1, 0, 1, 2):
+        c.line(6 + d, 24, 25 + d, 6, P["R"])
+    return c
+
+
+@motif("roadworks", "Roadworks", "Sign")
+def roadworks() -> Canvas:
+    c = Canvas()
+    c.fpoly([(16, 1), (31, 29), (1, 29)], P["r"])
+    c.fpoly([(16, 6), (27, 27), (5, 27)], P["W"])
+    c.fdisc(16, 12, 2.4, P["K"])                          # worker
+    c.frect(14, 15, 18, 22, P["K"])
+    c.line(18, 16, 24, 22, P["K"]); c.line(19, 15, 25, 21, P["K"])
+    c.fpoly([(22, 20), (27, 20), (25, 25), (21, 24)], P["K"])   # spoil heap
+    return c
+
+
+@animation("traffic-light", "Traffic light", "Sign", frames=8, duration_ms=450)
+def traffic_light(frame: int, total: int) -> Canvas:
+    c = Canvas()
+    c.frect(8, 1, 24, 27, P["K"])                         # housing
+    c.rect(8, 1, 24, 27, P["G"])
+    c.frect(14, 28, 18, 31, P["G"])                       # post
+    # red, red-amber, green, amber -- the German sequence, held for four,
+    # one, four and one steps of the cycle
+    stage = (0, 0, 0, 1, 2, 2, 2, 3)[frame]
+    lamps = (
+        ("R" if stage in (0, 1) else None, 6),
+        ("A" if stage in (1, 3) else None, 14),
+        ("g" if stage == 2 else None, 22),
+    )
+    for colour, cy in lamps:
+        c.fdisc(16, cy, 4, P["K"] if colour is None else P[colour])
+        c.arc(16, cy, 4.5, 0, 360, P["G"], thickness=1)
+    return c
+
+
+# --------------------------------------------------------------------------
+# Home office
+# --------------------------------------------------------------------------
+
+
+@motif("meeting", "In a meeting", "Office")
+def meeting() -> Canvas:
+    c = Canvas()
+    c.fellipse(16, 22, 14, 4, P["C"])                     # table
+    for x, col in ((6, "B"), (16, "g"), (26, "p")):       # three round the table
+        c.fdisc(x, 9, 3.2, P[col])
+        c.fpoly([(x - 5, 19), (x - 3, 13), (x + 3, 13), (x + 5, 19)], P[col])
+    c.text_centred(16, 26, "MEET", P["W"])
+    return c
+
+
+@motif("do-not-disturb", "Do not disturb", "Office")
+def do_not_disturb() -> Canvas:
+    c = Canvas()
+    c.fdisc(16, 16, 15, P["W"])
+    c.fdisc(16, 16, 13, P["R"])
+    c.frect(5, 14, 27, 18, P["W"])
+    return c
+
+
+@motif("free", "Free", "Office")
+def free() -> Canvas:
+    c = Canvas()
+    c.fdisc(16, 16, 15, P["n"])
+    c.fdisc(16, 16, 13, P["g"])
+    c.text_centred(16, 13, "FREE", P["W"])
+    return c
+
+
+@motif("headset", "Headset", "Office")
+def headset() -> Canvas:
+    c = Canvas()
+    c.arc(16, 15, 12, 180, 360, P["K"], thickness=4)      # band
+    c.frect(2, 14, 9, 25, P["K"])                         # cups
+    c.frect(23, 14, 30, 25, P["K"])
+    c.frect(4, 16, 7, 23, P["G"])
+    c.frect(25, 16, 28, 23, P["G"])
+    c.arc(21, 24, 7, 300, 60, P["K"], thickness=3)        # boom, curving forward
+    c.line(21, 31, 15, 31, P["K"])
+    c.line(21, 30, 15, 30, P["K"])
+    c.fdisc(13, 30, 2.6, P["R"])                          # mic capsule
+    return c
+
+
+@motif("video-call", "Video call", "Office")
+def video_call() -> Canvas:
+    c = Canvas()
+    c.frect(2, 9, 21, 24, P["W"])                         # body
+    c.fpoly([(22, 13), (30, 8), (30, 25), (22, 20)], P["W"])    # lens barrel
+    c.fdisc(11, 16, 4.5, P["K"])
+    c.fdisc(11, 16, 2.5, P["c"])
+    c.fdisc(28, 6, 2, P["R"])                             # recording dot
+    return c
+
+
+@motif("mic-muted", "Microphone muted", "Office")
+def mic_muted() -> Canvas:
+    c = Canvas()
+    c.frect(12, 3, 20, 17, P["G"])                        # capsule
+    c.fdisc(16, 3, 4, P["G"])
+    c.fdisc(16, 17, 4, P["G"])
+    c.arc(16, 17, 9, 0, 180, P["G"], thickness=2)         # cradle
+    c.frect(15, 25, 17, 30, P["G"])
+    c.frect(10, 30, 22, 31, P["G"])
+    for d in (0, 1):
+        c.line(4 + d, 27, 27 + d, 3, P["R"])
+    return c
+
+
+@motif("laptop", "Desk", "Office")
+def laptop() -> Canvas:
+    c = Canvas()
+    c.frect(5, 5, 26, 21, P["G"])                         # lid
+    c.frect(7, 7, 24, 19, P["B"])
+    c.frect(1, 22, 30, 26, P["W"])                        # base
+    c.frect(1, 26, 30, 27, P["G"])
+    c.frect(12, 23, 19, 25, P["G"])                       # trackpad
+    return c
+
+
+@animation("on-air", "On air", "Office", frames=4, duration_ms=450)
+def on_air(frame: int, total: int) -> Canvas:
+    c = Canvas()
+    c.frect(1, 8, 30, 24, P["K"])
+    c.rect(1, 8, 30, 24, P["G"])
+    lit = frame % 2 == 0                                  # a sign that blinks
+    colour = P["R"] if lit else P["r"]
+    c.text_centred(16, 11, "ON", colour)
+    c.text_centred(16, 18, "AIR", colour)
+    if lit:
+        c.frect(1, 6, 30, 6, P["r"])
+        c.frect(1, 26, 30, 26, P["r"])
+    return c
+
+
+# --------------------------------------------------------------------------
+# Christmas
+# --------------------------------------------------------------------------
+
+
+@motif("santa-hat", "Santa hat", "Occasion")
+def santa_hat() -> Canvas:
+    c = Canvas()
+    c.fpoly([(4, 22), (10, 6), (22, 4), (27, 12)], P["R"])
+    c.fdisc(27, 12, 4.5, P["W"])                          # bobble
+    c.frect(2, 21, 27, 27, P["W"])                        # brim
+    c.fdisc(3, 24, 3, P["W"])
+    c.fdisc(27, 24, 3, P["W"])
+    return c
+
+
+@motif("santa", "Santa", "Occasion")
+def santa() -> Canvas:
+    c = Canvas()
+    c.fellipse(16, 27, 12, 6, P["W"])                     # beard, drawn first so it
+    c.fdisc(6, 22, 5, P["W"])                             # wraps the face rather than
+    c.fdisc(26, 22, 5, P["W"])                            # sitting under it
+    c.fellipse(16, 18, 8, 5, P["A"])                      # face
+    c.fpoly([(4, 12), (12, 0), (26, 4)], P["R"])          # hat
+    c.fdisc(27, 5, 3, P["W"])                             # bobble
+    c.frect(3, 10, 27, 13, P["W"])                        # brim
+    for x in (12, 13, 19, 20):                            # eyes, a pixel each
+        c.px(x, 17, P["K"])
+    c.fdisc(16, 20, 1.8, P["R"])                          # nose
+    c.fellipse(16, 23, 6, 1.6, P["W"])                    # moustache
+    return c
+
+
+@motif("reindeer", "Reindeer", "Occasion")
+def reindeer() -> Canvas:
+    c = Canvas()
+    for sx in (-1, 1):                                    # antlers
+        base = 16 + sx * 6
+        c.line(base, 12, base + sx * 4, 3, P["b"])
+        c.line(base + sx, 12, base + sx * 5, 3, P["b"])
+        c.line(base + sx * 2, 8, base + sx * 7, 6, P["b"])
+        c.line(base + sx * 3, 5, base + sx * 8, 6, P["b"])
+    c.fellipse(16, 20, 9, 10, P["C"])                     # head
+    c.fellipse(5, 17, 3, 5, P["C"])                       # ears
+    c.fellipse(27, 17, 3, 5, P["C"])
+    c.fdisc(12, 18, 1.8, P["K"])
+    c.fdisc(20, 18, 1.8, P["K"])
+    c.fdisc(16, 26, 3.5, P["R"])                          # the nose
+    return c
+
+
+@motif("candy-cane", "Candy cane", "Occasion")
+def candy_cane() -> Canvas:
+    c = Canvas()
+    c.arc(16, 11, 8, 180, 360, P["W"], thickness=5)       # hook
+    c.frect(20, 11, 24, 31, P["W"])                       # shaft
+    for y in range(32):                                   # stripes, clipped to the cane
+        for x in range(32):
+            if c.pixels[y][x] == P["W"] and ((x + y) // 3) % 2 == 0:
+                c.px(x, y, P["R"])
+    return c
+
+
+@motif("bauble", "Bauble", "Occasion")
+def bauble() -> Canvas:
+    c = Canvas()
+    c.arc(16, 4, 4, 200, 340, P["A"], thickness=2)        # hanger
+    c.frect(13, 5, 19, 9, P["A"])                         # cap
+    c.fdisc(16, 20, 11, P["R"])
+    c.fdisc(16, 20, 9, P["r"])
+    for i in range(-2, 3):                                # glitter band
+        c.frect(6, 19 + i * 4, 26, 19 + i * 4, P["A"])
+    for y in range(32):
+        for x in range(32):
+            if c.pixels[y][x] == P["A"] and (x - 16) ** 2 + (y - 20) ** 2 > 81:
+                if y > 10:
+                    c.px(x, y, (0, 0, 0))
+    c.fdisc(12, 15, 2, P["W"])                            # highlight
+    return c
+
+
+@motif("stocking", "Stocking", "Occasion")
+def stocking() -> Canvas:
+    c = Canvas()
+    c.frect(6, 2, 24, 8, P["W"])                          # cuff
+    c.frect(9, 8, 21, 22, P["R"])                         # leg
+    c.fpoly([(9, 22), (21, 22), (28, 26), (28, 30), (9, 30)], P["R"])   # foot
+    c.fdisc(26, 28, 3, P["R"])
+    c.frect(9, 24, 26, 26, P["r"])
+    return c
+
+
+# --------------------------------------------------------------------------
+# Easter
+# --------------------------------------------------------------------------
+
+
+@motif("bunny", "Bunny", "Occasion")
+def bunny() -> Canvas:
+    c = Canvas()
+    c.fellipse(11, 8, 3, 7, P["W"])                       # ears
+    c.fellipse(21, 8, 3, 7, P["W"])
+    c.fellipse(11, 8, 1.4, 4.5, P["p"])
+    c.fellipse(21, 8, 1.4, 4.5, P["p"])
+    c.fellipse(16, 21, 10, 9, P["W"])                     # head
+    c.fdisc(12, 19, 1.8, P["K"])
+    c.fdisc(20, 19, 1.8, P["K"])
+    c.fpoly([(16, 23), (14, 25), (18, 25)], P["p"])       # nose
+    c.line(16, 25, 16, 27, P["K"])
+    for y, x0, x1 in ((24, 1, 8), (26, 1, 8), (24, 24, 31), (26, 24, 31)):
+        c.frect(x0, y, x1, y, P["G"])                     # whiskers
+    return c
+
+
+@motif("chick", "Chick", "Occasion")
+def chick() -> Canvas:
+    c = Canvas()
+    c.fellipse(16, 22, 10, 8, P["Y"])                     # body
+    c.fdisc(16, 11, 7, P["Y"])                            # head
+    c.fdisc(13, 10, 1.6, P["K"])
+    c.fdisc(19, 10, 1.6, P["K"])
+    c.fpoly([(16, 13), (12, 15), (16, 17), (20, 15)], P["O"])   # beak
+    c.fpoly([(6, 20), (2, 24), (7, 26)], P["Y"])          # wing
+    c.frect(12, 29, 14, 31, P["O"])                       # feet
+    c.frect(18, 29, 20, 31, P["O"])
+    c.px(16, 3, P["Y"]); c.px(16, 4, P["Y"]); c.px(15, 4, P["Y"])
+    return c
+
+
+@motif("easter-basket", "Easter basket", "Occasion")
+def easter_basket() -> Canvas:
+    c = Canvas()
+    c.arc(16, 16, 11, 180, 360, P["C"], thickness=2)      # handle
+    for x, col in ((9, "R"), (16, "c"), (23, "Y")):       # eggs peeking out
+        c.fellipse(x, 18, 4, 5, P[col])
+    c.fpoly([(3, 19), (29, 19), (25, 31), (7, 31)], P["C"])     # basket
+    for x in range(5, 28, 4):
+        c.line(x, 20, x - 2, 30, P["b"])
+    c.frect(3, 19, 29, 21, P["b"])
+    return c
+
+
+@motif("lamb", "Lamb", "Occasion")
+def lamb() -> Canvas:
+    c = Canvas()
+    for x in (6, 11, 16, 21):                             # legs, behind the fleece
+        c.frect(x, 22, x + 2, 30, P["K"])
+    for cx, cy in ((9, 14), (15, 11), (21, 14), (10, 19), (16, 20), (21, 19)):
+        c.fdisc(cx, cy, 5, P["W"])                        # fleece
+    c.fellipse(27, 12, 4.5, 5, P["K"])                    # head, clear of the body
+    c.fellipse(31, 9, 2.5, 3.5, P["K"])                   # ear
+    c.fdisc(28, 11, 1.3, P["W"])                          # eye
+    c.px(29, 15, P["W"])
+    return c
+
+
+# --------------------------------------------------------------------------
+# Halloween
+# --------------------------------------------------------------------------
+
+
+@motif("spider", "Spider", "Occasion")
+def spider() -> Canvas:
+    c = Canvas()
+    c.line(16, 0, 16, 10, P["G"])                         # thread
+    c.fellipse(16, 20, 8, 7, P["K"])                      # abdomen
+    c.fdisc(16, 12, 4.5, P["K"])                          # head
+    c.fdisc(14, 11, 1.4, P["R"])
+    c.fdisc(18, 11, 1.4, P["R"])
+    for sx in (-1, 1):                                    # eight legs
+        for i, (y0, y1) in enumerate(((14, 10), (18, 14), (22, 20), (26, 26))):
+            c.line(16 + sx * 6, y0, 16 + sx * 12, y1, P["K"])
+            c.line(16 + sx * 12, y1, 16 + sx * 14, y1 + 5, P["K"])
+    return c
+
+
+@motif("witch-hat", "Witch hat", "Occasion")
+def witch_hat() -> Canvas:
+    c = Canvas()
+    c.fpoly([(19, 1), (9, 22), (26, 22)], P["P"])         # cone, leaning
+    c.fellipse(16, 24, 15, 4, P["p"])                     # brim
+    c.fellipse(16, 23, 15, 3.5, P["P"])
+    c.frect(9, 18, 26, 21, P["A"])                        # band
+    c.fdisc(20, 19.5, 2.5, P["Y"])                        # buckle
+    c.fdisc(20, 19.5, 1.2, P["A"])
+    return c
+
+
+@motif("gravestone", "Gravestone", "Occasion")
+def gravestone() -> Canvas:
+    c = Canvas()
+    c.frect(1, 27, 30, 31, P["n"])                        # ground
+    c.fdisc(16, 11, 9, P["G"])
+    c.frect(7, 11, 25, 28, P["G"])
+    c.text_centred(16, 12, "RIP", P["K"])
+    c.frect(3, 26, 29, 28, P["g"])
+    return c
+
+
+@motif("candy", "Sweets", "Occasion")
+def candy() -> Canvas:
+    c = Canvas()
+    c.fellipse(16, 16, 8, 8, P["p"])                      # wrapped sweet
+    c.fellipse(16, 16, 8, 3, P["P"])
+    c.fpoly([(8, 16), (1, 9), (2, 23)], P["p"])           # twisted ends
+    c.fpoly([(24, 16), (31, 9), (30, 23)], P["p"])
+    c.fdisc(13, 13, 2, P["W"])
+    return c
+
+
+@animation("bat", "Bat", "Occasion", frames=4, duration_ms=160)
+def bat(frame: int, total: int) -> Canvas:
+    c = Canvas()
+    lift = (0, -3, 0, 3)[frame]                           # wings beating
+    c.fellipse(16, 18, 4, 6, P["K"])                      # body
+    c.fdisc(16, 12, 4, P["K"])                            # head
+    c.fpoly([(13, 8), (12, 3), (16, 7)], P["K"])          # ears
+    c.fpoly([(19, 8), (20, 3), (16, 7)], P["K"])
+    for sx in (-1, 1):                                    # membranes
+        c.fpoly(
+            [
+                (16 + sx * 3, 14),
+                (16 + sx * 14, 12 + lift),
+                (16 + sx * 11, 19 + lift),
+                (16 + sx * 14, 22 + lift),
+                (16 + sx * 5, 23),
+            ],
+            P["K"],
+        )
+    c.fdisc(14, 11, 1.2, P["R"])
+    c.fdisc(18, 11, 1.2, P["R"])
+    return c
 
 
 def build(sheet_path: str | None = None) -> None:

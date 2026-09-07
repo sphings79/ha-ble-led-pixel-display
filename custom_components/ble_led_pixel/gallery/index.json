@@ -824,5 +824,222 @@
     "category": "Occasion",
     "file": "clock.gif",
     "animated": true
+  },
+  {
+    "id": "stop",
+    "name": "Stop",
+    "category": "Sign",
+    "file": "stop.png",
+    "animated": false
+  },
+  {
+    "id": "no-entry",
+    "name": "No entry",
+    "category": "Sign",
+    "file": "no-entry.png",
+    "animated": false
+  },
+  {
+    "id": "give-way",
+    "name": "Give way",
+    "category": "Sign",
+    "file": "give-way.png",
+    "animated": false
+  },
+  {
+    "id": "speed-30",
+    "name": "Speed limit",
+    "category": "Sign",
+    "file": "speed-30.png",
+    "animated": false
+  },
+  {
+    "id": "pedestrian-crossing",
+    "name": "Crossing",
+    "category": "Sign",
+    "file": "pedestrian-crossing.png",
+    "animated": false
+  },
+  {
+    "id": "no-parking",
+    "name": "No parking",
+    "category": "Sign",
+    "file": "no-parking.png",
+    "animated": false
+  },
+  {
+    "id": "roadworks",
+    "name": "Roadworks",
+    "category": "Sign",
+    "file": "roadworks.png",
+    "animated": false
+  },
+  {
+    "id": "traffic-light",
+    "name": "Traffic light",
+    "category": "Sign",
+    "file": "traffic-light.gif",
+    "animated": true
+  },
+  {
+    "id": "meeting",
+    "name": "In a meeting",
+    "category": "Office",
+    "file": "meeting.png",
+    "animated": false
+  },
+  {
+    "id": "do-not-disturb",
+    "name": "Do not disturb",
+    "category": "Office",
+    "file": "do-not-disturb.png",
+    "animated": false
+  },
+  {
+    "id": "free",
+    "name": "Free",
+    "category": "Office",
+    "file": "free.png",
+    "animated": false
+  },
+  {
+    "id": "headset",
+    "name": "Headset",
+    "category": "Office",
+    "file": "headset.png",
+    "animated": false
+  },
+  {
+    "id": "video-call",
+    "name": "Video call",
+    "category": "Office",
+    "file": "video-call.png",
+    "animated": false
+  },
+  {
+    "id": "mic-muted",
+    "name": "Microphone muted",
+    "category": "Office",
+    "file": "mic-muted.png",
+    "animated": false
+  },
+  {
+    "id": "laptop",
+    "name": "Desk",
+    "category": "Office",
+    "file": "laptop.png",
+    "animated": false
+  },
+  {
+    "id": "on-air",
+    "name": "On air",
+    "category": "Office",
+    "file": "on-air.gif",
+    "animated": true
+  },
+  {
+    "id": "santa-hat",
+    "name": "Santa hat",
+    "category": "Occasion",
+    "file": "santa-hat.png",
+    "animated": false
+  },
+  {
+    "id": "santa",
+    "name": "Santa",
+    "category": "Occasion",
+    "file": "santa.png",
+    "animated": false
+  },
+  {
+    "id": "reindeer",
+    "name": "Reindeer",
+    "category": "Occasion",
+    "file": "reindeer.png",
+    "animated": false
+  },
+  {
+    "id": "candy-cane",
+    "name": "Candy cane",
+    "category": "Occasion",
+    "file": "candy-cane.png",
+    "animated": false
+  },
+  {
+    "id": "bauble",
+    "name": "Bauble",
+    "category": "Occasion",
+    "file": "bauble.png",
+    "animated": false
+  },
+  {
+    "id": "stocking",
+    "name": "Stocking",
+    "category": "Occasion",
+    "file": "stocking.png",
+    "animated": false
+  },
+  {
+    "id": "bunny",
+    "name": "Bunny",
+    "category": "Occasion",
+    "file": "bunny.png",
+    "animated": false
+  },
+  {
+    "id": "chick",
+    "name": "Chick",
+    "category": "Occasion",
+    "file": "chick.png",
+    "animated": false
+  },
+  {
+    "id": "easter-basket",
+    "name": "Easter basket",
+    "category": "Occasion",
+    "file": "easter-basket.png",
+    "animated": false
+  },
+  {
+    "id": "lamb",
+    "name": "Lamb",
+    "category": "Occasion",
+    "file": "lamb.png",
+    "animated": false
+  },
+  {
+    "id": "spider",
+    "name": "Spider",
+    "category": "Occasion",
+    "file": "spider.png",
+    "animated": false
+  },
+  {
+    "id": "witch-hat",
+    "name": "Witch hat",
+    "category": "Occasion",
+    "file": "witch-hat.png",
+    "animated": false
+  },
+  {
+    "id": "gravestone",
+    "name": "Gravestone",
+    "category": "Occasion",
+    "file": "gravestone.png",
+    "animated": false
+  },
+  {
+    "id": "candy",
+    "name": "Sweets",
+    "category": "Occasion",
+    "file": "candy.png",
+    "animated": false
+  },
+  {
+    "id": "bat",
+    "name": "Bat",
+    "category": "Occasion",
+    "file": "bat.gif",
+    "animated": true
   }
 ]
