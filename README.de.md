@@ -109,13 +109,13 @@ Die Markentabelle hat zwei unterschiedlich belastbare Quellen: Der Bereich `0025
 
 ## Die mitgelieferte Bildergalerie
 
-Die Integration bringt **157 Bilder** mit, gezeichnet für ein 32×32-Panel, 24 davon animiert. Nichts herunterzuladen, keine Dateipfade, kein `/config/www/`: Bild aussuchen, fertig.
+Die Integration bringt **159 Bilder** mit, gezeichnet für ein 32×32-Panel, 24 davon animiert. Nichts herunterzuladen, keine Dateipfade, kein `/config/www/`: Bild aussuchen, fertig.
 
 Am schnellsten geht es über die Entität **Gallery** auf der Geräteseite — Bild im Dropdown wählen, es erscheint. Dieselbe Liste steht Automationen über die Aktion `show_gallery_image` zur Verfügung, die zusätzlich einen Speicherplatz annimmt.
 
 | Kategorie | Was drin ist |
 | --- | --- |
-| **Status** | Türen, Fenster, Schlösser, Bewegung, Alarm, Wasser, Rauch, Anwesenheit, Licht, Heizung, Kühlung, Geräte, Garage, Jalousien, TV, Luftqualität |
+| **Status** | Türen, Fenster, Schlösser, Bewegung, Alarm, Wasser, Rauch, Anwesenheit, Licht, Heizung, Kühlung, Geräte, Garage, Jalousien, TV, Luftqualität, Brief und Paket zugestellt |
 | **Energie** | Batteriestände, Ladevorgang, Netzbezug und Einspeisung, Solarmodul, Stecker, Zähler, hoher Verbrauch |
 | **Wetter** | Sonne, Wolken, Regen, Schnee, Gewitter, Nebel, Wind, Mond, Regenbogen, heiß, kalt, Luftfeuchte |
 | **Anlass** | Wecker, Timer, Kalender, Geburtstag, Weihnachten (Baum, Weihnachtsmann, Rentier, Zuckerstange, Kugel, Strumpf), Ostern (Hase, Küken, Korb, Lamm), Halloween (Kürbis, Geist, Fledermaus, Spinne, Hexenhut, Grabstein), Valentinstag (zwei Herzen, Rose, Amorpfeil, Liebesbrief, Pralinen, Kuss, Ring, fallende Herzen), Feuerwerk, Mülltag |

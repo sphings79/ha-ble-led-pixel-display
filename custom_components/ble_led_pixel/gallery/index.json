@@ -1097,5 +1097,19 @@
     "category": "Occasion",
     "file": "falling-hearts.gif",
     "animated": true
+  },
+  {
+    "id": "post-letter",
+    "name": "Letter delivered",
+    "category": "Status",
+    "file": "post-letter.png",
+    "animated": false
+  },
+  {
+    "id": "parcel",
+    "name": "Parcel delivered",
+    "category": "Status",
+    "file": "parcel.png",
+    "animated": false
   }
 ]

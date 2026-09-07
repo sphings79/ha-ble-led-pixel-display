@@ -2327,6 +2327,43 @@ def falling_hearts(frame: int, total: int) -> Canvas:
     return c
 
 
+# --------------------------------------------------------------------------
+# Post
+# --------------------------------------------------------------------------
+
+
+@motif("post-letter", "Letter delivered", "Status")
+def post_letter() -> Canvas:
+    c = Canvas()
+    c.frect(1, 6, 30, 26, P["W"])                         # envelope
+    c.rect(1, 6, 30, 26, P["G"])
+    c.line(1, 6, 16, 17, P["G"]); c.line(2, 6, 17, 17, P["G"])   # flap
+    c.line(30, 6, 16, 17, P["G"]); c.line(29, 6, 15, 17, P["G"])
+    # A stamp is what separates this from the plain e-mail envelope. A
+    # postmark on top of it only reads as scribble at this size.
+    c.rect(20, 7, 28, 16, P["G"])
+    c.frect(21, 8, 27, 15, P["R"])
+    c.fdisc(24, 11, 2, P["Y"])
+    c.frect(21, 13, 27, 15, P["A"])
+    return c
+
+
+@motif("parcel", "Parcel delivered", "Status")
+def parcel() -> Canvas:
+    c = Canvas()
+    c.frect(2, 10, 29, 29, P["C"])                        # box
+    c.rect(2, 10, 29, 29, P["b"])
+    c.fpoly([(2, 10), (7, 4), (26, 4), (29, 10)], P["A"])       # lid, seen from above
+    c.line(7, 4, 2, 10, P["b"]); c.line(26, 4, 29, 10, P["b"])
+    c.frect(13, 4, 18, 29, P["W"])                        # packing tape
+    c.frect(2, 15, 29, 19, P["W"])
+    c.frect(4, 21, 12, 27, P["W"])                        # address label
+    c.rect(4, 21, 12, 27, P["G"])
+    for y in (23, 25):
+        c.frect(6, y, 10, y, P["G"])
+    return c
+
+
 def build(sheet_path: str | None = None) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     index = []
