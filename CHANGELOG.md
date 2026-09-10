@@ -206,6 +206,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every action is described in English.** `send_image_file`, `send_layout`
   and `send_test_pattern` still carried the Italian descriptions they were
   written with, so the action dialog mixed two languages.
+## [2.3.2] - 2026-09-10
+
+### Changed
+
+- **pypixelcolor is now pinned to `>=0.5.0,<0.6`.** 0.5.0 landed on 2026-09-08
+  and its release notes call `send_text` a breaking change, but the arguments
+  it consolidated -- `font_size`, `font_offset`, `pixel_threshold`,
+  `var_width` -- are ones this integration never passed. Every call site was
+  exercised against 0.5.0 before the pin moved: `send_text` with all nine
+  arguments, `send_image_hex` for PNG and GIF in both resize modes and with a
+  save slot, `show_slot`, `delete`, `set_clock_mode`, `set_time`,
+  `DeviceInfo`, `parse_device_info` and `build_get_device_info_command`.
+  `resize_method` still accepts plain strings, so `"fit"` and `"crop"` are
+  unchanged.
+
+- Two fixes in 0.5.0 land directly on this integration: transparent areas of a
+  PNG or GIF now flatten to black instead of producing artefacts, and the
+  framing of large text payloads was corrected.
+
+### Fixed
+
+- **The font warning carried since 0.4.0 is settled.** 0.5.0 does drop
+  `CUSONG`, `SIMSUN` and `VCR_OSD_MONO`, leaving only `unifont.otf`. Nothing
+  breaks, because every font offered in the interface ships inside this
+  integration and is handed to the library as an absolute path. `unifont.otf`
+  simply joins the list.
 
 ## [2.3.1] - 2026-09-06
 
