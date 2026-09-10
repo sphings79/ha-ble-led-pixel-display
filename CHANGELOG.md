@@ -127,6 +127,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.4.0-beta.3] - 2026-09-10
+
+### Changed
+
+- Carries everything from 2.3.2: pypixelcolor pinned to `>=0.5.0,<0.6`, and
+  `make_text_command` requiring its font argument instead of defaulting to a
+  name the library dropped. Nothing in the gallery itself changed.
+
 ## [2.4.0-beta.2] - 2026-09-07
 
 ### Added
