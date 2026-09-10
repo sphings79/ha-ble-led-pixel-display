@@ -155,14 +155,20 @@ send_text:
   fields:
     text:
       name: Text
-      description: Text to display (supports emojis)
+      description: >
+        Text to display. Supports emojis and inline colour tags:
+        "[#ff0000]ALARM[/] all clear" paints ALARM red and leaves the rest in
+        the Text Colour below. Use six-digit hex -- "[#f00]" is not
+        recognised and would show up on the panel as written.
       required: true
-      example: "Hello World"
+      example: "[#ff0000]ALARM[/] Kitchen"
       selector:
         text:
     color:
       name: Text Color
-      description: Text color
+      description: >
+        Colour for every character not covered by an inline tag. Tags win
+        where they apply.
       required: false
       default: [255, 255, 255]
       selector:

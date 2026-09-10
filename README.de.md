@@ -277,6 +277,34 @@ Normalerweise findet Home Assistant es von selbst und bietet es unter **Einstell
 | **`textimage`** | Home Assistant rendert den Text mit Pillow zu einem Bild und überträgt es | Eigene TTF-Schriften, exakte Größen, Kantenglättung, mehrzeilig mit `\n` |
 | **`clock`** | Uhr im Gerät | Eine Uhr, in 9 Varianten |
 
+### Einzelne Wörter einfärben
+
+Im Modus `text` und in der Aktion `send_text` kann das Panel einzelne Zeichen einfärben. Dazu das Wort in ein Hex-Tag setzen und mit `[/]` schließen:
+
+```yaml
+action: ble_led_pixel.send_text
+target:
+  entity_id: text.arbeitszimmer_display
+data:
+  text: "[#ff0000]ALARM[/] Küche"
+  color: [255, 255, 255]
+```
+
+`ALARM` erscheint rot, ` Küche` in der daneben eingestellten Textfarbe. Tags gewinnen dort, wo sie greifen; der Farbparameter füllt alles Übrige.
+
+Mehrere Tags in einem Text funktionieren, ein offen gelassenes Tag gilt bis zum Ende:
+
+```yaml
+text: "[#40d858]PV[/] 2400W [#ff3838]Netz[/] 180W"
+text: "Akku [#ffbe00]17%"
+```
+
+Drei Dinge sollte man wissen:
+
+- **Nur sechsstelliges Hex.** `[#f00]` wird nicht erkannt und landet wörtlich auf dem Panel.
+- **Im Modus `textimage` geht das nicht.** Dort wird eine ganze Zeile in eine Graustufenmaske gemalt und danach eingefärbt — es gibt schlicht keine Farbe je Zeichen. Tags werden dort entfernt statt als Markup angezeigt: Der Text erscheint, nur einfarbig.
+- **Bei aktivem Farbverlauf** färbt das Panel den Text selbst. Wie sich das mit Farben je Zeichen verträgt, ist an Hardware nicht geprüft.
+
 ## Flackern vermeiden: wie Updates wirklich funktionieren
 
 Das ist der nicht offensichtliche Teil — und er entscheidet darüber, ob das Panel ruhig läuft oder bei jeder Änderung flackert.
