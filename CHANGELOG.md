@@ -214,6 +214,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every action is described in English.** `send_image_file`, `send_layout`
   and `send_test_pattern` still carried the Italian descriptions they were
   written with, so the action dialog mixed two languages.
+## [2.3.3] - 2026-09-10
+
+### Added
+
+- **Inline colour tags are documented and safe to use.** pypixelcolor 0.5.0
+  understands `[#ff0000]ALARM[/] Kitchen` in `send_text`, painting single
+  characters. The tags win where they apply and the colour parameter fills in
+  everywhere else. Nothing had to be built for this to work in `text` mode and
+  in the `send_text` action -- the text was already handed over untouched --
+  but nothing said so either. The README now shows it in both languages, and
+  the action describes it in the field where it is typed.
+
+### Fixed
+
+- **`textimage` mode no longer shows colour tags as markup.** That mode
+  renders a whole line into one greyscale mask and tints it afterwards, so it
+  has no per-character colour to give; a tag reached the panel written out in
+  full. Tags are now stripped there using pypixelcolor's own helpers, so the
+  two agree on what a tag is. The text still shows, in one colour.
+  Malformed tags are left alone on purpose -- they are literal text somebody
+  mistyped, and eating them silently would hide the mistake.
+
+### Notes
+
+- Only six-digit hex is recognised. `[#f00]` is not a tag to the library and
+  reaches the panel as written.
+- With a text gradient active the panel colours the text itself. How that
+  interacts with per-character colours has not been tested on hardware.
+
 ## [2.3.2] - 2026-09-10
 
 ### Changed

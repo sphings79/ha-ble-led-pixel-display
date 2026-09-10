@@ -321,6 +321,34 @@ Home Assistant usually discovers it by itself and offers it under **Settings →
 | **`textimage`** | Home Assistant renders text to an image with Pillow, then sends the image | Custom TTF fonts, precise sizing, antialiasing, multiline with `\n` |
 | **`clock`** | Device-side clock | A clock, with 9 styles |
 
+### Colouring single words
+
+In `text` mode and in the `send_text` action, the panel can paint individual characters. Wrap them in a hex tag and close it with `[/]`:
+
+```yaml
+action: ble_led_pixel.send_text
+target:
+  entity_id: text.arbeitszimmer_display
+data:
+  text: "[#ff0000]ALARM[/] Kitchen"
+  color: [255, 255, 255]
+```
+
+`ALARM` comes out red, ` Kitchen` in the Text Colour set alongside. Tags win wherever they apply; the colour parameter fills in everywhere else.
+
+Several tags in one string work, and a tag left open runs to the end:
+
+```yaml
+text: "[#40d858]PV[/] 2400W [#ff3838]Grid[/] 180W"
+text: "Battery [#ffbe00]17%"
+```
+
+Three rules worth knowing:
+
+- **Six-digit hex only.** `[#f00]` is not recognised and reaches the panel as written.
+- **`textimage` mode cannot do this.** It renders a whole line into one greyscale mask and tints it afterwards, so there is no per-character colour to give. Tags are stripped there rather than displayed as markup — the text still shows, just in one colour.
+- **With a text gradient active**, the panel colours the text itself. How that interacts with per-character colours has not been tested on hardware.
+
 ## Avoiding flicker: how updates actually work
 
 This is the part that is not obvious, and it decides whether your panel looks smooth or flickers on every change.

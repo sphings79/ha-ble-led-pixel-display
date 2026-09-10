@@ -151,6 +151,34 @@ async def update_panel_display(hass: HomeAssistant, device_name: str, api, text:
         return False
 
 
+try:
+    from pypixelcolor.commands.send_text.color_utils import (
+        has_color_tags,
+        strip_color_tags,
+    )
+except ImportError:  # pypixelcolor missing -- text will not render either way
+    has_color_tags = None
+    strip_color_tags = None
+
+
+def strip_inline_color_tags(text: str, where: str) -> str:
+    """Remove inline colour tags from text that cannot honour them.
+
+    The stripping uses pypixelcolor's own helpers so the two agree on what a
+    tag is. Malformed tags are left alone on purpose: they are literal text
+    the user mistyped, and silently eating them would hide the mistake.
+    """
+    if not text or has_color_tags is None or not has_color_tags(text):
+        return text
+    stripped = strip_color_tags(text)
+    _LOGGER.debug(
+        "Inline colour tags are not supported in %s; showing %r without them",
+        where,
+        stripped,
+    )
+    return stripped
+
+
 async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
     """Update display in text/image mode.
 
@@ -194,6 +222,13 @@ async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, tex
         # Resolve templates and process escape sequences
         template_resolved = await resolve_template_variables(hass, text)
         processed_text = template_resolved.replace('\\n', '\n').replace('\\t', '\t')
+
+        # This mode renders through our own renderer, which paints a whole
+        # line into one greyscale mask and tints it afterwards -- it has no
+        # per-character colour to give. Inline colour tags only work in text
+        # mode and in the send_text action. Strip them rather than let the
+        # panel display the markup verbatim.
+        processed_text = strip_inline_color_tags(processed_text, where="textimage mode")
 
         # Send text to display with current settings
         success = await api.display_text(processed_text, antialias, font_size, font_name, line_spacing, text_color, bg_color)
