@@ -227,6 +227,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`make_text_command` no longer defaults its font to `VCR_OSD_MONO`**, a
+  name pypixelcolor dropped in 0.5.0. The argument is required now. The only
+  caller in this integration always passed a resolved absolute path, so
+  nothing changes in practice, but a default naming a font that no longer
+  exists is a trap for the next caller.
+
 - **The font warning carried since 0.4.0 is settled.** 0.5.0 does drop
   `CUSONG`, `SIMSUN` and `VCR_OSD_MONO`, leaving only `unifont.otf`. Nothing
   breaks, because every font offered in the interface ships inside this
