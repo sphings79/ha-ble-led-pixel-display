@@ -230,6 +230,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every action is described in English.** `send_image_file`, `send_layout`
   and `send_test_pattern` still carried the Italian descriptions they were
   written with, so the action dialog mixed two languages.
+## [2.3.6] - 2026-10-06
+
+### Fixed
+
+- **2.3.5 shipped an empty `manifest.json`**, so Home Assistant could not load
+  the integration at all. The manifest is restored. Nothing else changed from
+  2.3.5, which carries the fix for 2.3.4. **Skip 2.3.4 and 2.3.5.**
+
 ## [2.3.5] - 2026-10-06
 
 ### Fixed
