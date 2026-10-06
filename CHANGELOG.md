@@ -127,6 +127,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.4.0-beta.4] - 2026-10-06
+
+### Fixed
+
+- Carries everything from 2.3.4: a panel that is out of range no longer holds
+  up Home Assistant's start-up. Nothing in the gallery itself changed.
+
 ## [2.4.0-beta.3] - 2026-09-10
 
 ### Changed
@@ -214,6 +221,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every action is described in English.** `send_image_file`, `send_layout`
   and `send_test_pattern` still carried the Italian descriptions they were
   written with, so the action dialog mixed two languages.
+## [2.3.4] - 2026-10-06
+
+### Fixed
+
+- **A panel that was out of range no longer holds up Home Assistant's
+  start-up.** Setup tried to connect before anything else, and for a panel
+  missing from the Bluetooth cache that meant waiting out the rediscovery
+  (three lookups, two seconds apart) and then the connection attempts --
+  around sixteen seconds per panel, with Home Assistant waiting for each.
+  A panel the Bluetooth manager has not seen is now left to the reconnect
+  watcher, which already tries at once and again whenever the panel
+  advertises. A panel that is known is still connected during setup, so its
+  geometry is available when the entities are created, but that attempt is
+  capped at fifteen seconds.
+
 ## [2.3.3] - 2026-09-10
 
 ### Added

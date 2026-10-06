@@ -559,7 +559,7 @@ logger:
 
 ## More Home Assistant projects
 
-- [Marstek Venus Modbus](https://github.com/sphings79/marstek_venus_modbus_dev) — Marstek Venus battery storage over local Modbus TCP
+- [Marstek Modbus Suite](https://github.com/sphings79/marstek-modbus-suite) — Marstek Venus battery storage over local Modbus TCP
 - [Shelly Modbus](https://github.com/sphings79/shelly-modbus-home-assistant) — Shelly energy meters and relays over Modbus TCP, no cloud
 - [StateGuard](https://github.com/sphings79/stateguard-home-assistant) — alerts when entities go unavailable or stop reporting
 - [IntegrationGuard](https://github.com/sphings79/integrationguard-home-assistant) — which of your HACS extensions is still maintained

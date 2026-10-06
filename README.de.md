@@ -561,7 +561,7 @@ logger:
 
 ## Weitere Home-Assistant-Projekte
 
-- [Marstek Venus Modbus](https://github.com/sphings79/marstek_venus_modbus_dev) — Marstek-Venus-Speicher über lokales Modbus TCP
+- [Marstek Modbus Suite](https://github.com/sphings79/marstek-modbus-suite) — Marstek-Venus-Speicher über lokales Modbus TCP
 - [Shelly Modbus](https://github.com/sphings79/shelly-modbus-home-assistant) — Shelly-Energiezähler und -Relais über Modbus TCP, ohne Cloud
 - [StateGuard](https://github.com/sphings79/stateguard-home-assistant) — meldet, wenn Entitäten ausfallen oder aufhören zu senden
 - [IntegrationGuard](https://github.com/sphings79/integrationguard-home-assistant) — welche deiner HACS-Erweiterungen noch gepflegt wird

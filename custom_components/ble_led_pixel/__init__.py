@@ -1,8 +1,10 @@
 """The BLE LED Pixel Display integration."""
 from __future__ import annotations
 
+import asyncio
 import logging
 
+from homeassistant.components import bluetooth
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
@@ -19,6 +21,11 @@ _LOGGER = logging.getLogger(__name__)
 
 # Platforms supported by this integration
 PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.TEXT, Platform.SENSOR, Platform.SELECT, Platform.NUMBER, Platform.BUTTON, Platform.LIGHT]
+
+# Longest the initial connect may hold up setup. Home Assistant's start-up
+# waits for every integration, so an unresponsive panel must not stall it;
+# the reconnect watcher carries on in the background after this.
+SETUP_CONNECT_TIMEOUT = 15.0
 
 
 
@@ -90,21 +97,38 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # and aborting here left the entry unloaded with nothing scheduling a retry
     # once the panel reappeared. The watcher started below handles that, so the
     # entities exist immediately and turn available as soon as the link is up.
-    try:
-        if await api.connect():
-            _LOGGER.info("Successfully connected to LED panel %s", address)
-            await api.get_device_info()
-        else:
-            _LOGGER.warning(
-                "LED panel %s not reachable yet; the reconnect watcher will "
-                "connect as soon as it advertises", address,
-            )
-    except (BleLedPixelTimeoutError, BleLedPixelConnectionError) as err:
+    #
+    # A panel that is not in the Bluetooth cache is not even tried here: the
+    # lookup alone waits several seconds for a rediscovery, and the watcher
+    # makes an immediate attempt of its own, so waiting would only delay
+    # Home Assistant's start-up for nothing.
+    if bluetooth.async_ble_device_from_address(hass, address, connectable=True) is None:
         _LOGGER.warning(
-            "LED panel %s not reachable yet (%s); the reconnect watcher will "
-            "connect as soon as it advertises", address, err,
+            "LED panel %s not seen by Bluetooth yet; the reconnect watcher will "
+            "connect as soon as it advertises", address,
         )
-    
+    else:
+        try:
+            async with asyncio.timeout(SETUP_CONNECT_TIMEOUT):
+                if await api.connect():
+                    _LOGGER.info("Successfully connected to LED panel %s", address)
+                    await api.get_device_info()
+                else:
+                    _LOGGER.warning(
+                        "LED panel %s not reachable yet; the reconnect watcher will "
+                        "connect as soon as it advertises", address,
+                    )
+        except TimeoutError:
+            _LOGGER.warning(
+                "LED panel %s did not answer within %.0fs; the reconnect watcher "
+                "will connect as soon as it advertises", address, SETUP_CONNECT_TIMEOUT,
+            )
+        except (BleLedPixelTimeoutError, BleLedPixelConnectionError) as err:
+            _LOGGER.warning(
+                "LED panel %s not reachable yet (%s); the reconnect watcher will "
+                "connect as soon as it advertises", address, err,
+            )
+
     # Store API instance in hass.data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = api
