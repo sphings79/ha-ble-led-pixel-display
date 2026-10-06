@@ -4,7 +4,10 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from homeassistant.components import bluetooth
+# Aliased on purpose: this package has its own ``bluetooth`` subpackage, and
+# importing that sets the name ``bluetooth`` on this module, which would
+# silently replace Home Assistant's component.
+from homeassistant.components import bluetooth as ha_bluetooth
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
@@ -102,7 +105,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # lookup alone waits several seconds for a rediscovery, and the watcher
     # makes an immediate attempt of its own, so waiting would only delay
     # Home Assistant's start-up for nothing.
-    if bluetooth.async_ble_device_from_address(hass, address, connectable=True) is None:
+    if ha_bluetooth.async_ble_device_from_address(hass, address, connectable=True) is None:
         _LOGGER.warning(
             "LED panel %s not seen by Bluetooth yet; the reconnect watcher will "
             "connect as soon as it advertises", address,
