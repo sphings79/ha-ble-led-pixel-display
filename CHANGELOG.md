@@ -127,6 +127,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.4.0-beta.5] - 2026-10-06
+
+### Fixed
+
+- Carries everything from 2.3.5: `beta.4` could not set up any panel, because
+  an import in `__init__.py` was silently replaced by this package's own
+  `bluetooth` subpackage. **Skip `beta.4`.** Nothing in the gallery itself
+  changed.
+
 ## [2.4.0-beta.4] - 2026-10-06
 
 ### Fixed
@@ -221,6 +230,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Every action is described in English.** `send_image_file`, `send_layout`
   and `send_test_pattern` still carried the Italian descriptions they were
   written with, so the action dialog mixed two languages.
+## [2.3.5] - 2026-10-06
+
+### Fixed
+
+- **2.3.4 could not set up any panel.** The start-up fix looked the panel up
+  through Home Assistant's `bluetooth` component, but this package has a
+  `bluetooth` subpackage of its own, and importing that replaced the name in
+  `__init__.py`. Setup then failed with `AttributeError ... has no attribute
+  'async_ble_device_from_address'` and every entry ended in "Setup error".
+  The component is now imported under a different name. **Skip 2.3.4.**
+
 ## [2.3.4] - 2026-10-06
 
 ### Fixed
