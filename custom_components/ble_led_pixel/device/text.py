@@ -21,7 +21,7 @@ def make_text_command(
     rainbow_mode: int = 0,
     save_slot: int = 0,
     char_height: Optional[int] = None
-) -> list[bytes]:
+) -> SendPlan:
     """Build text display command using pypixelcolor.
 
     Args:
@@ -41,7 +41,9 @@ def make_text_command(
         char_height: Character height in pixels (auto-detected if None)
 
     Returns:
-        List of command bytes (one per window/frame)
+        The pypixelcolor SendPlan. Pass it to BluetoothClient.send_plan(),
+        which chunks each window and waits for the per-window ACK; writing
+        the raw window data as single packets fails for longer texts.
 
     Raises:
         ImportError: If pypixelcolor is not available
@@ -63,10 +65,4 @@ def make_text_command(
         char_height=char_height
     )
 
-    # Extract command bytes from all windows
-    # send_text may return multiple windows for large text
-    commands = []
-    for window in send_plan.windows:
-        commands.append(window.data)
-
-    return commands
+    return send_plan
