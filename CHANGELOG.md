@@ -127,6 +127,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.3.7] - 2026-11-01
+
+### Fixed
+
+- **Longer scrolling texts (about 25 characters and up) were not shown; the
+  previous text kept scrolling.** `send_text` wrote each window of the text as
+  a single BLE packet, which only fits short texts. It now goes through the
+  same chunked, acknowledged transport as images and layouts. Reported and
+  diagnosed in issue #1 by ServerSystem70.
+
 ## [2.4.0-beta.5] - 2026-10-06
 
 ### Fixed

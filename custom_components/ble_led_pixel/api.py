@@ -1463,18 +1463,16 @@ class BleLedPixelAPI:
                 char_height=char_height
             )
 
-            # Send all command frames
-            for i, command in enumerate(commands):
-                _LOGGER.debug(
-                    "Sending pypixelcolor text frame %d/%d: %d bytes",
-                    i + 1,
-                    len(commands),
-                    len(command)
-                )
-                success = await self._send_with_reconnect(command)
-                if not success:
-                    _LOGGER.error("Failed to send text frame %d/%d", i + 1, len(commands))
-                    return False
+            # A SendPlan, not a list of frames: longer texts exceed one BLE
+            # packet, so send_plan chunks each window and awaits its ACK.
+            if not await self.ensure_connected():
+                _LOGGER.error("Cannot connect to send text plan")
+                return False
+
+            success = await self._bluetooth.send_plan(commands, ack_timeout=25.0)
+            if not success:
+                _LOGGER.error("Failed to send pypixelcolor text plan")
+                return False
 
             _LOGGER.info(
                 "Pypixelcolor text sent: '%s' (color=%s, bg=%s, font=%s, anim=%d, speed=%d, frames=%d)",
@@ -1484,7 +1482,7 @@ class BleLedPixelAPI:
                 font,
                 animation,
                 speed,
-                len(commands)
+                len(list(commands.windows))
             )
             return True
 
