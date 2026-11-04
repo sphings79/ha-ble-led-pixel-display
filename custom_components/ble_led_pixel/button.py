@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -36,6 +37,8 @@ async def async_setup_entry(
 
 class BleLedPixelUpdateButton(ButtonEntity):
     """Representation of an BLE LED Pixel Display update button."""
+
+    _attr_has_entity_name = True
 
     _attr_icon = "mdi:refresh"
 
@@ -73,6 +76,9 @@ class BleLedPixelUpdateButton(ButtonEntity):
 class BleLedPixelSyncTimeButton(ButtonEntity):
     """Representation of an BLE LED Pixel Display time sync button."""
 
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
     _attr_icon = "mdi:clock-sync"
 
     def __init__(
@@ -89,7 +95,7 @@ class BleLedPixelSyncTimeButton(ButtonEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Sync Time"
+        self._attr_name = "Clock Sync Time"
         self._attr_unique_id = f"{address}_sync_time_button"
 
         # Device info for grouping in device registry

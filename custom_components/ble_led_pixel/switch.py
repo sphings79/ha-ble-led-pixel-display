@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -46,6 +47,8 @@ async def async_setup_entry(
 class BleLedPixelSwitch(SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display switch."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self, 
         api: BleLedPixelAPI, 
@@ -58,7 +61,7 @@ class BleLedPixelSwitch(SwitchEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = name
+        self._attr_name = None  # the panel's main switch takes the device name
         self._attr_unique_id = f"{address}_power"
         self._is_on = api.power_state
         # True once the state came from a command sent through Home Assistant.
@@ -167,6 +170,9 @@ class BleLedPixelSwitch(SwitchEntity, RestoreEntity):
 class BleLedPixelAntialiasingSwitch(SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display antialiasing setting."""
 
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
     _attr_icon = "mdi:vector-selection"
 
     def __init__(
@@ -181,7 +187,7 @@ class BleLedPixelAntialiasingSwitch(SwitchEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Antialiasing"
+        self._attr_name = "Image Antialiasing"
         self._attr_unique_id = f"{address}_antialiasing"
         self._is_on = True  # Default to antialiasing enabled
 
@@ -221,6 +227,9 @@ class BleLedPixelAntialiasingSwitch(SwitchEntity, RestoreEntity):
 
 class BleLedPixelAutoUpdateSwitch(SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display auto-update setting."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _attr_icon = "mdi:auto-fix"
 
@@ -276,6 +285,9 @@ class BleLedPixelAutoUpdateSwitch(SwitchEntity, RestoreEntity):
 
 class BleLedPixelClock24HSwitch(SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display clock 24h format setting."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _attr_icon = "mdi:clock-time-four-outline"
 
@@ -353,6 +365,9 @@ class BleLedPixelClock24HSwitch(SwitchEntity, RestoreEntity):
 
 class BleLedPixelClockShowDateSwitch(SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display clock show date setting."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _attr_icon = "mdi:calendar-clock"
 

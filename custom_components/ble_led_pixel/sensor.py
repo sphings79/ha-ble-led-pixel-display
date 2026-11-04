@@ -127,6 +127,8 @@ async def async_setup_entry(
 class BleLedPixelSensor(SensorEntity):
     """Representation of an BLE LED Pixel Display sensor."""
 
+    _attr_has_entity_name = True
+
     def __init__(
         self, 
         api: BleLedPixelAPI, 

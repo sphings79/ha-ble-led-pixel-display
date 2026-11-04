@@ -210,7 +210,7 @@ different places.
 | --- | --- | --- |
 | **Image Font Size** (`number`) | `0` means auto-fit; any value in 0.5 steps is honoured | Not used |
 | **Text Size** (`select`) | Not used | 16, 32, 48 or 64px, only the sizes that fit the panel (just 16 on a 20px panel; 16 and 32 on a 32px one) |
-| **Line Spacing** | Honoured, 0–20px | **No effect.** |
+| **Image Line Spacing** | Honoured, 0–20px | **No effect.** |
 
 Image Font Size was called Font Size before 2.4 and kept its entity id. On the
 first start after upgrading, Text Size is set from it, so text mode looks the
@@ -257,25 +257,112 @@ Home Assistant usually discovers it by itself and offers it under **Settings →
 
 ## Entities you get
 
+Entity names start with the panel's name (for example *LED_BLE_7E9E1E82 Text
+Font*), and the device page splits them into three sections. The everyday
+controls sit at the top. The settings are under **Configuration**, where the
+alphabetical sort groups them by mode through their `Clock`, `Image` and
+`Text` prefixes. Settings in Configuration are also not offered to voice
+assistants by default.
+
+**Controls**
+
 | Entity | Domain | What it does |
 | --- | --- | --- |
-| **Display** | `text` | The text shown on the panel. Write to it from any automation. |
-| **Text Color** | `light` | Foreground colour as RGB |
-| **Background Color** | `light` | Background colour as RGB |
+| *(panel name)* | `switch` | Power |
+| **Mode** | `select` | `textimage`, `text` or `clock`, see [Display modes](#display-modes) |
+| **Message** | `text` | The text shown on the panel. Write to it from any automation. |
 | **Brightness** | `number` | 1–100 |
-| **Mode** | `select` | `textimage`, `text` or `clock` — see [Display modes](#display-modes) |
-| **Font** | `select` | TTF/OTF fonts, see [Fonts](#fonts) |
-| **Image Font Size**, **Line Spacing** | `number` | Layout in `textimage` mode |
-| **Text Size** | `select` | Character height in `text` mode |
-| **Text Effect**, **Text Gradient** | `select` | Scrolling, effects and colour ramps in `text` mode |
-| **Text Speed** | `number` | Effect speed in `text` mode |
-| **Clock Style** | `select` | 9 clock faces |
-| **Clock 24h**, **Clock Show Date** | `switch` | Clock options |
-| **Antialiasing** | `switch` | Smoothing in `textimage` mode |
-| **Auto Update** | `switch` | **Read [Avoiding flicker](#avoiding-flicker-how-updates-actually-work) before touching this** |
 | **Update Display** | `button` | Renders the stored state to the panel |
-| **Sync Time** | `button` | Sets the device clock |
-| Device Type, Display Width, Display Height, MCU/WiFi Version | `sensor` | Diagnostics |
+
+**Configuration**
+
+| Entity | Domain | Used in | What it does |
+| --- | --- | --- | --- |
+| **Clock 24h**, **Clock Show Date** | `switch` | `clock` | Clock options |
+| **Clock Style** | `select` | `clock` | 9 clock faces |
+| **Clock Sync Time** | `button` | `clock` | Sets the device clock |
+| **Image Antialiasing** | `switch` | `textimage` | Smoothing |
+| **Image Font Size**, **Image Line Spacing** | `number` | `textimage` | Layout |
+| **Text Font** | `select` | `text`, `textimage` | TTF/OTF fonts, see [Fonts](#fonts) |
+| **Text Color**, **Text Background Color** | `light` | `text`, `textimage` | Colours as RGB |
+| **Text Size** | `select` | `text` | Character height |
+| **Text Effect**, **Text Gradient** | `select` | `text` | Scrolling, effects and colour ramps |
+| **Text Speed** | `number` | `text` | Effect speed |
+| **Auto Update** | `switch` | `text`, `textimage` | **Read [Avoiding flicker](#avoiding-flicker-how-updates-actually-work) before touching this** |
+
+**Diagnostic**: Device Type, Display Width, Display Height, firmware versions,
+Product ID, Brand, Supported features, Password protection.
+
+Panels set up before 2.4 keep their entity ids, so automations and dashboards
+keep working. Only the displayed names change: they gain the panel's name, and
+*Display*, *Font*, *Line Spacing*, *Antialiasing*, *Background Color* and
+*Sync Time* are now *Message*, *Text Font*, *Image Line Spacing*, *Image
+Antialiasing*, *Text Background Color* and *Clock Sync Time*.
+
+### A dashboard card that follows the mode
+
+The device page can't hide settings the current mode ignores, but a dashboard
+card can. This one uses only built-in cards. Replace `led_ble_7e9e1e82` with
+your panel's entity ids (open the entity, then the cog, to see each one):
+
+```yaml
+type: vertical-stack
+cards:
+  - type: tile
+    entity: switch.led_ble_7e9e1e82
+    features:
+      - type: toggle
+  - type: entities
+    entities:
+      - select.led_ble_7e9e1e82_mode
+      - number.led_ble_7e9e1e82_brightness
+      - text.led_ble_7e9e1e82_message
+      - button.led_ble_7e9e1e82_update_display
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: select.led_ble_7e9e1e82_mode
+        state: text
+    card:
+      type: entities
+      title: Text
+      entities:
+        - select.led_ble_7e9e1e82_text_font
+        - select.led_ble_7e9e1e82_text_size
+        - select.led_ble_7e9e1e82_text_effect
+        - number.led_ble_7e9e1e82_text_speed
+        - select.led_ble_7e9e1e82_text_gradient
+        - light.led_ble_7e9e1e82_text_color
+        - light.led_ble_7e9e1e82_text_background_color
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: select.led_ble_7e9e1e82_mode
+        state: textimage
+    card:
+      type: entities
+      title: Text image
+      entities:
+        - select.led_ble_7e9e1e82_text_font
+        - number.led_ble_7e9e1e82_image_font_size
+        - number.led_ble_7e9e1e82_image_line_spacing
+        - switch.led_ble_7e9e1e82_image_antialiasing
+        - light.led_ble_7e9e1e82_text_color
+        - light.led_ble_7e9e1e82_text_background_color
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: select.led_ble_7e9e1e82_mode
+        state: clock
+    card:
+      type: entities
+      title: Clock
+      entities:
+        - select.led_ble_7e9e1e82_clock_style
+        - switch.led_ble_7e9e1e82_clock_24h
+        - switch.led_ble_7e9e1e82_clock_show_date
+        - button.led_ble_7e9e1e82_clock_sync_time
+```
 
 ## Display modes
 
@@ -458,7 +545,7 @@ Four coloured quadrants — verifies resolution and colour channel order in one 
 
 ## Fonts
 
-Fonts are picked in the **Font** select entity and looked up in this order:
+Fonts are picked in the **Text Font** select entity and looked up in this order:
 
 1. `custom_components/ble_led_pixel/fonts/` — shipped with the integration
 2. The `pypixelcolor` package

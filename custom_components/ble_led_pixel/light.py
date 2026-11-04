@@ -11,6 +11,7 @@ from homeassistant.components.light import (
     LightEntity,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -49,6 +50,8 @@ class BleLedPixelColorLight(LightEntity, RestoreEntity):
 
     # Override these in subclasses
     _light_name: str = "Color"
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
     _entity_suffix: str = "color"
     _default_rgb: tuple[int, int, int] = (255, 255, 255)
     _trigger_modes: list[str] = []
@@ -67,7 +70,7 @@ class BleLedPixelColorLight(LightEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._device_name = name
-        self._attr_name = self._light_name  # Just the light name, device name is redundant
+        self._attr_name = self._light_name  # has_entity_name prefixes the device name
         self._attr_unique_id = f"{address}_{self._entity_suffix}"
         self._attr_is_on = True  # Start as "on"
         self._attr_rgb_color = self._default_rgb
@@ -188,7 +191,7 @@ class BleLedPixelTextColorLight(BleLedPixelColorLight):
 class BleLedPixelBackgroundColorLight(BleLedPixelColorLight):
     """Light entity for background color selection."""
 
-    _light_name = "Background Color"
+    _light_name = "Text Background Color"
     _entity_suffix = "background_color"
     _default_rgb = (0, 0, 0)  # Black
     _trigger_modes = ["textimage"]

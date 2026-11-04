@@ -152,6 +152,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Bluetooth devices** for a panel that advertises unusually, and manual entry.
 - **Font Size is now called Image Font Size**, since it only affects the
   `textimage` mode. Its entity id is unchanged.
+- **Entities are grouped into Controls and Configuration.** The everyday
+  controls (Power, Mode, Message, Brightness, Update Display) stay on the
+  device page; the settings move under Configuration. Names now come from the
+  device, so they read "<panel> Text Font" rather than a bare "Font", and the
+  power switch takes the device name. Renamed to say which mode they affect:
+  Antialiasing → Image Antialiasing, Font → Text Font, Line Spacing → Image
+  Line Spacing, Display → Message, Sync Time → Clock Sync Time, Background
+  Color → Text Background Color. Entity ids are unchanged, so automations and
+  dashboards keep working.
+- **The README has a dashboard card that shows only the settings for the
+  current mode.**
 
 ### Fixed
 
