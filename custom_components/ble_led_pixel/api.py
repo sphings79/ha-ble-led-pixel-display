@@ -104,7 +104,10 @@ class BleLedPixelAPI:
         self._watcher_started = False
         self._unsubscribe_bluetooth = None
         self._unsubscribe_identity = None
-        self._power_state = False
+        # The panel cannot report whether it is on. It powers up on, so that is
+        # the starting assumption; the power switch restores the last state set
+        # through Home Assistant over this.
+        self._power_state = True
         # One-shot callbacks waiting for the link to come up; see
         # call_when_connected().
         self._on_connected: list[Callable[[], Awaitable[Any]]] = []
@@ -1503,7 +1506,11 @@ class BleLedPixelAPI:
     def power_state(self) -> bool:
         """Return current power state."""
         return self._power_state
-    
+
+    def restore_power_state(self, on: bool) -> None:
+        """Seed the cached power state from Home Assistant's last known state."""
+        self._power_state = on
+
     @property
     def address(self) -> str:
         """Return device address."""
