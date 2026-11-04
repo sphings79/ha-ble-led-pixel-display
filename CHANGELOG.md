@@ -127,6 +127,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.6.0] - 2026-11-04
+
+### Added
+
+- **Slot controls on the device page.** Pick a slot with the new **Slot**
+  number (1-10), then press **Save to Slot**, **Show Slot** or **Clear Slot**
+  under Configuration. Save to Slot sends the current message with the
+  current mode's settings and keeps a copy in that slot. It works in `text`
+  and `textimage` mode; clock mode is drawn by the panel and cannot be
+  saved. A failed press shows an error instead of failing silently.
+- `textimage` mode can save to a slot too (it previously ignored slots).
+
 ## [2.5.0] - 2026-11-04
 
 ### Added

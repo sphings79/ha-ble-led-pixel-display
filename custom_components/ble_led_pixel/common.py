@@ -143,7 +143,7 @@ async def restore_panel_display(hass: HomeAssistant, device_name: str, api) -> b
         return await update_panel_display(hass, device_name, api)
 
 
-async def update_panel_display(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
+async def update_panel_display(hass: HomeAssistant, device_name: str, api, text: str = None, save_slot: int = 0) -> bool:
     """Update LED panel with current settings - can be called from anywhere.
     
     Args:
@@ -151,6 +151,8 @@ async def update_panel_display(hass: HomeAssistant, device_name: str, api, text:
         device_name: Device name for entity ID lookups
         api: LED panel API instance
         text: Text to display, or None to get from text entity
+        save_slot: If >= 1, also store what is shown in that panel slot.
+            Clock mode is drawn by the panel itself and cannot be stored.
 
     Returns:
         True if update was successful
@@ -165,14 +167,17 @@ async def update_panel_display(hass: HomeAssistant, device_name: str, api, text:
 
         # Route to appropriate mode handler
         if mode == MODE_TEXT_IMAGE:
-            return await _update_textimage_mode(hass, device_name, api, text)
+            return await _update_textimage_mode(hass, device_name, api, text, save_slot)
         elif mode == MODE_TEXT:
-            return await _update_text_mode(hass, device_name, api, text)
+            return await _update_text_mode(hass, device_name, api, text, save_slot)
         elif mode == MODE_CLOCK:
+            if save_slot >= 1:
+                _LOGGER.error("Clock mode cannot be saved to a slot")
+                return False
             return await _update_clock_mode(hass, device_name, api)
         else:
             _LOGGER.warning("Unknown mode: %s, falling back to textimage", mode)
-            return await _update_textimage_mode(hass, device_name, api, text)
+            return await _update_textimage_mode(hass, device_name, api, text, save_slot)
 
     except Exception as err:
         _LOGGER.error("Error during display update: %s", err)
@@ -207,7 +212,7 @@ def strip_inline_color_tags(text: str, where: str) -> str:
     return stripped
 
 
-async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
+async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, text: str = None, save_slot: int = 0) -> bool:
     """Update display in text/image mode.
 
     Args:
@@ -259,7 +264,7 @@ async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, tex
         processed_text = strip_inline_color_tags(processed_text, where="textimage mode")
 
         # Send text to display with current settings
-        success = await api.display_text(processed_text, antialias, font_size, font_name, line_spacing, text_color, bg_color)
+        success = await api.display_text(processed_text, antialias, font_size, font_name, line_spacing, text_color, bg_color, save_slot=save_slot)
         
         if success:
             _LOGGER.info("Display update successful: %s (font: %s, size: %s, antialias: %s, spacing: %spx, text: #%s, bg: #%s)",
@@ -326,7 +331,7 @@ async def _update_clock_mode(hass: HomeAssistant, device_name: str, api) -> bool
         return False
 
 
-async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
+async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: str = None, save_slot: int = 0) -> bool:
     """Update display in text mode using pypixelcolor.
 
     Args:
@@ -455,7 +460,8 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
             animation=animation,
             speed=speed,
             rainbow_mode=rainbow_mode,
-            font_size=font_size
+            font_size=font_size,
+            save_slot=save_slot,
         )
 
         if success:

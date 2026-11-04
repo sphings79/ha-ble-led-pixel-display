@@ -8,6 +8,7 @@ from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import BleLedPixelAPI
@@ -32,7 +33,91 @@ async def async_setup_entry(
     async_add_entities([
         BleLedPixelUpdateButton(hass, api, entry, address, name),
         BleLedPixelSyncTimeButton(hass, api, entry, address, name),
+        BleLedPixelSaveSlotButton(hass, api, address, name),
+        BleLedPixelShowSlotButton(hass, api, address, name),
+        BleLedPixelClearSlotButton(hass, api, address, name),
     ])
+
+
+class _BleLedPixelSlotButton(ButtonEntity):
+    """A button acting on the slot chosen in the Slot number entity."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
+    _label = ""
+    _key = ""
+
+    def __init__(
+        self, hass: HomeAssistant, api: BleLedPixelAPI, address: str, name: str
+    ) -> None:
+        self.hass = hass
+        self._api = api
+        self._name = name
+        self._attr_name = self._label
+        self._attr_unique_id = f"{address}_{self._key}_button"
+        self._attr_device_info = panel_device_info(api, address, name)
+
+    async def async_press(self) -> None:
+        slot = self._api.selected_slot
+        if not await self._act(slot):
+            raise HomeAssistantError(self._failure(slot))
+
+    async def _act(self, slot: int) -> bool:
+        raise NotImplementedError
+
+    def _failure(self, slot: int) -> str:
+        return f"{self._label} failed for slot {slot}; see the log"
+
+
+class BleLedPixelSaveSlotButton(_BleLedPixelSlotButton):
+    """Store what the current settings show in the chosen slot.
+
+    Re-sends the current text with the current mode's settings, so the panel
+    shows it and keeps a copy. Clock mode is drawn by the panel itself and
+    cannot be stored.
+    """
+
+    _label = "Save to Slot"
+    _key = "save_slot"
+    _attr_icon = "mdi:content-save"
+
+    async def _act(self, slot: int) -> bool:
+        return await update_panel_display(
+            self.hass, self._name, self._api, save_slot=slot
+        )
+
+    def _failure(self, slot: int) -> str:
+        return (
+            f"Could not save to slot {slot}. Clock mode cannot be saved, "
+            "and text needs a value; see the log for details"
+        )
+
+
+class BleLedPixelShowSlotButton(_BleLedPixelSlotButton):
+    """Show what the chosen slot holds.
+
+    An empty slot makes the panel cycle through the slots that hold
+    something, since it cannot report which ones are empty.
+    """
+
+    _label = "Show Slot"
+    _key = "show_slot"
+    _attr_icon = "mdi:play-box-outline"
+
+    async def _act(self, slot: int) -> bool:
+        return await self._api.show_slot(slot)
+
+
+class BleLedPixelClearSlotButton(_BleLedPixelSlotButton):
+    """Erase the chosen slot."""
+
+    _label = "Clear Slot"
+    _key = "clear_slot"
+    _attr_icon = "mdi:delete-outline"
+
+    async def _act(self, slot: int) -> bool:
+        return await self._api.delete_slot(slot)
 
 
 class BleLedPixelUpdateButton(ButtonEntity):

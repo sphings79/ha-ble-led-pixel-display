@@ -35,7 +35,49 @@ async def async_setup_entry(
         BleLedPixelLineSpacing(api, entry, address, name),
         BleLedPixelBrightness(api, entry, address, name),
         BleLedPixelTextSpeed(hass, api, entry, address, name),
+        BleLedPixelSlot(api, address, name),
     ])
+
+
+class BleLedPixelSlot(NumberEntity, RestoreEntity):
+    """Which panel slot the Save, Show and Clear Slot buttons act on."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
+    _attr_mode = NumberMode.BOX
+    _attr_native_min_value = 1
+    _attr_native_max_value = 10
+    _attr_native_step = 1
+    _attr_icon = "mdi:numeric"
+
+    def __init__(self, api: BleLedPixelAPI, address: str, name: str) -> None:
+        """Initialize the slot number."""
+        self._api = api
+        self._attr_name = "Slot"
+        self._attr_unique_id = f"{address}_slot"
+        self._attr_native_value = float(api.selected_slot)
+        self._attr_device_info = panel_device_info(api, address, name)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the slot chosen before the restart."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is None:
+            return
+        try:
+            slot = int(float(last_state.state))
+        except (ValueError, TypeError):
+            return
+        if self._attr_native_min_value <= slot <= self._attr_native_max_value:
+            self._api.selected_slot = slot
+            self._attr_native_value = float(slot)
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Choose the slot."""
+        self._api.selected_slot = int(value)
+        self._attr_native_value = float(int(value))
+        self.async_write_ha_state()
 
 
 class BleLedPixelFontSize(NumberEntity, RestoreEntity):

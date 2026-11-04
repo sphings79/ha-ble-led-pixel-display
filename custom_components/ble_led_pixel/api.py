@@ -138,6 +138,9 @@ class BleLedPixelAPI:
         self._slot_epoch = 0
         # The same per slot, bumped by delete_slot.
         self._slot_epochs: dict[int, int] = {}
+        # Slot the device page's Save/Show/Clear Slot buttons act on, set by
+        # the Slot number entity.
+        self.selected_slot = 1
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
 
@@ -919,7 +922,7 @@ class BleLedPixelAPI:
             except Exception:  # noqa: BLE001 - one entity must not break the query
                 _LOGGER.exception("Device info listener failed")
     
-    async def display_text(self, text: str, antialias: bool = True, font_size: float | None = None, font: str | None = None, line_spacing: int = 0, text_color: str = "ffffff", bg_color: str = "000000") -> bool:
+    async def display_text(self, text: str, antialias: bool = True, font_size: float | None = None, font: str | None = None, line_spacing: int = 0, text_color: str = "ffffff", bg_color: str = "000000", save_slot: int = 0) -> bool:
         """Display text as image using PIL and pypixelcolor with color gradient mapping.
 
         Args:
@@ -930,8 +933,13 @@ class BleLedPixelAPI:
             line_spacing: Additional spacing between lines in pixels
             text_color: Foreground/text color in hex format (e.g., 'ffffff')
             bg_color: Background color in hex format (e.g., '000000')
+            save_slot: If >= 1, also store the rendered picture in that slot.
         """
         still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             # Get device dimensions (honors options-flow override if set)
             base_info = await self.get_device_info()
@@ -946,7 +954,8 @@ class BleLedPixelAPI:
                 image_bytes=png_data,
                 file_extension=".png",
                 resize_method="crop",
-                device_info_dict=device_info
+                device_info_dict=device_info,
+                save_slot=save_slot,
             )
 
             # A SendPlan, not a list of frames: an image is larger than one

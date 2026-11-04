@@ -39,6 +39,10 @@ CONFIGURATION = [
     number.BleLedPixelLineSpacing,
     number.BleLedPixelTextSpeed,
     button.BleLedPixelSyncTimeButton,
+    button.BleLedPixelSaveSlotButton,
+    button.BleLedPixelShowSlotButton,
+    button.BleLedPixelClearSlotButton,
+    number.BleLedPixelSlot,
     light.BleLedPixelTextColorLight,
     light.BleLedPixelBackgroundColorLight,
 ]
