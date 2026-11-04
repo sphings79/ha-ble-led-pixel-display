@@ -180,6 +180,10 @@ class BleLedPixelAPI:
 
     async def _run_on_connected(self) -> None:
         """Run the jobs waiting for a connection, each exactly once."""
+        if not self.is_connected:
+            # The link dropped before this ran: keep the jobs for the next
+            # connect rather than spending them on a send that cannot work.
+            return
         jobs, self._on_connected = self._on_connected, []
         for job in jobs:
             try:

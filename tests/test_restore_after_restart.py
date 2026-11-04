@@ -59,6 +59,7 @@ def test_hook_waits_for_the_link_and_runs_once():
 
     api.call_when_connected(job)
     assert api._hass.tasks == [] and ran == []
+    api.connected = True
     run(api._run_on_connected())     # link comes up: runs before connect returns
     run(api._run_on_connected())     # a later reconnect: nothing left to run
     assert ran == [1]
@@ -71,8 +72,25 @@ def test_failing_hook_does_not_break_connect():
         raise RuntimeError("boom")
 
     api.call_when_connected(job)
+    api.connected = True
     run(api._run_on_connected())
     assert api._on_connected == []
+
+
+def test_hook_kept_when_link_drops_before_it_runs():
+    api = FakeApi(connected=True)
+    ran = []
+
+    async def job():
+        ran.append(1)
+
+    api.call_when_connected(job)     # scheduled while connected
+    api.connected = False            # ...and the link drops first
+    run(api._hass.tasks[0])
+    assert ran == [] and api._on_connected == [job]
+    api.connected = True             # the watcher reconnects
+    run(api._run_on_connected())
+    assert ran == [1]
 
 
 def _restored_switch(last_state):
