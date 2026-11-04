@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 from math import floor
@@ -103,7 +104,13 @@ class BleLedPixelAPI:
         self._watcher_started = False
         self._unsubscribe_bluetooth = None
         self._unsubscribe_identity = None
-        self._power_state = False
+        # The panel cannot report whether it is on. It powers up on, so that is
+        # the starting assumption; the power switch restores the last state set
+        # through Home Assistant over this.
+        self._power_state = True
+        # One-shot callbacks waiting for the link to come up; see
+        # call_when_connected().
+        self._on_connected: list[Callable[[], Awaitable[Any]]] = []
         # Options this instance was set up with; __init__ compares against it
         # so an entry.data change does not trigger a reload.
         self.setup_options: dict[str, Any] = {}
@@ -129,6 +136,7 @@ class BleLedPixelAPI:
         connected = await self._bluetooth.connect(self._notification_handler)
         if connected:
             await self._unlock_if_needed()
+            await self._run_on_connected()
         return connected
     
     async def disconnect(self) -> None:
@@ -149,7 +157,39 @@ class BleLedPixelAPI:
                     "Link to LED panel %s restored while sending", self._address
                 )
             await self._unlock_if_needed()
+            if not was_connected:
+                await self._run_on_connected()
         return connected
+
+    def restoring(self):
+        """Context manager: sends inside it give way to newer content."""
+        return self._bluetooth.restoring()
+
+    def call_when_connected(self, job: Callable[[], Awaitable[Any]]) -> None:
+        """Run `job` once: now if the link is up, else when it next comes up.
+
+        On a connect, waiting jobs run before connect() returns, so whatever
+        command opened the link is sent after them and stays on the panel.
+        """
+        self._on_connected.append(job)
+        if self.is_connected:
+            self._hass.async_create_background_task(
+                self._run_on_connected(),
+                name=f"ble_led_pixel on connect {self._address}",
+            )
+
+    async def _run_on_connected(self) -> None:
+        """Run the jobs waiting for a connection, each exactly once."""
+        if not self.is_connected:
+            # The link dropped before this ran: keep the jobs for the next
+            # connect rather than spending them on a send that cannot work.
+            return
+        jobs, self._on_connected = self._on_connected, []
+        for job in jobs:
+            try:
+                await job()
+            except Exception as err:  # noqa: BLE001 - a hook must not break connect
+                _LOGGER.warning("On-connect job for %s failed: %s", self._address, err)
 
     @property
     def password(self) -> str | None:
@@ -390,7 +430,7 @@ class BleLedPixelAPI:
                 _LOGGER.debug("Reconnect task ended with: %s", err)
             self._reconnect_task = None
 
-    async def _send_with_reconnect(self, command: bytes) -> bool:
+    async def _send_with_reconnect(self, command: bytes, content: bool = False) -> bool:
         """Send a command, reconnecting once when the link turns out to be dead.
 
         A connection can die between the availability check and the write. In
@@ -398,12 +438,12 @@ class BleLedPixelAPI:
         leaving the panel stale until someone reloads the integration.
         """
         try:
-            if await self._bluetooth.send_command(command):
+            if await self._bluetooth.send_command(command, content=content):
                 return True
         except BleLedPixelConnectionError:
             pass
         if await self.ensure_connected():
-            return await self._bluetooth.send_command(command)
+            return await self._bluetooth.send_command(command, content=content)
         return False
 
     async def set_power(self, on: bool) -> bool:
@@ -486,7 +526,7 @@ class BleLedPixelAPI:
         try:
             # Set clock mode
             command = make_clock_mode_command(style, date, show_date, format_24)
-            success = await self._send_with_reconnect(command)
+            success = await self._send_with_reconnect(command, content=True)
 
             if not success:
                 _LOGGER.error("Failed to set clock mode")
@@ -1242,7 +1282,7 @@ class BleLedPixelAPI:
                 f"not offer it for this model either. If yours does have it, "
                 f"turn on the feature override in the integration options."
             )
-        success = await self._send_with_reconnect(command)
+        success = await self._send_with_reconnect(command, content=True)
         if success:
             _LOGGER.debug("%s", description)
         else:
@@ -1478,7 +1518,11 @@ class BleLedPixelAPI:
     def power_state(self) -> bool:
         """Return current power state."""
         return self._power_state
-    
+
+    def restore_power_state(self, on: bool) -> None:
+        """Seed the cached power state from Home Assistant's last known state."""
+        self._power_state = on
+
     @property
     def address(self) -> str:
         """Return device address."""

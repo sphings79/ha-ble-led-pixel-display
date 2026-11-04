@@ -127,6 +127,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [Unreleased]
+
+### Fixed
+
+- **The power switch showed off for a panel that was plainly on.** The panel
+  cannot report its power state and powers up on, but the switch always
+  started off. It now starts on, and after a restart restores the last state
+  set through Home Assistant.
+- **After a restart the panel kept showing its own stored content** (for
+  example a message set from the phone app) while Home Assistant showed its
+  restored text. Once Home Assistant has started, the restored settings are
+  sent to the panel, if Auto Update is on and the power switch is not off. A
+  panel that is not connected yet gets them as soon as its link comes up.
+
 ## [2.3.7] - 2026-11-01
 
 ### Fixed

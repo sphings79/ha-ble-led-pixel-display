@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
+from contextvars import ContextVar
 from typing import Any, Callable, TYPE_CHECKING
 
 from bleak.exc import BleakError
@@ -18,6 +20,10 @@ from homeassistant.components import bluetooth
 
 from ..const import WRITE_UUID, NOTIFY_UUID, REDISCOVERY_ATTEMPTS, REDISCOVERY_DELAY
 from ..exceptions import BleLedPixelConnectionError
+
+# Set while a restore is running in the current task: the number of content
+# writes from elsewhere at the moment it began. See BluetoothClient.restoring().
+_RESTORE_SINCE: ContextVar[int | None] = ContextVar("ble_led_pixel_restore_since", default=None)
 
 try:
     from pypixelcolor.lib.transport.send_plan import send_plan as pypixelcolor_send_plan
@@ -63,6 +69,12 @@ class BluetoothClient:
         # Serializes connection attempts. Several entities updating at once
         # would otherwise each start their own connect and stampede the radio.
         self._connect_lock = asyncio.Lock()
+        # Serializes writes. A multi-window plan shares the AckManager's
+        # acknowledgement events with everything else on the link, so two
+        # sends at once interleave their chunks and steal each other's ACKs.
+        self._send_lock = asyncio.Lock()
+        # Writes that changed what the panel shows, not counting restores.
+        self._content_writes = 0
 
     def _disconnected_callback(self, client: BleakClientWithServiceCache) -> None:
         """Called when device disconnects."""
@@ -220,7 +232,7 @@ class BluetoothClient:
                 self._ack_mgr = None
                 self._extra_listeners = []
 
-    async def send_command(self, command: bytes) -> bool:
+    async def _send_command_unlocked(self, command: bytes) -> bool:
         """Send a small, single-packet command and log any response.
 
         Uses the persistent notification subscription (no stop/start
@@ -269,7 +281,7 @@ class BluetoothClient:
             if response_handler in self._extra_listeners:
                 self._extra_listeners.remove(response_handler)
 
-    async def send_command_wait_response(self, command: bytes, timeout: float = 5.0) -> bytes | None:
+    async def _send_command_wait_response_unlocked(self, command: bytes, timeout: float = 5.0) -> bytes | None:
         """Send a command and return the raw response bytes, if any arrive.
 
         Same persistent-notification mechanism as send_command(), but
@@ -309,7 +321,7 @@ class BluetoothClient:
             if response_handler in self._extra_listeners:
                 self._extra_listeners.remove(response_handler)
 
-    async def send_plan(self, plan, ack_timeout: float = 8.0) -> bool:
+    async def _send_plan_unlocked(self, plan, ack_timeout: float = 8.0) -> bool:
         """Send a pypixelcolor SendPlan using the library's own transport.
 
         Uses the persistent AckManager created in connect() (no stop/start
@@ -350,6 +362,75 @@ class BluetoothClient:
         except Exception as err:
             _LOGGER.error("Error sending plan '%s': %s", plan.id, err)
             return False
+
+    @contextlib.contextmanager
+    def restoring(self):
+        """Mark the sends made inside this block as a restore of saved state.
+
+        A restore must never replace content that was sent after it was
+        started. Its writes are therefore dropped, under the send lock, once
+        anything else has changed the panel's content since the block began.
+        """
+        token = _RESTORE_SINCE.set(self._content_writes)
+        try:
+            yield
+        finally:
+            _RESTORE_SINCE.reset(token)
+
+    def _claim_content_write(self) -> bool:
+        """Account for a content write; False when a restore is superseded.
+
+        Called with the send lock held, so the check and the write that
+        follows cannot be separated by another sender.
+        """
+        since = _RESTORE_SINCE.get()
+        if since is None:
+            self._content_writes += 1
+            return True
+        if self._content_writes != since:
+            _LOGGER.debug(
+                "Skipping restore write to %s: newer content was sent", self._address
+            )
+            return False
+        return True
+
+    async def send_command(self, command: bytes, content: bool = False) -> bool:
+        """Send a small, single-packet command and log any response.
+
+        Args:
+            command: Command bytes to send.
+            content: True for commands that change what the panel shows
+                (clock mode, presets, scoreboard), as opposed to settings
+                such as power, brightness or the password.
+
+        Raises:
+            BleLedPixelConnectionError: If not connected
+        """
+        async with self._send_lock:
+            if content and not self._claim_content_write():
+                return True
+            return await self._send_command_unlocked(command)
+
+    async def send_command_wait_response(self, command: bytes, timeout: float = 5.0) -> bytes | None:
+        """Send a command and return the raw response bytes, if any arrive.
+
+        Raises:
+            BleLedPixelConnectionError: If not connected.
+        """
+        async with self._send_lock:
+            return await self._send_command_wait_response_unlocked(command, timeout)
+
+    async def send_plan(self, plan, ack_timeout: float = 8.0) -> bool:
+        """Send a pypixelcolor SendPlan, one at a time on this link.
+
+        Raises:
+            BleLedPixelConnectionError: If not connected.
+            ImportError: If pypixelcolor is not available.
+        """
+        async with self._send_lock:
+            if not self._claim_content_write():
+                return True
+            return await self._send_plan_unlocked(plan, ack_timeout)
 
     @property
     def is_connected(self) -> bool:

@@ -12,6 +12,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
@@ -161,6 +162,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Once Home Assistant has started (entities restored, templates ready),
+    # send the restored settings so the panel matches what Home Assistant
+    # shows. A panel not connected by then gets them when its link comes up.
+    async def _restore_display() -> None:
+        from .common import restore_panel_display
+
+        try:
+            await restore_panel_display(hass, name, api)
+        except Exception as err:  # noqa: BLE001 - never fail over this
+            _LOGGER.warning("Could not restore the panel display: %s", err)
+
+    @callback
+    def _at_started(_hass: HomeAssistant) -> None:
+        api.call_when_connected(_restore_display)
+
+    entry.async_on_unload(async_at_started(hass, _at_started))
 
     return True
 
