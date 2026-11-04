@@ -77,6 +77,10 @@ except ImportError:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Erase everything stored on the panel (opcode 0x8003, deleteAllData in the
+# vendor app). See docs/protocol.md, A.8.
+DELETE_ALL_COMMAND = bytes([0x04, 0x00, 0x03, 0x80])
+
 
 class BleLedPixelAPI:
     """BLE LED pixel panel API client - simplified facade."""
@@ -128,6 +132,12 @@ class BleLedPixelAPI:
         # an older plan that comes back after newer content was asked for is
         # dropped instead of sent over it. See _claim_content.
         self._content_generation = 0
+        # Bumped by delete_all_slots, so a slot save that was requested before
+        # the erase but reaches the send lock after it is dropped instead of
+        # leaving the panel non-empty.
+        self._slot_epoch = 0
+        # The same per slot, bumped by delete_slot.
+        self._slot_epochs: dict[int, int] = {}
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
 
@@ -440,6 +450,15 @@ class BleLedPixelAPI:
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Reconnect task ended with: %s", err)
             self._reconnect_task = None
+
+    def _slot_save_check(self, slot: int) -> Callable[[], bool]:
+        """A check that neither this slot nor all slots were erased since."""
+        epoch = self._slot_epoch
+        slot_epoch = self._slot_epochs.get(slot, 0)
+        return lambda: (
+            epoch == self._slot_epoch
+            and slot_epoch == self._slot_epochs.get(slot, 0)
+        )
 
     def _claim_content(self) -> Callable[[], bool]:
         """Mark a new display request and return a check that it is still the latest.
@@ -977,8 +996,9 @@ class BleLedPixelAPI:
         """
         still_current = self._claim_content()
         if save_slot >= 1:
-            # Saving to a slot is storage, not just display: never drop it.
-            still_current = None
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             device_info = await self.get_device_info()
             width = device_info["width"]
@@ -1132,8 +1152,9 @@ class BleLedPixelAPI:
         """
         still_current = self._claim_content()
         if save_slot >= 1:
-            # Saving to a slot is storage, not just display: never drop it.
-            still_current = None
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             device_info = await self.get_device_info()
             width = device_info["width"]
@@ -1221,8 +1242,9 @@ class BleLedPixelAPI:
         """
         still_current = self._claim_content()
         if save_slot >= 1:
-            # Saving to a slot is storage, not just display: never drop it.
-            still_current = None
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             path = Path(file_path)
             file_bytes = await self._hass.async_add_executor_job(path.read_bytes)
@@ -1354,6 +1376,8 @@ class BleLedPixelAPI:
         if pypixelcolor_delete is None:
             _LOGGER.error("pypixelcolor is not available")
             return False
+        # A save to this slot still rendering would otherwise land after it.
+        self._slot_epochs[slot] = self._slot_epochs.get(slot, 0) + 1
         try:
             success = await self._bluetooth.send_plan(pypixelcolor_delete(slot))
             if success:
@@ -1364,6 +1388,26 @@ class BleLedPixelAPI:
         except Exception as err:
             _LOGGER.error("Error deleting slot %d: %s", slot, err)
             return False
+
+    async def delete_all_slots(self) -> bool:
+        """Erase everything stored on the panel (opcode 0x8003).
+
+        The vendor app calls this deleteAllData. The panel cannot report which
+        slots hold something, so this is the only way to a known-clean state.
+        """
+        # Earlier slot saves still rendering or waiting for the link would
+        # otherwise land after the erase.
+        self._slot_epoch += 1
+        try:
+            success = await self._send_with_reconnect(DELETE_ALL_COMMAND)
+        except Exception as err:  # noqa: BLE001 - reported as a failed action
+            _LOGGER.error("Error erasing stored content: %s", err)
+            return False
+        if success:
+            _LOGGER.info("Erased all stored content on %s", self._address)
+        else:
+            _LOGGER.error("Failed to erase stored content on %s", self._address)
+        return success
 
     @property
     def features(self) -> frozenset[str]:
@@ -1473,7 +1517,8 @@ class BleLedPixelAPI:
         animation: int = 0,
         speed: int = 80,
         rainbow_mode: int = 0,
-        font_size: int = 16
+        font_size: int = 16,
+        save_slot: int = 0,
     ) -> bool:
         """Display text using pypixelcolor.
 
@@ -1489,11 +1534,16 @@ class BleLedPixelAPI:
             speed: Animation speed (0-100)
             rainbow_mode: Rainbow mode (0-9)
             font_size: Font size (16, 32, 48, 64) defaults to 16
+            save_slot: If >= 1, also store the text in that slot.
 
         Returns:
             True if text was sent successfully
         """
         still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             # Get device info for height (honors options-flow override if set)
             base_info = await self.get_device_info()
@@ -1540,12 +1590,12 @@ class BleLedPixelAPI:
                     animation=animation,
                     speed=speed,
                     rainbow_mode=rainbow_mode,
-                    save_slot=0,
+                    save_slot=save_slot,
                     char_height=char_height,
                 )
             )
 
-            if not still_current():
+            if still_current is not None and not still_current():
                 _LOGGER.debug("Dropping text '%s': newer content superseded it", text)
                 return True
 

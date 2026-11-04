@@ -41,6 +41,18 @@ delete_slot:
           max: 255
           mode: box
 
+delete_all_slots:
+  name: Delete all stored content
+  description: >-
+    Erase everything stored on the panel: every saved picture and text,
+    including the content it shows when it powers up. The panel cannot report
+    which slots are in use, so this is the way to start from a clean state.
+    It cannot be undone.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+
 show_emoji:
   name: Show Emoji
   description: >
@@ -247,6 +259,17 @@ send_text:
         number:
           min: 0
           max: 9
+    save_slot:
+      name: Save Slot
+      description: >-
+        Also store the text in this memory slot (1-10) on the panel, so it can
+        be shown again with show_slot without resending it. 0 = don't save.
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 10
 
 send_test_pattern:
   name: "[DIAGNOSTIC] Send Test Pattern"

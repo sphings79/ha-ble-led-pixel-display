@@ -88,6 +88,15 @@ def async_setup_services(hass: HomeAssistant) -> None:
     service.async_register_platform_entity_service(
         hass,
         DOMAIN,
+        "delete_all_slots",
+        entity_domain=Platform.TEXT,
+        schema={},
+        func="async_delete_all_slots",
+    )
+
+    service.async_register_platform_entity_service(
+        hass,
+        DOMAIN,
         "show_emoji",
         entity_domain=Platform.TEXT,
         schema={
@@ -156,6 +165,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
             ),
             vol.Optional("speed", default=80): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=100)
+            ),
+            vol.Optional("save_slot", default=0): vol.All(
+                vol.Coerce(int), vol.Range(min=0, max=10)
             ),
             vol.Optional("rainbow_mode", default=0): vol.All(
                 vol.Coerce(int), vol.Range(min=0, max=9)

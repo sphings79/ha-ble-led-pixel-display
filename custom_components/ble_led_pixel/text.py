@@ -184,6 +184,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         animation: int = 0,
         speed: int = 80,
         rainbow_mode: int = 0,
+        save_slot: int = 0,
     ) -> None:
         """Send text using pypixelcolor's native renderer (service: send_text).
 
@@ -202,6 +203,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
                 32x32 panels or when turned on in the options.
             speed: Animation speed (0-100).
             rainbow_mode: Rainbow color-cycling mode (0-9).
+            save_slot: If 1-10, also store the text in that slot on the panel.
         """
         if (
             animation in VERTICAL_TEXT_EFFECTS.values()
@@ -224,6 +226,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
             animation=animation,
             speed=speed,
             rainbow_mode=rainbow_mode,
+            save_slot=save_slot,
         )
         if not success:
             _LOGGER.error("Failed to send text '%s'", text)
@@ -473,6 +476,11 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         if not await self._api.delete_slot(slot):
             _LOGGER.error("Failed to delete slot %d", slot)
             raise HomeAssistantError(f"Failed to delete slot {slot} - check the logs for details")
+
+    async def async_delete_all_slots(self) -> None:
+        """Erase everything stored on the panel (action: delete_all_slots)."""
+        if not await self._api.delete_all_slots():
+            raise HomeAssistantError("Failed to erase the panel's stored content - check the logs for details")
 
     async def async_update(self) -> None:
         """Update the entity state."""
