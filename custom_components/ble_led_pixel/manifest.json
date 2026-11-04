@@ -17,16 +17,17 @@
     }
   ],
   "codeowners": [
+    "@scyto",
     "@sphings79"
   ],
   "config_flow": true,
   "dependencies": [
     "bluetooth"
   ],
-  "documentation": "https://github.com/sphings79/ha-ble-led-pixel-display",
+  "documentation": "https://github.com/scyto/ha-ble-led-pixel-display",
   "integration_type": "device",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/sphings79/ha-ble-led-pixel-display/issues",
+  "issue_tracker": "https://github.com/scyto/ha-ble-led-pixel-display/issues",
   "loggers": [
     "custom_components.ble_led_pixel"
   ],
@@ -36,5 +37,5 @@
     "pypixelcolor>=0.5.0,<0.6",
     "resvg_py>=0.3.0"
   ],
-  "version": "2.3.7"
+  "version": "2.3.8"
 }
