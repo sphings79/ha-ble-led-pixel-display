@@ -11,7 +11,7 @@ from homeassistant.components import bluetooth as ha_bluetooth
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
@@ -30,6 +30,9 @@ PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.TEXT, Platform.SENSOR, Pl
 # waits for every integration, so an unresponsive panel must not stall it;
 # the reconnect watcher carries on in the background after this.
 SETUP_CONNECT_TIMEOUT = 15.0
+
+# Set up from the UI only; async_setup exists to register the actions.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 
