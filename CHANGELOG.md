@@ -127,10 +127,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
-## [Unreleased]
+## [2.3.8] - 2026-11-04
+
+First release from the scyto/ha-ble-led-pixel-display fork, based on 2.3.7.
 
 ### Fixed
 
+- **Two sends at once could corrupt each other.** Writes to the panel now
+  take turns, so a chunked image or text can no longer interleave with
+  another command and lose its acknowledgements.
 - **The power switch showed off for a panel that was plainly on.** The panel
   cannot report its power state and powers up on, but the switch always
   started off. It now starts on, and after a restart restores the last state
@@ -140,6 +145,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   restored text. Once Home Assistant has started, the restored settings are
   sent to the panel, if Auto Update is on and the power switch is not off. A
   panel that is not connected yet gets them as soon as its link comes up.
+  Anything sent meanwhile, such as a start-up automation, wins over the
+  restore.
+
+### Changed
+
+- `pillow` is no longer listed as a requirement; Home Assistant ships it.
+- Issues and documentation now point at this fork.
+- CI: HACS and hassfest validation, unit tests, and a release workflow that
+  publishes when the manifest version changes.
 
 ## [2.3.7] - 2026-11-01
 
