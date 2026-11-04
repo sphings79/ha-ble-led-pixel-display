@@ -9,8 +9,10 @@ from typing import Any
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
+from homeassistant.helpers.restore_state import async_get as restore_state_data
 
 from .api import BleLedPixelAPI
 from .const import (
@@ -20,9 +22,11 @@ from .const import (
     DEFAULT_MODE,
     DEFAULT_TEXT_EFFECT,
     DEFAULT_TEXT_GRADIENT,
+    DEFAULT_TEXT_SIZE,
     DOMAIN,
     TEXT_EFFECTS,
     TEXT_GRADIENTS,
+    text_size_from_font_size,
 )
 from .device_types import clock_style_count
 from .entity import panel_device_info
@@ -50,6 +54,7 @@ async def async_setup_entry(
         BleLedPixelClockStyleSelect(hass, api, entry, address, name),
         BleLedPixelTextEffectSelect(hass, api, entry, address, name),
         BleLedPixelTextGradientSelect(hass, api, entry, address, name),
+        BleLedPixelTextSizeSelect(hass, api, entry, address, name),
     ])
 
 
@@ -456,3 +461,131 @@ class BleLedPixelTextGradientSelect(SelectEntity, RestoreEntity):
                 await update_panel_display(self.hass, self._name, self._api)
         except Exception as err:  # noqa: BLE001 - a refresh must not break the select
             _LOGGER.debug("Could not refresh after the gradient change: %s", err)
+
+
+async def _refresh_if_showing_text(hass: HomeAssistant, address: str, name: str, api: BleLedPixelAPI) -> None:
+    """Refresh the panel when auto-update is on and it is in text mode."""
+    mode_entity_id = get_entity_id_by_unique_id(hass, address, "mode_select", "select")
+    mode_state = hass.states.get(mode_entity_id) if mode_entity_id else None
+    if not mode_state or mode_state.state != "text":
+        return
+    auto_entity_id = get_entity_id_by_unique_id(hass, address, "auto_update", "switch")
+    auto_state = hass.states.get(auto_entity_id) if auto_entity_id else None
+    if auto_state and auto_state.state == "on":
+        await update_panel_display(hass, name, api)
+
+
+def _stored_state(hass: HomeAssistant, entity_id: str):
+    """The state saved at shutdown for an entity, across HA versions.
+
+    Older releases index saved states by entity id in ``last_states``; newer
+    ones keep registered entities under their registry id instead.
+    """
+    data = restore_state_data(hass)
+    by_entity_id = getattr(data, "last_states", None)
+    if by_entity_id is None:
+        by_entity_id = getattr(data, "last_states_by_entity_id", {})
+    stored = by_entity_id.get(entity_id)
+    by_registry_id = getattr(data, "last_states_by_entity_registry_id", None)
+    if stored is None and by_registry_id is not None:
+        entry = er.async_get(hass).async_get(entity_id)
+        if entry is not None:
+            stored = by_registry_id.get(entry.id)
+    return stored
+
+
+class BleLedPixelTextSizeSelect(SelectEntity, RestoreEntity):
+    """Character height in text mode.
+
+    The panel draws text mode itself, in whole 16px rows, so only 16, 32, 48
+    and 64 differ, and only the ones that fit the panel are offered. The
+    finer-grained Image Font Size number is for the textimage mode, which
+    this integration renders itself.
+
+    On the first start after upgrading, the size is taken from what the
+    Image Font Size number amounted to in text mode, so text looks the same
+    as before.
+    """
+
+    _attr_icon = "mdi:format-size"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: BleLedPixelAPI,
+        entry: ConfigEntry,
+        address: str,
+        name: str,
+    ) -> None:
+        """Initialize the text size select."""
+        self.hass = hass
+        self._api = api
+        self._entry = entry
+        self._address = address
+        self._name = name
+        self._attr_name = "Text Size"
+        self._attr_unique_id = f"{address}_text_size_select"
+        self._chosen: int | None = None
+        self._attr_device_info = panel_device_info(api, address, name)
+
+    @property
+    def options(self) -> list[str]:
+        """Sizes that fit the panel."""
+        return [str(size) for size in self._api.text_sizes]
+
+    @property
+    def size(self) -> int:
+        """The size text mode uses, always one the panel can show."""
+        sizes = self._api.text_sizes
+        wanted = self._chosen if self._chosen is not None else DEFAULT_TEXT_SIZE
+        fitting = [size for size in sizes if size <= wanted]
+        return fitting[-1] if fitting else sizes[0]
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the size in use."""
+        return str(self.size)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the previous selection, or migrate from the number."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is not None:
+            try:
+                self._chosen = int(last_state.state)
+                return
+            except (TypeError, ValueError):
+                pass
+        self._chosen = self._migrated_size()
+
+    def _migrated_size(self) -> int:
+        """Text size the Image Font Size number gave text mode before 2.4.
+
+        Read from the saved state rather than the live one, because the
+        number platform is set up after this one.
+        """
+        entity_id = get_entity_id_by_unique_id(self.hass, self._address, "font_size", "number")
+        if not entity_id:
+            return DEFAULT_TEXT_SIZE
+        try:
+            stored = _stored_state(self.hass, entity_id)
+            value = float(stored.state.state) if stored else None
+        except Exception:  # noqa: BLE001 - internal API; losing the migration is fine
+            value = None
+        size = text_size_from_font_size(value)
+        if size != DEFAULT_TEXT_SIZE:
+            _LOGGER.info("Text size set to %spx from the old Font Size", size)
+        return size
+
+    async def async_select_option(self, option: str) -> None:
+        """Pick a size and refresh the display if it is showing text."""
+        if option not in self.options:
+            _LOGGER.error("Text size %s does not fit this panel", option)
+            return
+        self._chosen = int(option)
+        self.async_write_ha_state()
+        _LOGGER.info("Text size changed to: %s", option)
+        try:
+            await _refresh_if_showing_text(self.hass, self._address, self._name, self._api)
+        except Exception as err:  # noqa: BLE001 - a refresh must not break the select
+            _LOGGER.debug("Could not refresh after the text size change: %s", err)

@@ -115,3 +115,22 @@ TEXT_GRADIENTS: dict[str, int] = {
 }
 
 DEFAULT_TEXT_GRADIENT = "Off"
+
+# Text mode is drawn by the panel's firmware in whole 16px rows, so these are
+# the only character heights that differ. Taller than the panel is useless.
+TEXT_SIZES: tuple[int, ...] = (16, 32, 48, 64)
+DEFAULT_TEXT_SIZE = 16
+
+
+def text_sizes_for_height(height: int | None) -> list[int]:
+    """Text sizes that fit a panel of this height; all of them if unknown."""
+    if not height:
+        return list(TEXT_SIZES)
+    return [size for size in TEXT_SIZES if size <= height] or [DEFAULT_TEXT_SIZE]
+
+
+def text_size_from_font_size(font_size: float | None) -> int:
+    """The text size the old Font Size number amounted to in text mode."""
+    if not font_size or font_size < DEFAULT_TEXT_SIZE:
+        return DEFAULT_TEXT_SIZE
+    return min(int(font_size // 16) * 16, TEXT_SIZES[-1])

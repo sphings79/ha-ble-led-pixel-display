@@ -63,6 +63,7 @@ from .const import (
     OPT_OVERRIDE_DIMENSIONS,
     OPT_PANEL_HEIGHT,
     OPT_PANEL_WIDTH,
+    text_sizes_for_height,
 )
 
 try:
@@ -612,6 +613,22 @@ class BleLedPixelAPI:
         self._hass.async_create_task(
             async_report_unknown_panel(self._hass, self._address, self._device_info)
         )
+
+    @property
+    def text_sizes(self) -> list[int]:
+        """Text-mode character heights this panel can show."""
+        if self._device_info is None:
+            # Not queried yet (panel offline at setup). A height override
+            # already says how tall it is.
+            options = self._entry.options if self._entry is not None else {}
+            if options.get(OPT_OVERRIDE_DIMENSIONS) and options.get(OPT_PANEL_HEIGHT):
+                return text_sizes_for_height(options[OPT_PANEL_HEIGHT])
+            return text_sizes_for_height(None)
+        try:
+            _, height = self._resolved_dimensions(self._device_info)
+        except (KeyError, TypeError):
+            return text_sizes_for_height(None)
+        return text_sizes_for_height(height)
 
     @property
     def device_info(self) -> dict[str, Any] | None:

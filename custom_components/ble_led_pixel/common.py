@@ -15,6 +15,7 @@ from .const import (
     MODE_TEXT_IMAGE,
     TEXT_EFFECTS,
     TEXT_GRADIENTS,
+    text_size_from_font_size,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -389,14 +390,21 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         if speed is None:
             speed = 80  # Default speed
 
-        # Font size. Missing when the entity has not been created yet or is
-        # unavailable, which is the normal state of a panel that is offline --
-        # so this has to survive None. 16 matches both the API's own default
-        # and the smallest size it will accept.
-        font_size = await _get_entity_setting(hass, device_name, "number", "font_size", float, api._address)
-        if font_size is None:
-            font_size = 16
-        font_size = int(font_size)
+        # Character height, from the Text Size select. Missing when the entity
+        # has not been created yet or is unavailable (a panel that is offline),
+        # and then the Image Font Size number decides, as it did before the
+        # select existed. The API rounds whatever it gets to what text mode
+        # can draw.
+        text_size = await _get_entity_setting(
+            hass, device_name, "select", "text_size_select", int, api._address
+        )
+        if text_size:
+            font_size = text_size
+        else:
+            font_size = await _get_entity_setting(
+                hass, device_name, "number", "font_size", float, api._address
+            )
+            font_size = text_size_from_font_size(font_size)
 
         # Line spacing is a property of the picture this integration renders
         # itself, and text mode does not render one: the panel receives a

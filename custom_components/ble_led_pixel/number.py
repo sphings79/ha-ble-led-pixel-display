@@ -38,7 +38,12 @@ async def async_setup_entry(
 
 
 class BleLedPixelFontSize(NumberEntity, RestoreEntity):
-    """Representation of an BLE LED Pixel Display font size setting."""
+    """Font size for the textimage mode, which this integration renders.
+
+    Text mode uses the Text Size select instead: the panel draws that mode
+    itself and only in whole 16px rows. The entity id is unchanged so
+    existing dashboards and automations keep working.
+    """
 
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0.0  # 0 = auto-sizing
@@ -58,7 +63,7 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Font Size"
+        self._attr_name = "Image Font Size"
         self._attr_unique_id = f"{address}_font_size"
         self._attr_native_value = 0.0  # 0 means auto-sizing
 
