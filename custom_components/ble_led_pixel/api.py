@@ -161,6 +161,10 @@ class BleLedPixelAPI:
                 await self._run_on_connected()
         return connected
 
+    def restoring(self):
+        """Context manager: sends inside it give way to newer content."""
+        return self._bluetooth.restoring()
+
     def call_when_connected(self, job: Callable[[], Awaitable[Any]]) -> None:
         """Run `job` once: now if the link is up, else when it next comes up.
 
@@ -422,7 +426,7 @@ class BleLedPixelAPI:
                 _LOGGER.debug("Reconnect task ended with: %s", err)
             self._reconnect_task = None
 
-    async def _send_with_reconnect(self, command: bytes) -> bool:
+    async def _send_with_reconnect(self, command: bytes, content: bool = False) -> bool:
         """Send a command, reconnecting once when the link turns out to be dead.
 
         A connection can die between the availability check and the write. In
@@ -430,12 +434,12 @@ class BleLedPixelAPI:
         leaving the panel stale until someone reloads the integration.
         """
         try:
-            if await self._bluetooth.send_command(command):
+            if await self._bluetooth.send_command(command, content=content):
                 return True
         except BleLedPixelConnectionError:
             pass
         if await self.ensure_connected():
-            return await self._bluetooth.send_command(command)
+            return await self._bluetooth.send_command(command, content=content)
         return False
 
     async def set_power(self, on: bool) -> bool:
@@ -518,7 +522,7 @@ class BleLedPixelAPI:
         try:
             # Set clock mode
             command = make_clock_mode_command(style, date, show_date, format_24)
-            success = await self._send_with_reconnect(command)
+            success = await self._send_with_reconnect(command, content=True)
 
             if not success:
                 _LOGGER.error("Failed to set clock mode")
@@ -1274,7 +1278,7 @@ class BleLedPixelAPI:
                 f"not offer it for this model either. If yours does have it, "
                 f"turn on the feature override in the integration options."
             )
-        success = await self._send_with_reconnect(command)
+        success = await self._send_with_reconnect(command, content=True)
         if success:
             _LOGGER.debug("%s", description)
         else:

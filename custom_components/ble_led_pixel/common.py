@@ -135,7 +135,10 @@ async def restore_panel_display(hass: HomeAssistant, device_name: str, api) -> b
         _LOGGER.debug("Panel switched off; not restoring the panel display")
         return False
     _LOGGER.info("Restoring the panel display from Home Assistant's saved settings")
-    return await update_panel_display(hass, device_name, api)
+    # Anything sent meanwhile -- a start-up automation, a send_text action --
+    # is newer than the saved settings and must stay on the panel.
+    with api.restoring():
+        return await update_panel_display(hass, device_name, api)
 
 
 async def update_panel_display(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:

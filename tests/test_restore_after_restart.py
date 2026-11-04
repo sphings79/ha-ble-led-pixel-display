@@ -1,5 +1,6 @@
 """Power-state restore, the one-shot connect hook, and the send lock."""
 import asyncio
+import contextlib
 from types import SimpleNamespace
 
 import pytest
@@ -135,14 +136,22 @@ def test_restore_display_respects_auto_update_and_power(monkeypatch, auto, power
 
     monkeypatch.setattr(common, "update_panel_display", fake_update)
     hass = SimpleNamespace(states=FakeStates({"switch.auto": auto, "switch.power": power}))
-    result = run(common.restore_panel_display(hass, "Panel", SimpleNamespace(_address="AA:BB")))
+    fake_api = SimpleNamespace(_address="AA:BB", restoring=contextlib.nullcontext)
+    result = run(common.restore_panel_display(hass, "Panel", fake_api))
     assert result is sent
     assert calls == (["Panel"] if sent else [])
 
 
-def test_sends_never_overlap():
+def _client():
     client = BluetoothClient.__new__(BluetoothClient)
     client._send_lock = asyncio.Lock()
+    client._content_writes = 0
+    client._address = "AA:BB"
+    return client
+
+
+def test_sends_never_overlap():
+    client = _client()
     active = []
     overlaps = []
 
@@ -166,3 +175,51 @@ def test_sends_never_overlap():
 
     asyncio.run(main())
     assert overlaps == []
+
+
+def test_restore_gives_way_to_newer_content():
+    client = _client()
+    sent = []
+
+    async def record(plan, *args):
+        sent.append(plan)
+        return True
+
+    client._send_plan_unlocked = record
+
+    async def restore():
+        with client.restoring():
+            await client.send_plan("restore-1")
+            await asyncio.sleep(0.01)        # an automation sends meanwhile
+            await client.send_plan("restore-2")
+
+    async def automation():
+        await asyncio.sleep(0.005)
+        await client.send_plan("automation")
+
+    async def main():
+        await asyncio.gather(restore(), automation())
+
+    asyncio.run(main())
+    assert sent == ["restore-1", "automation"]
+
+
+def test_restore_alone_sends_everything():
+    client = _client()
+    sent = []
+
+    async def record(plan, *args):
+        sent.append(plan)
+        return True
+
+    client._send_plan_unlocked = record
+
+    async def restore():
+        with client.restoring():
+            await client.send_plan("a")
+            await client.send_plan("b")
+
+    asyncio.run(restore())
+    assert sent == ["a", "b"]
+    # Restore writes are not counted, so a later restore is not blocked.
+    assert client._content_writes == 0
