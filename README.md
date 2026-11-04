@@ -183,9 +183,12 @@ The panel animates text seven ways. Pick one with the **Text Effect** entity —
 Fixed, Scroll left, Scroll right, Blinking, Breathing, Snowflake or Laser — and
 it applies the next time the display refreshes.
 
-Codes 3 and 4 exist but are not offered. `pypixelcolor` refuses them on
-anything but a 32×32 panel because they can put a device into a boot loop, and
-no source names them.
+**Scroll up** and **Scroll down** (codes 3 and 4) are offered on 32×32 panels.
+On other panels they are off unless you turn on *Offer scroll up and scroll
+down text effects* in the integration options. `pypixelcolor` warns that they
+can put some devices into a boot loop outside 32×32, but they work on at least
+the 64×20 panel (Type 133). Turn the option on at your own risk, and turn it
+off again if your panel misbehaves.
 
 ### Text gradients
 

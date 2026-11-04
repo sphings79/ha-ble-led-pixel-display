@@ -30,6 +30,9 @@ OPT_PANEL_HEIGHT = "panel_height"
 # Turns on the presets, scoreboard, countdown and stopwatch actions for a
 # panel the feature table does not know. See capabilities.py.
 OPT_FORCE_FEATURES = "force_features"
+# Offer the vertical scroll effects (codes 3 and 4) on panels that are not
+# 32x32. Off by default -- see VERTICAL_TEXT_EFFECTS.
+OPT_VERTICAL_SCROLL = "vertical_scroll"
 # Password for a panel that was locked from the vendor app. Sent after
 # every connect, because the panel forgets it when the link drops.
 OPT_PASSWORD = "password"
@@ -64,10 +67,8 @@ RECONNECT_BACKOFF_MAX = 30    # seconds; the backoff doubles up to this cap
 
 # Text effects, by the names the vendor's own tooling uses.
 #
-# Codes 3 and 4 are deliberately absent. pypixelcolor refuses them on anything
-# but a 32x32 panel because they can put a device into a boot loop, and no
-# source names them -- offering an unnamed option that bricks some panels is
-# not worth the two extra entries.
+# Codes 3 and 4 (scroll up/down) are kept apart in VERTICAL_TEXT_EFFECTS below
+# and only offered where they are known or chosen to be safe.
 #
 # The range runs to 8, not 7: every table reconstructed from captured traffic
 # stopped one short, so the Laser effect was unreachable until it turned up in
@@ -82,7 +83,27 @@ TEXT_EFFECTS: dict[str, int] = {
     "Laser": 8,
 }
 
-TEXT_EFFECT_CODES: dict[int, str] = {code: name for name, code in TEXT_EFFECTS.items()}
+# Codes 3 and 4 scroll the text up and down. pypixelcolor refuses them on
+# anything but a 32x32 panel, warning that they can boot-loop a device, but
+# that check only runs when it is handed the panel's dimensions, which this
+# integration does not do. They work on at least a 64x20 panel (Type 133), so
+# they are offered on 32x32 panels and, as an opt-in in the options, on others.
+VERTICAL_TEXT_EFFECTS: dict[str, int] = {
+    "Scroll up": 3,
+    "Scroll down": 4,
+}
+
+ALL_TEXT_EFFECTS: dict[str, int] = dict(
+    sorted({**TEXT_EFFECTS, **VERTICAL_TEXT_EFFECTS}.items(), key=lambda item: item[1])
+)
+
+
+def text_effects(vertical: bool) -> dict[str, int]:
+    """The effects to offer, in code order, with or without vertical scroll."""
+    return dict(ALL_TEXT_EFFECTS) if vertical else dict(TEXT_EFFECTS)
+
+
+TEXT_EFFECT_CODES: dict[int, str] = {code: name for name, code in ALL_TEXT_EFFECTS.items()}
 
 DEFAULT_TEXT_EFFECT = "Fixed"
 

@@ -26,6 +26,7 @@ from .const import (
     OPT_PANEL_WIDTH,
     OPT_PANEL_HEIGHT,
     OPT_FORCE_FEATURES,
+    OPT_VERTICAL_SCROLL,
     OPT_PASSWORD,
 )
 
@@ -384,6 +385,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     OPT_FORCE_FEATURES,
                     default=current.get(OPT_FORCE_FEATURES, False),
+                ): bool,
+                vol.Optional(
+                    OPT_VERTICAL_SCROLL,
+                    default=current.get(OPT_VERTICAL_SCROLL, False),
                 ): bool,
                 # Only needed for a panel that was locked from the vendor app.
                 # Masked, because it is a secret even if a short one.

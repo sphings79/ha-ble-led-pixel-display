@@ -14,6 +14,7 @@ from .const import (
     MODE_TEXT,
     MODE_TEXT_IMAGE,
     TEXT_EFFECTS,
+    text_effects,
     TEXT_GRADIENTS,
     text_size_from_font_size,
 )
@@ -383,7 +384,9 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         effect_name = await _get_entity_setting(
             hass, device_name, "select", "text_effect_select", str, api._address
         )
-        animation = TEXT_EFFECTS.get(effect_name, TEXT_EFFECTS[DEFAULT_TEXT_EFFECT])
+        animation = text_effects(await api.async_vertical_scroll_allowed()).get(
+            effect_name, TEXT_EFFECTS[DEFAULT_TEXT_EFFECT]
+        )
 
         # Speed - need new number entity
         speed = await _get_entity_setting(hass, device_name, "number", "text_speed", int, api._address)

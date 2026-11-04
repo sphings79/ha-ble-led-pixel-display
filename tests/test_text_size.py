@@ -38,10 +38,13 @@ def test_old_font_size_maps_to_what_text_mode_drew(font_size, size):
 class FakeAPI:
     _resolved_dimensions = api_module.BleLedPixelAPI._resolved_dimensions
     text_sizes = api_module.BleLedPixelAPI.text_sizes
+    _known_dimensions = api_module.BleLedPixelAPI._known_dimensions
+    add_device_info_listener = api_module.BleLedPixelAPI.add_device_info_listener
 
     def __init__(self, height=None, options=None):
         self._device_info = None if height is None else {"width": 64, "height": height}
         self._entry = SimpleNamespace(options=options or {})
+        self._device_info_listeners = []
 
 
 def test_api_honours_the_height_override():
@@ -69,7 +72,13 @@ def make_select(monkeypatch, api, number_state=None, last_state=None):
     entity._address = "AA"
     entity._name = "Panel"
     entity._chosen = None
-    entity.async_write_ha_state = lambda: None
+    entity.writes = 0
+
+    def write():
+        entity.writes += 1
+
+    entity.async_write_ha_state = write
+    entity.async_on_remove = lambda remover: None
 
     async def get_last_state():
         return None if last_state is None else SimpleNamespace(state=last_state)
@@ -120,3 +129,15 @@ def test_saved_state_found_by_registry_id_on_newer_home_assistant(monkeypatch):
     registry = SimpleNamespace(async_get=lambda entity_id: SimpleNamespace(id="reg1"))
     monkeypatch.setattr(select.er, "async_get", lambda hass: registry, raising=False)
     assert select._stored_state(None, "number.panel_font_size") is stored
+
+
+def test_sizes_are_published_once_the_panel_height_is_known(monkeypatch):
+    api = FakeAPI()
+    entity = make_select(monkeypatch, api)
+    entity.hass = SimpleNamespace()
+    assert entity.options == ["16", "32", "48", "64"]
+    api._device_info = {"width": 64, "height": 20}
+    for listener in api._device_info_listeners:
+        listener()
+    assert entity.options == ["16"]
+    assert entity.writes == 1

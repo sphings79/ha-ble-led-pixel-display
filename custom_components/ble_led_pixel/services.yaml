@@ -202,9 +202,9 @@ send_text:
     animation:
       name: Animation
       description: >-
-        Effect the panel applies to the text. Values 3 and 4 are rejected by
-        the library on panels that are not 32x32, to avoid a device bootloop,
-        so they are not offered here.
+        Effect the panel applies to the text. Scroll up and scroll down work
+        on 32x32 panels; on others they must first be turned on in the
+        integration options, and the action fails otherwise.
       required: false
       default: 0
       selector:
@@ -216,6 +216,10 @@ send_text:
               value: "1"
             - label: "Scroll right"
               value: "2"
+            - label: "Scroll up"
+              value: "3"
+            - label: "Scroll down"
+              value: "4"
             - label: "Blinking"
               value: "5"
             - label: "Breathing"

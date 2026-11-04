@@ -8,7 +8,7 @@ from typing import Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -16,6 +16,7 @@ from homeassistant.helpers.restore_state import async_get as restore_state_data
 
 from .api import BleLedPixelAPI
 from .const import (
+    ALL_TEXT_EFFECTS,
     AVAILABLE_MODES,
     CONF_ADDRESS,
     CONF_NAME,
@@ -25,6 +26,7 @@ from .const import (
     DEFAULT_TEXT_SIZE,
     DOMAIN,
     TEXT_EFFECTS,
+    text_effects,
     TEXT_GRADIENTS,
     text_size_from_font_size,
 )
@@ -312,7 +314,6 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
 
         self._attr_name = "Text Effect"
         self._attr_unique_id = f"{address}_text_effect_select"
-        self._attr_options = list(TEXT_EFFECTS)
         self._attr_current_option = DEFAULT_TEXT_EFFECT
 
         self._attr_device_info = panel_device_info(api, address, name)
@@ -320,10 +321,15 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Restore the previous selection."""
         await super().async_added_to_hass()
+        self.async_on_remove(self._api.add_device_info_listener(self._panel_info_known))
         last_state = await self.async_get_last_state()
         if last_state is None:
             return
-        if last_state.state in self._attr_options:
+        # Scroll up/down only while allowed -- or while the panel size is
+        # still unknown, in which case _panel_info_known settles it.
+        if last_state.state in self.options or (
+            last_state.state in ALL_TEXT_EFFECTS and self._api.device_info is None
+        ):
             self._attr_current_option = last_state.state
             _LOGGER.debug("Restored text effect: %s", self._attr_current_option)
             return
@@ -332,11 +338,32 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
             code = int(float(last_state.state))
         except (TypeError, ValueError):
             return
-        for name, value in TEXT_EFFECTS.items():
+        for name, value in text_effects(self._api.vertical_scroll_allowed).items():
             if value == code:
                 self._attr_current_option = name
                 _LOGGER.debug("Migrated text effect %s to %s", code, name)
                 return
+
+    @callback
+    def _panel_info_known(self) -> None:
+        """Publish the options for the now-known panel size."""
+        if self._attr_current_option not in self.options:
+            _LOGGER.info(
+                "Text effect %s is not available on this panel; using %s",
+                self._attr_current_option, DEFAULT_TEXT_EFFECT,
+            )
+            self._attr_current_option = DEFAULT_TEXT_EFFECT
+        if self.hass is not None:
+            self.async_write_ha_state()
+
+    @property
+    def options(self) -> list[str]:
+        """Effects for this panel.
+
+        Read each time, so a 32x32 panel that was out of reach at setup gains
+        scroll up/down once its size is known.
+        """
+        return list(text_effects(self._api.vertical_scroll_allowed))
 
     @property
     def current_option(self) -> str | None:
@@ -345,7 +372,7 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Select an effect and refresh the display if it is showing text."""
-        if option not in self._attr_options:
+        if option not in self.options:
             _LOGGER.error("Unknown text effect: %s", option)
             return
         self._attr_current_option = option
@@ -549,6 +576,7 @@ class BleLedPixelTextSizeSelect(SelectEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Restore the previous selection, or migrate from the number."""
         await super().async_added_to_hass()
+        self.async_on_remove(self._api.add_device_info_listener(self._panel_info_known))
         last_state = await self.async_get_last_state()
         if last_state is not None:
             try:
@@ -557,6 +585,12 @@ class BleLedPixelTextSizeSelect(SelectEntity, RestoreEntity):
             except (TypeError, ValueError):
                 pass
         self._chosen = self._migrated_size()
+
+    @callback
+    def _panel_info_known(self) -> None:
+        """Publish the sizes that fit, now that the panel height is known."""
+        if self.hass is not None:
+            self.async_write_ha_state()
 
     def _migrated_size(self) -> int:
         """Text size the Image Font Size number gave text mode before 2.4.

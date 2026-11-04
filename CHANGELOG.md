@@ -137,6 +137,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Font Size number, which accepts 0.5px steps that text mode silently rounded
   away. On the first start, Text Size is set from that number so nothing
   changes visually.
+- **Scroll up and Scroll down text effects** (codes 3 and 4). Offered on
+  32x32 panels; on others, turn on *Offer scroll up and scroll down text
+  effects* in the options. They work on the 64x20 panel (Type 133), though
+  pypixelcolor warns they can boot-loop some devices outside 32x32. The
+  `send_text` action lists them too and refuses them while they are off.
 
 ### Changed
 

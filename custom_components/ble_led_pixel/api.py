@@ -60,6 +60,7 @@ from .exceptions import BleLedPixelConnectionError, BleLedPixelFeatureUnsupporte
 from .const import (
     OPT_FORCE_FEATURES,
     OPT_PASSWORD,
+    OPT_VERTICAL_SCROLL,
     OPT_OVERRIDE_DIMENSIONS,
     OPT_PANEL_HEIGHT,
     OPT_PANEL_WIDTH,
@@ -112,6 +113,9 @@ class BleLedPixelAPI:
         # One-shot callbacks waiting for the link to come up; see
         # call_when_connected().
         self._on_connected: list[Callable[[], Awaitable[Any]]] = []
+        # Called once the panel has told us its size, for entities whose
+        # options depend on it and were set up before it was known.
+        self._device_info_listeners: list[Callable[[], None]] = []
         # Options this instance was set up with; __init__ compares against it
         # so an entry.data change does not trigger a reload.
         self.setup_options: dict[str, Any] = {}
@@ -614,20 +618,64 @@ class BleLedPixelAPI:
             async_report_unknown_panel(self._hass, self._address, self._device_info)
         )
 
+    def _known_dimensions(self) -> tuple[int | None, int | None]:
+        """(width, height) as far as known, either one None when unknown.
+
+        From the panel's own answer with the options-flow override applied,
+        or -- before the panel has been queried, e.g. it was offline at setup
+        -- from the override alone.
+        """
+        if self._device_info is not None:
+            try:
+                return self._resolved_dimensions(self._device_info)
+            except (KeyError, TypeError):
+                return None, None
+        options = self._entry.options if self._entry is not None else {}
+        if not options.get(OPT_OVERRIDE_DIMENSIONS):
+            return None, None
+        return options.get(OPT_PANEL_WIDTH) or None, options.get(OPT_PANEL_HEIGHT) or None
+
+    @property
+    def vertical_scroll_allowed(self) -> bool:
+        """Whether the Scroll up/down text effects may be used on this panel.
+
+        Always on a 32x32 panel, which pypixelcolor itself allows; elsewhere
+        only when turned on in the options.
+        """
+        if self._entry is not None and self._entry.options.get(OPT_VERTICAL_SCROLL):
+            return True
+        return self._known_dimensions() == (32, 32)
+
+    def add_device_info_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Call listener when the panel reports its info; returns a remover."""
+        self._device_info_listeners.append(listener)
+
+        def remove() -> None:
+            if listener in self._device_info_listeners:
+                self._device_info_listeners.remove(listener)
+
+        return remove
+
+    async def async_vertical_scroll_allowed(self) -> bool:
+        """Like vertical_scroll_allowed, but asks the panel its size first.
+
+        A panel that was out of reach at setup has no size yet, and a 32x32
+        one would be refused scroll up/down until something else happened to
+        query it.
+        """
+        if self.vertical_scroll_allowed or self._device_info is not None:
+            return self.vertical_scroll_allowed
+        try:
+            if await self.ensure_connected():
+                await self.get_device_info()
+        except Exception as err:  # noqa: BLE001 - unknown size just means "not allowed"
+            _LOGGER.debug("Could not read the panel size: %s", err)
+        return self.vertical_scroll_allowed
+
     @property
     def text_sizes(self) -> list[int]:
         """Text-mode character heights this panel can show."""
-        if self._device_info is None:
-            # Not queried yet (panel offline at setup). A height override
-            # already says how tall it is.
-            options = self._entry.options if self._entry is not None else {}
-            if options.get(OPT_OVERRIDE_DIMENSIONS) and options.get(OPT_PANEL_HEIGHT):
-                return text_sizes_for_height(options[OPT_PANEL_HEIGHT])
-            return text_sizes_for_height(None)
-        try:
-            _, height = self._resolved_dimensions(self._device_info)
-        except (KeyError, TypeError):
-            return text_sizes_for_height(None)
+        _, height = self._known_dimensions()
         return text_sizes_for_height(height)
 
     @property
@@ -780,6 +828,7 @@ class BleLedPixelAPI:
                     self._device_info["brand"] = identity.brand
                     await self._read_firmware()
                     _LOGGER.info("Device info retrieved on attempt %d: %s", attempt + 1, self._device_info)
+                    self._notify_device_info()
                     return self._device_info
 
                 raise Exception("No response received")
@@ -810,7 +859,16 @@ class BleLedPixelAPI:
             "cidpid": None,
             "brand": None,
         }
+        # Cached like a real answer, so this is the size from now on too.
+        self._notify_device_info()
         return self._device_info
+
+    def _notify_device_info(self) -> None:
+        for listener in list(self._device_info_listeners):
+            try:
+                listener()
+            except Exception:  # noqa: BLE001 - one entity must not break the query
+                _LOGGER.exception("Device info listener failed")
     
     async def display_text(self, text: str, antialias: bool = True, font_size: float | None = None, font: str | None = None, line_spacing: int = 0, text_color: str = "ffffff", bg_color: str = "000000") -> bool:
         """Display text as image using PIL and pypixelcolor with color gradient mapping.

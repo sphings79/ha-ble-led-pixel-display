@@ -7,7 +7,8 @@
         "data": {
           "override_dimensions": "Forcer les dimensions du panneau",
           "panel_width": "Largeur du panneau (pixels, 0 = valeur du firmware)",
-          "panel_height": "Hauteur du panneau (pixels, 0 = valeur du firmware)"
+          "panel_height": "Hauteur du panneau (pixels, 0 = valeur du firmware)",
+          "vertical_scroll": "Proposer les effets de texte défilement vers le haut et vers le bas (toujours actifs sur les panneaux 32x32)"
         }
       }
     }
