@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
 from math import floor
@@ -104,6 +105,9 @@ class BleLedPixelAPI:
         self._unsubscribe_bluetooth = None
         self._unsubscribe_identity = None
         self._power_state = False
+        # One-shot callbacks waiting for the link to come up; see
+        # call_when_connected().
+        self._on_connected: list[Callable[[], Awaitable[Any]]] = []
         # Options this instance was set up with; __init__ compares against it
         # so an entry.data change does not trigger a reload.
         self.setup_options: dict[str, Any] = {}
@@ -129,6 +133,7 @@ class BleLedPixelAPI:
         connected = await self._bluetooth.connect(self._notification_handler)
         if connected:
             await self._unlock_if_needed()
+            self._run_on_connected()
         return connected
     
     async def disconnect(self) -> None:
@@ -149,7 +154,27 @@ class BleLedPixelAPI:
                     "Link to LED panel %s restored while sending", self._address
                 )
             await self._unlock_if_needed()
+            if not was_connected:
+                self._run_on_connected()
         return connected
+
+    def call_when_connected(self, job: Callable[[], Awaitable[Any]]) -> None:
+        """Run `job` once, now if the link is up, else when it next comes up.
+
+        The job runs as a background task, so it can send to the panel
+        without re-entering the connect path that triggered it.
+        """
+        self._on_connected.append(job)
+        if self.is_connected:
+            self._run_on_connected()
+
+    def _run_on_connected(self) -> None:
+        """Start the jobs waiting for a connection, each exactly once."""
+        jobs, self._on_connected = self._on_connected, []
+        for job in jobs:
+            self._hass.async_create_background_task(
+                job(), name=f"ble_led_pixel on connect {self._address}"
+            )
 
     @property
     def password(self) -> str | None:

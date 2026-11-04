@@ -115,6 +115,29 @@ async def resolve_template_variables(hass: HomeAssistant, text: str) -> str:
         return text
 
 
+async def restore_panel_display(hass: HomeAssistant, device_name: str, api) -> bool:
+    """Send Home Assistant's restored settings to the panel.
+
+    The panel keeps showing whatever it last stored -- a message from the
+    phone app, say -- until something is sent, so after a restart Home
+    Assistant's entities and the panel disagree. Runs only when Auto Update
+    is on (with it off, nothing reaches the panel until Update Display is
+    pressed) and the power switch is not off.
+    """
+    auto_id = get_entity_id_by_unique_id(hass, api._address, "auto_update", "switch")
+    auto_state = hass.states.get(auto_id) if auto_id else None
+    if not auto_state or auto_state.state != "on":
+        _LOGGER.debug("Auto Update off; not restoring the panel display")
+        return False
+    power_id = get_entity_id_by_unique_id(hass, api._address, "power", "switch")
+    power_state = hass.states.get(power_id) if power_id else None
+    if power_state is not None and power_state.state == "off":
+        _LOGGER.debug("Panel switched off; not restoring the panel display")
+        return False
+    _LOGGER.info("Restoring the panel display from Home Assistant's saved settings")
+    return await update_panel_display(hass, device_name, api)
+
+
 async def update_panel_display(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
     """Update LED panel with current settings - can be called from anywhere.
     
