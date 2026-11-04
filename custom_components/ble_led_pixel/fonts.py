@@ -13,6 +13,16 @@ _LOGGER = logging.getLogger(__name__)
 _FONT_INDEX: dict[str, Path] | None = None
 _FONT_NAMES: list[str] | None = None
 
+# <config>/fonts, set at setup. HACS replaces this integration's own folder on
+# every update, so fonts a user adds there are lost; this one survives.
+_CONFIG_FONTS_DIR: Path | None = None
+
+
+def set_config_fonts_dir(path: str | Path | None) -> None:
+    """Register Home Assistant's <config>/fonts as the first font location."""
+    global _CONFIG_FONTS_DIR
+    _CONFIG_FONTS_DIR = Path(path) if path else None
+
 
 def build_font_index() -> None:
     """Scan every font location and cache the result.
@@ -45,22 +55,29 @@ def get_font_locations() -> list[Path]:
     """Get list of font directories sorted by priority.
 
     Priority order:
-    1. Custom fonts from this integration's fonts/ folder
-    2. Fonts from pypixelcolor package
-    3. System fonts (Linux standard locations)
+    1. The user's fonts in <config>/fonts, which survive HACS updates
+    2. Custom fonts from this integration's fonts/ folder
+    3. Fonts from pypixelcolor package
+    4. System fonts (Linux standard locations)
 
     Returns:
         List of Path objects for font directories that exist
     """
     locations = []
 
-    # 1st priority: Custom fonts from this integration
+    # 1st priority: the user's own fonts. A font with the same file name as a
+    # bundled one replaces it, sidecar JSON included.
+    if _CONFIG_FONTS_DIR is not None and _CONFIG_FONTS_DIR.is_dir():
+        locations.append(_CONFIG_FONTS_DIR)
+        _LOGGER.debug("Added user fonts directory: %s", _CONFIG_FONTS_DIR)
+
+    # 2nd priority: Custom fonts from this integration
     custom_fonts_dir = Path(__file__).parent / "fonts"
     if custom_fonts_dir.exists() and custom_fonts_dir.is_dir():
         locations.append(custom_fonts_dir)
         _LOGGER.debug("Added custom fonts directory: %s", custom_fonts_dir)
 
-    # 2nd priority: pypixelcolor package fonts
+    # 3rd priority: pypixelcolor package fonts
     try:
         import pypixelcolor
         pypixelcolor_fonts_dir = Path(pypixelcolor.__file__).parent / "fonts"
@@ -70,7 +87,7 @@ def get_font_locations() -> list[Path]:
     except (ImportError, AttributeError) as e:
         _LOGGER.debug("Could not locate pypixelcolor fonts: %s", e)
 
-    # 3rd priority: System fonts (Linux standard locations)
+    # 4th priority: System fonts (Linux standard locations)
     system_font_paths = [
         Path("/usr/share/fonts"),
         Path("/usr/local/share/fonts"),

@@ -547,11 +547,28 @@ Four coloured quadrants — verifies resolution and colour channel order in one 
 
 Fonts are picked in the **Text Font** select entity and looked up in this order:
 
-1. `custom_components/ble_led_pixel/fonts/` — shipped with the integration
-2. The `pypixelcolor` package
-3. System font directories
+1. `/config/fonts/` — your own fonts (create the folder if it does not exist)
+2. `custom_components/ble_led_pixel/fonts/` — shipped with the integration
+3. The `pypixelcolor` package
+4. System font directories
 
-Whatever you pick is resolved to an absolute path and handed to the renderer that way, so the same font works in every mode and in the `send_text` action. To add your own, drop a `.ttf` or `.otf` into the integration's `fonts/` folder and restart. If a font cannot be found anywhere, `VCR_OSD_MONO` is used and a warning is logged.
+Whatever you pick is resolved to an absolute path and handed to the renderer that way, so the same font works in every mode and in the `send_text` action. If a font cannot be found anywhere, `VCR_OSD_MONO` is used and a warning is logged.
+
+**Adding your own:** drop a `.ttf` or `.otf` into `/config/fonts/`, then reload the integration or restart. Do not put it in the integration's own `fonts/` folder: HACS replaces that folder on every update. A font in `/config/fonts/` with the same file name as a bundled one takes its place.
+
+**Tuning a font for text mode:** next to the font, a JSON file with the same name (`MyFont.json` beside `MyFont.ttf`) sets how it is drawn at each character height. The bundled fonts come with one. The entry closest to the text height in use is applied:
+
+```json
+{
+  "name": "MyFont",
+  "metrics": {
+    "16": {"font_size": 16, "offset": [0, -1], "pixel_threshold": 70, "var_width": true},
+    "32": {"font_size": 25, "offset": [0, 2], "pixel_threshold": 85, "var_width": true}
+  }
+}
+```
+
+`font_size` is the size the font is rendered at, `offset` shifts it `[x, y]` pixels, `pixel_threshold` (0–255) decides how dark a pixel must be to light up, and `var_width` uses each glyph's own width instead of a fixed cell. A font without a JSON is drawn at the text height with threshold 70.
 
 Bundled: `3x5-de`, `5x5`, `7x5`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`.
 
@@ -575,7 +592,7 @@ This continues [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-
 
 **Text is cut off or the display jumps between two views.** The string is longer than the panel fits. Shorten it, or use `send_text` with scrolling.
 
-**The selected font has no effect.** Check the log for `Font ... not found in any location`. Font files belong in the integration's `fonts/` folder; a restart is needed after adding one.
+**The selected font has no effect.** Check the log for `Font ... not found in any location`. Your own font files belong in `/config/fonts/`; reload the integration after adding one.
 
 **Colour and text change at different times.** See [Avoiding flicker](#avoiding-flicker-how-updates-actually-work).
 

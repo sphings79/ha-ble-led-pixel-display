@@ -377,6 +377,11 @@ class BluetoothClient:
         finally:
             _RESTORE_SINCE.reset(token)
 
+    @staticmethod
+    def in_restore() -> bool:
+        """Whether the current task is inside a restoring() block."""
+        return _RESTORE_SINCE.get() is not None
+
     def _claim_content_write(self) -> bool:
         """Account for a content write; False when a restore is superseded.
 
@@ -394,7 +399,12 @@ class BluetoothClient:
             return False
         return True
 
-    async def send_command(self, command: bytes, content: bool = False) -> bool:
+    async def send_command(
+        self,
+        command: bytes,
+        content: bool = False,
+        still_current: Callable[[], bool] | None = None,
+    ) -> bool:
         """Send a small, single-packet command and log any response.
 
         Args:
@@ -402,11 +412,16 @@ class BluetoothClient:
             content: True for commands that change what the panel shows
                 (clock mode, presets, scoreboard), as opposed to settings
                 such as power, brightness or the password.
+            still_current: As for send_plan: asked once the link is ours,
+                and the command is dropped if newer content was requested.
 
         Raises:
             BleLedPixelConnectionError: If not connected
         """
         async with self._send_lock:
+            if still_current is not None and not still_current():
+                _LOGGER.debug("Dropping a superseded command")
+                return True
             if content and not self._claim_content_write():
                 return True
             return await self._send_command_unlocked(command)
@@ -420,14 +435,24 @@ class BluetoothClient:
         async with self._send_lock:
             return await self._send_command_wait_response_unlocked(command, timeout)
 
-    async def send_plan(self, plan, ack_timeout: float = 8.0) -> bool:
+    async def send_plan(
+        self, plan, ack_timeout: float = 8.0, still_current: Callable[[], bool] | None = None
+    ) -> bool:
         """Send a pypixelcolor SendPlan, one at a time on this link.
+
+        still_current, if given, is asked once the link is ours: a plan that
+        was overtaken while it waited (rendering, reconnecting, or queued
+        behind another send) is dropped there rather than sent over the newer
+        content.
 
         Raises:
             BleLedPixelConnectionError: If not connected.
             ImportError: If pypixelcolor is not available.
         """
         async with self._send_lock:
+            if still_current is not None and not still_current():
+                _LOGGER.debug("Dropping a superseded plan")
+                return True
             if not self._claim_content_write():
                 return True
             return await self._send_plan_unlocked(plan, ack_timeout)

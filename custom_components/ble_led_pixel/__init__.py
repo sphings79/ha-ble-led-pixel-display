@@ -17,7 +17,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
-from .fonts import build_font_index
+from .fonts import build_font_index, set_config_fonts_dir
 from .services import async_setup_services
 from .unknown_panel import async_report_unknown_panel
 
@@ -50,6 +50,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # Build the font index once, off the event loop. Every later lookup -
     # the font selector, text rendering, the send_text action - reads from
     # that cache instead of scanning the filesystem.
+    set_config_fonts_dir(hass.config.path("fonts"))
     await hass.async_add_executor_job(build_font_index)
 
     async_setup_services(hass)
@@ -89,6 +90,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Setting up BLE LED Pixel Display for %s (%s)", name, address)
     
     _remove_retired_entities(hass, address)
+
+    # Rescan the fonts, so fonts dropped into <config>/fonts show up after
+    # reloading the integration instead of only after a restart.
+    await hass.async_add_executor_job(build_font_index)
 
     # Create API instance with hass for Bluetooth proxy support
     api = BleLedPixelAPI(hass, address, entry=entry)

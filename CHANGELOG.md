@@ -142,6 +142,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   effects* in the options. They work on the 64x20 panel (Type 133), though
   pypixelcolor warns they can boot-loop some devices outside 32x32. The
   `send_text` action lists them too and refuses them while they are off.
+- **Your own fonts in `/config/fonts/`.** Searched before the bundled ones,
+  and kept across HACS updates, which replace the integration's own `fonts/`
+  folder. Reloading the integration picks up newly added fonts.
 
 ### Changed
 
@@ -168,6 +171,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **A failed connection during setup now says so.** The picker used to come
   back with no error message after the panel could not be reached.
+- **The bundled fonts' tuning was ignored in text mode.** Each font in
+  `fonts/` ships a JSON file with its size, offset, pixel threshold and
+  variable width per character height. pypixelcolor 0.4 read those itself;
+  0.5 stopped, so every font was drawn with defaults. The integration now
+  reads the JSON and passes the closest entry to pypixelcolor. A font without
+  one is drawn at the text height with threshold 70, as under 0.4.
+- Building text commands (font loading and glyph rendering) now runs off the
+  event loop.
+- **A slow update can no longer overwrite a newer one.** Text and images are
+  rendered off the event loop, so a long text could finish after a later
+  image, clock or other text and replace it. A render that has been overtaken
+  by any newer display request is now dropped. Saving a picture to a slot is
+  never dropped.
 
 ## [2.3.8] - 2026-11-04
 
@@ -764,4 +780,3 @@ out is easy and undoing it needs physical access to the power supply.
 - v0.3.0: RGB color control and display modes
 - v0.4.0: Image/GIF upload and media player entity
 - v1.0.0: Complete feature set and HACS submission
-

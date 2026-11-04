@@ -6,6 +6,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
+from functools import partial
 from math import floor
 
 if TYPE_CHECKING:
@@ -122,6 +123,11 @@ class BleLedPixelAPI:
         # Last (requested, effective) font size reported, so the note is
         # logged when the value changes rather than on every refresh.
         self._font_size_note: tuple[int, int] | None = None
+        # Bumped by every request that changes what the panel shows. Text and
+        # images render in the executor, so a later request can finish first;
+        # an older plan that comes back after newer content was asked for is
+        # dropped instead of sent over it. See _claim_content.
+        self._content_generation = 0
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
 
@@ -435,7 +441,30 @@ class BleLedPixelAPI:
                 _LOGGER.debug("Reconnect task ended with: %s", err)
             self._reconnect_task = None
 
-    async def _send_with_reconnect(self, command: bytes, content: bool = False) -> bool:
+    def _claim_content(self) -> Callable[[], bool]:
+        """Mark a new display request and return a check that it is still the latest.
+
+        Every method that changes what the panel shows calls this first, so a
+        slow render (text, an image, a layout) can tell when anything newer
+        -- of any kind -- was requested while it worked, and drop itself.
+
+        A restore of saved settings only watches: it never advances the
+        generation, so it cannot invalidate a live request that started
+        before it, and it is itself dropped once a live request starts.
+        """
+        if BluetoothClient.in_restore():
+            generation = self._content_generation
+            return lambda: generation == self._content_generation
+        self._content_generation += 1
+        generation = self._content_generation
+        return lambda: generation == self._content_generation
+
+    async def _send_with_reconnect(
+        self,
+        command: bytes,
+        content: bool = False,
+        still_current: Callable[[], bool] | None = None,
+    ) -> bool:
         """Send a command, reconnecting once when the link turns out to be dead.
 
         A connection can die between the availability check and the write. In
@@ -443,12 +472,12 @@ class BleLedPixelAPI:
         leaving the panel stale until someone reloads the integration.
         """
         try:
-            if await self._bluetooth.send_command(command, content=content):
+            if await self._bluetooth.send_command(command, content=content, still_current=still_current):
                 return True
         except BleLedPixelConnectionError:
             pass
         if await self.ensure_connected():
-            return await self._bluetooth.send_command(command, content=content)
+            return await self._bluetooth.send_command(command, content=content, still_current=still_current)
         return False
 
     async def set_power(self, on: bool) -> bool:
@@ -528,10 +557,11 @@ class BleLedPixelAPI:
         Returns:
             True if command was sent successfully
         """
+        still_current = self._claim_content()
         try:
             # Set clock mode
             command = make_clock_mode_command(style, date, show_date, format_24)
-            success = await self._send_with_reconnect(command, content=True)
+            success = await self._send_with_reconnect(command, content=True, still_current=still_current)
 
             if not success:
                 _LOGGER.error("Failed to set clock mode")
@@ -882,6 +912,7 @@ class BleLedPixelAPI:
             text_color: Foreground/text color in hex format (e.g., 'ffffff')
             bg_color: Background color in hex format (e.g., '000000')
         """
+        still_current = self._claim_content()
         try:
             # Get device dimensions (honors options-flow override if set)
             base_info = await self.get_device_info()
@@ -903,7 +934,7 @@ class BleLedPixelAPI:
             # BLE packet, and send_plan chunks each window and waits for the
             # panel's per-window acknowledgement. Iterating it here treated it
             # as frames and raised on every single update.
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send the rendered text to the panel")
                 return False
@@ -944,6 +975,10 @@ class BleLedPixelAPI:
                 dimension (1-100). 100 fills edge to edge on the short side.
             save_slot: If >= 1, saves the image to that device memory slot.
         """
+        still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: never drop it.
+            still_current = None
         try:
             device_info = await self.get_device_info()
             width = device_info["width"]
@@ -968,7 +1003,7 @@ class BleLedPixelAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send MDI icon '%s'", icon)
                 return False
@@ -1095,6 +1130,10 @@ class BleLedPixelAPI:
             bg_color: Canvas background color in hex (with or without '#').
             save_slot: If >= 1, saves the image to that device memory slot.
         """
+        still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: never drop it.
+            still_current = None
         try:
             device_info = await self.get_device_info()
             width = device_info["width"]
@@ -1146,7 +1185,7 @@ class BleLedPixelAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send layout (icons=%s, texts=%s)", icons, texts)
                 return False
@@ -1180,6 +1219,10 @@ class BleLedPixelAPI:
                 excess) or 'fit' (fits the whole image with black padding).
             save_slot: If >= 1, saves the image to that device memory slot.
         """
+        still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: never drop it.
+            still_current = None
         try:
             path = Path(file_path)
             file_bytes = await self._hass.async_add_executor_job(path.read_bytes)
@@ -1194,7 +1237,7 @@ class BleLedPixelAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send image file '%s'", file_path)
                 return False
@@ -1218,6 +1261,7 @@ class BleLedPixelAPI:
         Quadrants (in logical buffer space, left/right = width split,
         top/bottom = height split): TL=red, TR=green, BL=blue, BR=yellow.
         """
+        still_current = self._claim_content()
         try:
             device_info = await self.get_device_info()
             width = device_info["width"]
@@ -1251,14 +1295,14 @@ class BleLedPixelAPI:
                 device_info_dict=device_info,
                 save_slot=0,
             )
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send test pattern")
                 return False
 
             if pypixelcolor_show_slot is not None:
                 show_plan = pypixelcolor_show_slot(0)
-                shown = await self._bluetooth.send_plan(show_plan)
+                shown = await self._bluetooth.send_plan(show_plan, still_current=still_current)
                 if not shown:
                     _LOGGER.error("Failed to show_slot(0) after sending test pattern")
                     return False
@@ -1283,11 +1327,12 @@ class BleLedPixelAPI:
         Returns:
             True when the command was sent.
         """
+        still_current = self._claim_content()
         if pypixelcolor_show_slot is None:
             _LOGGER.error("pypixelcolor is not available")
             return False
         try:
-            success = await self._bluetooth.send_plan(pypixelcolor_show_slot(slot))
+            success = await self._bluetooth.send_plan(pypixelcolor_show_slot(slot), still_current=still_current)
             if success:
                 _LOGGER.debug("Showing slot %d", slot)
             else:
@@ -1357,7 +1402,8 @@ class BleLedPixelAPI:
                 f"not offer it for this model either. If yours does have it, "
                 f"turn on the feature override in the integration options."
             )
-        success = await self._send_with_reconnect(command, content=True)
+        still_current = self._claim_content()
+        success = await self._send_with_reconnect(command, content=True, still_current=still_current)
         if success:
             _LOGGER.debug("%s", description)
         else:
@@ -1447,6 +1493,7 @@ class BleLedPixelAPI:
         Returns:
             True if text was sent successfully
         """
+        still_current = self._claim_content()
         try:
             # Get device info for height (honors options-flow override if set)
             base_info = await self.get_device_info()
@@ -1481,17 +1528,26 @@ class BleLedPixelAPI:
                 self._font_size_note = None
 
             # Generate text commands using pypixelcolor
-            commands = make_text_command(
-                text=text,
-                color=color,
-                bg_color=bg_color,
-                font=resolve_font_for_library(font),
-                animation=animation,
-                speed=speed,
-                rainbow_mode=rainbow_mode,
-                save_slot=0,
-                char_height=char_height
+            # Off the event loop: reads the font file and its metrics, and
+            # renders every glyph.
+            commands = await self._hass.async_add_executor_job(
+                partial(
+                    make_text_command,
+                    text=text,
+                    color=color,
+                    bg_color=bg_color,
+                    font=resolve_font_for_library(font),
+                    animation=animation,
+                    speed=speed,
+                    rainbow_mode=rainbow_mode,
+                    save_slot=0,
+                    char_height=char_height,
+                )
             )
+
+            if not still_current():
+                _LOGGER.debug("Dropping text '%s': newer content superseded it", text)
+                return True
 
             # A SendPlan, not a list of frames: longer texts exceed one BLE
             # packet, so send_plan chunks each window and awaits its ACK.
@@ -1499,7 +1555,14 @@ class BleLedPixelAPI:
                 _LOGGER.error("Cannot connect to send text plan")
                 return False
 
-            success = await self._bluetooth.send_plan(commands, ack_timeout=25.0)
+            # Checked again under the send lock: reconnecting (which runs any
+            # queued restore) and waiting for the lock are both awaits a newer
+            # request can overtake this one in.
+            success = await self._bluetooth.send_plan(
+                commands,
+                ack_timeout=25.0,
+                still_current=still_current,
+            )
             if not success:
                 _LOGGER.error("Failed to send pypixelcolor text plan")
                 return False
@@ -1546,6 +1609,7 @@ class BleLedPixelAPI:
         Returns:
             True if the emoji was rendered and sent successfully.
         """
+        still_current = self._claim_content()
         try:
             base_info = await self.get_device_info()
             width = width_override or base_info["width"]
@@ -1568,7 +1632,7 @@ class BleLedPixelAPI:
                 await self.connect()
 
             # As in display_text: a SendPlan is not a sequence of frames.
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send emoji %r to the panel", emoji)
                 return False
