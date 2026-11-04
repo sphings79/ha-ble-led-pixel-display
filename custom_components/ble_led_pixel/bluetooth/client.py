@@ -63,6 +63,10 @@ class BluetoothClient:
         # Serializes connection attempts. Several entities updating at once
         # would otherwise each start their own connect and stampede the radio.
         self._connect_lock = asyncio.Lock()
+        # Serializes writes. A multi-window plan shares the AckManager's
+        # acknowledgement events with everything else on the link, so two
+        # sends at once interleave their chunks and steal each other's ACKs.
+        self._send_lock = asyncio.Lock()
 
     def _disconnected_callback(self, client: BleakClientWithServiceCache) -> None:
         """Called when device disconnects."""
@@ -220,7 +224,7 @@ class BluetoothClient:
                 self._ack_mgr = None
                 self._extra_listeners = []
 
-    async def send_command(self, command: bytes) -> bool:
+    async def _send_command_unlocked(self, command: bytes) -> bool:
         """Send a small, single-packet command and log any response.
 
         Uses the persistent notification subscription (no stop/start
@@ -269,7 +273,7 @@ class BluetoothClient:
             if response_handler in self._extra_listeners:
                 self._extra_listeners.remove(response_handler)
 
-    async def send_command_wait_response(self, command: bytes, timeout: float = 5.0) -> bytes | None:
+    async def _send_command_wait_response_unlocked(self, command: bytes, timeout: float = 5.0) -> bytes | None:
         """Send a command and return the raw response bytes, if any arrive.
 
         Same persistent-notification mechanism as send_command(), but
@@ -309,7 +313,7 @@ class BluetoothClient:
             if response_handler in self._extra_listeners:
                 self._extra_listeners.remove(response_handler)
 
-    async def send_plan(self, plan, ack_timeout: float = 8.0) -> bool:
+    async def _send_plan_unlocked(self, plan, ack_timeout: float = 8.0) -> bool:
         """Send a pypixelcolor SendPlan using the library's own transport.
 
         Uses the persistent AckManager created in connect() (no stop/start
@@ -350,6 +354,34 @@ class BluetoothClient:
         except Exception as err:
             _LOGGER.error("Error sending plan '%s': %s", plan.id, err)
             return False
+
+    async def send_command(self, command: bytes) -> bool:
+        """Send a small, single-packet command and log any response.
+
+        Raises:
+            BleLedPixelConnectionError: If not connected
+        """
+        async with self._send_lock:
+            return await self._send_command_unlocked(command)
+
+    async def send_command_wait_response(self, command: bytes, timeout: float = 5.0) -> bytes | None:
+        """Send a command and return the raw response bytes, if any arrive.
+
+        Raises:
+            BleLedPixelConnectionError: If not connected.
+        """
+        async with self._send_lock:
+            return await self._send_command_wait_response_unlocked(command, timeout)
+
+    async def send_plan(self, plan, ack_timeout: float = 8.0) -> bool:
+        """Send a pypixelcolor SendPlan, one at a time on this link.
+
+        Raises:
+            BleLedPixelConnectionError: If not connected.
+            ImportError: If pypixelcolor is not available.
+        """
+        async with self._send_lock:
+            return await self._send_plan_unlocked(plan, ack_timeout)
 
     @property
     def is_connected(self) -> bool:
