@@ -36,26 +36,42 @@ class FakeApi:
     _run_on_connected = api_module.BleLedPixelAPI._run_on_connected
 
 
-async def _job():
-    return None
-
-
 def test_hook_runs_now_when_connected():
     api = FakeApi(connected=True)
-    api.call_when_connected(_job)
+    ran = []
+
+    async def job():
+        ran.append(1)
+
+    api.call_when_connected(job)
     assert len(api._hass.tasks) == 1
-    assert api._on_connected == []
     run(api._hass.tasks[0])
+    assert ran == [1] and api._on_connected == []
 
 
 def test_hook_waits_for_the_link_and_runs_once():
     api = FakeApi(connected=False)
-    api.call_when_connected(_job)
-    assert api._hass.tasks == []
-    api._run_on_connected()          # link comes up
-    api._run_on_connected()          # and again later: nothing left to run
-    assert len(api._hass.tasks) == 1
-    run(api._hass.tasks[0])
+    ran = []
+
+    async def job():
+        ran.append(1)
+
+    api.call_when_connected(job)
+    assert api._hass.tasks == [] and ran == []
+    run(api._run_on_connected())     # link comes up: runs before connect returns
+    run(api._run_on_connected())     # a later reconnect: nothing left to run
+    assert ran == [1]
+
+
+def test_failing_hook_does_not_break_connect():
+    api = FakeApi(connected=False)
+
+    async def job():
+        raise RuntimeError("boom")
+
+    api.call_when_connected(job)
+    run(api._run_on_connected())
+    assert api._on_connected == []
 
 
 def _restored_switch(last_state):

@@ -136,7 +136,7 @@ class BleLedPixelAPI:
         connected = await self._bluetooth.connect(self._notification_handler)
         if connected:
             await self._unlock_if_needed()
-            self._run_on_connected()
+            await self._run_on_connected()
         return connected
     
     async def disconnect(self) -> None:
@@ -158,26 +158,30 @@ class BleLedPixelAPI:
                 )
             await self._unlock_if_needed()
             if not was_connected:
-                self._run_on_connected()
+                await self._run_on_connected()
         return connected
 
     def call_when_connected(self, job: Callable[[], Awaitable[Any]]) -> None:
-        """Run `job` once, now if the link is up, else when it next comes up.
+        """Run `job` once: now if the link is up, else when it next comes up.
 
-        The job runs as a background task, so it can send to the panel
-        without re-entering the connect path that triggered it.
+        On a connect, waiting jobs run before connect() returns, so whatever
+        command opened the link is sent after them and stays on the panel.
         """
         self._on_connected.append(job)
         if self.is_connected:
-            self._run_on_connected()
+            self._hass.async_create_background_task(
+                self._run_on_connected(),
+                name=f"ble_led_pixel on connect {self._address}",
+            )
 
-    def _run_on_connected(self) -> None:
-        """Start the jobs waiting for a connection, each exactly once."""
+    async def _run_on_connected(self) -> None:
+        """Run the jobs waiting for a connection, each exactly once."""
         jobs, self._on_connected = self._on_connected, []
         for job in jobs:
-            self._hass.async_create_background_task(
-                job(), name=f"ble_led_pixel on connect {self._address}"
-            )
+            try:
+                await job()
+            except Exception as err:  # noqa: BLE001 - a hook must not break connect
+                _LOGGER.warning("On-connect job for %s failed: %s", self._address, err)
 
     @property
     def password(self) -> str | None:
