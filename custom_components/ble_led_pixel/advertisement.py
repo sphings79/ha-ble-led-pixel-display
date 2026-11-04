@@ -46,6 +46,8 @@ BRANDS: dict[str, str] = {
     **{f"0025{n:02d}": "EZYEVY" for n in (10, 11, 12)},
     # Confirmed: "LED pixel board", 13x13 cm, 32x32 pixels
     "000702": "B.K. Light",
+    # Confirmed: 64x20, device type 133, sold unbranded on eBay
+    "000105": "Generic",
 }
 
 
