@@ -245,7 +245,7 @@ every refresh.
 
 Power the panel on and make sure no phone is connected to it — a panel that is already connected to the vendor app will not advertise, and Home Assistant cannot find it.
 
-Home Assistant usually discovers it by itself and offers it under **Settings → Devices & Services**. Otherwise add it manually: **Add Integration → BLE LED Pixel Display**, then pick your panel from the list. Devices whose name starts with `LED_BLE_` are marked with a star. Manual entry of a MAC address is available as a fallback.
+Home Assistant usually discovers it by itself and offers it under **Settings → Devices & Services**. Otherwise add it manually: **Add Integration → BLE LED Pixel Display**, then pick your panel from the list. The list holds only panels that are not set up yet: devices named `LED_BLE_*`, or carrying the vendor's advertisement data or service UUID. If yours is missing, **Show all Bluetooth devices** lists every connectable device with the panels starred, and manual entry of a MAC address is the last fallback.
 
 ## Entities you get
 

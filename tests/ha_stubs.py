@@ -26,11 +26,21 @@ async def _noop(self, *args, **kwargs):
     return None
 
 
+def _init_subclass(cls, **kwargs):
+    """Accept class keywords such as ``ConfigFlow, domain=DOMAIN``."""
+
+
 # Methods the integration's entities chain to with super().
-BASE_METHODS = {"async_added_to_hass": _noop, "async_will_remove_from_hass": _noop}
+BASE_METHODS = {
+    "async_added_to_hass": _noop,
+    "async_will_remove_from_hass": _noop,
+    "__init_subclass__": _init_subclass,
+}
 
 
 def _stub_class(name: str) -> type:
+    if name.endswith("Error"):  # HomeAssistantError and friends get raised
+        return type(name, (Exception,), {})
     return _StubMeta(name, (), dict(BASE_METHODS))
 
 

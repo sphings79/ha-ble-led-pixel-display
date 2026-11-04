@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Select LED panel",
-        "description": "Choose your panel from the discovered devices, or select manual entry. Panels advertise as LED_BLE_*.",
+        "description": "Choose your panel, or pick manual entry. Only panels are listed (named LED_BLE_* or carrying the vendor's advertisement data); panels already set up are left out. If yours is missing, try Show all Bluetooth devices.",
         "data": {
           "device": "Device"
         }
@@ -19,6 +19,13 @@
       "bluetooth_confirm": {
         "title": "Add LED panel",
         "description": "Add the panel {name} ({address}) to Home Assistant?"
+      },
+      "pick_any": {
+        "title": "Select any Bluetooth device",
+        "description": "Every connectable Bluetooth device Home Assistant can see. Devices recognised as panels are starred.",
+        "data": {
+          "device": "Device"
+        }
       }
     },
     "error": {

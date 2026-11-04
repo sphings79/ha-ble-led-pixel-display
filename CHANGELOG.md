@@ -127,6 +127,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [Unreleased]
+
+### Changed
+
+- **The setup picker lists panels only.** It used to list every connectable
+  Bluetooth device nearby, with panels starred among them. It now shows only
+  devices recognised as panels (an `LED_BLE` name, the vendor's manufacturer
+  data, or the panel's service UUID) that are not set up yet, plus **Show all
+  Bluetooth devices** for a panel that advertises unusually, and manual entry.
+
+### Fixed
+
+- **A failed connection during setup now says so.** The picker used to come
+  back with no error message after the panel could not be reached.
+
 ## [2.3.8] - 2026-11-04
 
 First release from the scyto/ha-ble-led-pixel-display fork, based on 2.3.7.
@@ -722,3 +737,4 @@ out is easy and undoing it needs physical access to the power supply.
 - v0.3.0: RGB color control and display modes
 - v0.4.0: Image/GIF upload and media player entity
 - v1.0.0: Complete feature set and HACS submission
+
