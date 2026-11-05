@@ -6,7 +6,7 @@
   **Put live Home Assistant data on a cheap Bluetooth LED panel — text, images, animated GIFs, Material Design Icons and composed layouts.**
   A custom integration for LED pixel matrix displays that speak the iPIXEL Color protocol, sold as **BGLight** and as the **B.K. Light LED Pixel Board** at Action. Fully local over Bluetooth LE — no cloud, no vendor app, no account.
 
-  [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)](https://hacs.xyz)
+  [![Marketplace](https://img.shields.io/badge/Marketplace-Custom-41BDF5?style=for-the-badge)](https://my.home-assistant.io/redirect/marketplace_browse/)
   [![Release](https://img.shields.io/github/v/release/sphings79/ha-ble-led-pixel-display?style=for-the-badge&color=7C7CF5)](https://github.com/sphings79/ha-ble-led-pixel-display/releases)
   [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-41BDF5?style=for-the-badge)](https://www.home-assistant.io)
   [![License](https://img.shields.io/badge/License-GPL--3.0-3ddc97?style=for-the-badge)](LICENSE)
@@ -286,7 +286,17 @@ every refresh.
 
 ## Installation
 
-### HACS (recommended)
+### Marketplace (Home Assistant 2026.11 and newer)
+
+Home Assistant 2026.11 replaces HACS with the built-in **Marketplace**. BLE LED Pixel Display is not in the default catalog, so add it as a custom repository: in **Settings → Marketplace**, add `https://github.com/sphings79/ha-ble-led-pixel-display` (category **Integration**), then install it from there. Custom repositories need the Marketplace to be connected to GitHub, and it asks you to connect the first time.
+
+You can also use this button:
+
+[![Open your Home Assistant instance and open this repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sphings79&repository=ha-ble-led-pixel-display&category=integration)
+
+Restart Home Assistant if a repair asks you to.
+
+### HACS (Home Assistant 2026.10 and older)
 
 1. Open HACS in Home Assistant
 2. Three dots menu, top right → **Custom repositories**
@@ -616,4 +626,4 @@ Unofficial, community-built integration. Not affiliated with, endorsed by, or su
 
 ---
 
-<sub>Home Assistant LED matrix · Bluetooth LE pixel display · BGLight Home Assistant · B.K. Light LED Pixel Board Action · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color integration · LED_BLE · 64x16 pixel panel · HACS custom integration · display sensor value on LED panel · animated GIF on LED matrix · Material Design Icon on display · scrolling text ticker · energy dashboard wall display · PV production display · battery state of charge panel · no cloud · local Bluetooth · pypixelcolor</sub>
+<sub>Home Assistant LED matrix · Bluetooth LE pixel display · BGLight Home Assistant · B.K. Light LED Pixel Board Action · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color integration · LED_BLE · 64x16 pixel panel · Marketplace custom integration · HACS custom integration · display sensor value on LED panel · animated GIF on LED matrix · Material Design Icon on display · scrolling text ticker · energy dashboard wall display · PV production display · battery state of charge panel · no cloud · local Bluetooth · pypixelcolor</sub>
