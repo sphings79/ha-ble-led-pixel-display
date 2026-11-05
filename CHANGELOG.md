@@ -693,6 +693,8 @@ out is easy and undoing it needs physical access to the power supply.
 - New diagnostic service `ble_led_pixel.send_test_pattern`: sends a 4-quadrant colored test
   image sized to the panel, to help verify how the device's reported width/height maps onto
   the physical panel.
+- **Logos for HACS and Home Assistant** (`logo.png`, `logo@2x.png`) next to the
+  icons.
 
 ### Changed
 
@@ -715,6 +717,9 @@ out is easy and undoing it needs physical access to the power supply.
 
 ### Fixed
 
+- The German and French translations are complete (setup, options, entity and
+  repair texts); a test keeps all languages in step with `strings.json`. The
+  English file no longer carries a stale, unused action description.
 - **Show Slot did nothing after unsaved content.** The panel ignores the select
   frame until DIY mode is turned off; the integration now does that first.
 - **Writes to the panel are serialised.** Two sends at once could interleave

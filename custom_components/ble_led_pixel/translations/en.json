@@ -66,39 +66,6 @@
       "power": {
         "name": "Power"
       }
-    },
-    "text": {
-      "display": {
-        "name": "Display Text"
-      }
-    }
-  },
-  "services": {
-    "display_text": {
-      "name": "Display Text",
-      "description": "Display text on the panel with custom effects and colors",
-      "fields": {
-        "text": {
-          "name": "Text",
-          "description": "Text to display (max 500 characters)"
-        },
-        "effect": {
-          "name": "Effect",
-          "description": "Display effect for the text"
-        },
-        "speed": {
-          "name": "Speed",
-          "description": "Animation speed (1-100)"
-        },
-        "color_fg": {
-          "name": "Text Color",
-          "description": "Foreground text color"
-        },
-        "color_bg": {
-          "name": "Background Color",
-          "description": "Background color"
-        }
-      }
     }
   },
   "issues": {

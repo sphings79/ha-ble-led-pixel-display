@@ -1,8 +1,48 @@
 {
-  "issues": {
-    "unknown_panel": {
-      "title": "Panel {product_id} ist nicht in der Markentabelle",
-      "description": "Dein Panel unter {address} funktioniert normal — die Auflösung kommt vom Gerätetyp, nicht von der Marke, im Betrieb fehlt also nichts. Lediglich das Herstellerfeld in der Geräteverwaltung bleibt leer.\n\nÜber **Mehr erfahren** öffnest du eine Fehlermeldung, in der die technischen Werte bereits eingetragen sind. Ergänze bitte Marke und Modell sowie, wenn möglich, ein Foto des Typenschilds auf der Rückseite — das ist das Einzige, was nur du sehen kannst. Ein Foto der Verpackung hilft zusätzlich, ist aber optional.\n\nSobald die Produkt-ID aufgenommen ist, verschwindet dieser Hinweis von selbst."
+  "config": {
+    "step": {
+      "user": {
+        "title": "LED-Panel auswählen",
+        "description": "Wähle dein Panel oder die manuelle Eingabe. Aufgelistet werden nur Panels (Name LED_BLE_* oder mit den Herstellerdaten im Advertising); bereits eingerichtete fehlen. Wenn deins fehlt, probiere „Show all Bluetooth devices“.",
+        "data": {
+          "device": "Gerät"
+        }
+      },
+      "manual": {
+        "title": "Manuelle Einrichtung",
+        "description": "Gib die Bluetooth-Adresse deines Panels manuell ein.",
+        "data": {
+          "address": "Bluetooth-Adresse",
+          "name": "Gerätename"
+        }
+      },
+      "bluetooth_confirm": {
+        "title": "LED-Panel hinzufügen",
+        "description": "Panel {name} ({address}) zu Home Assistant hinzufügen?"
+      },
+      "pick_any": {
+        "title": "Beliebiges Bluetooth-Gerät auswählen",
+        "description": "Jedes verbindbare Bluetooth-Gerät, das Home Assistant sehen kann. Als Panel erkannte Geräte sind mit einem Stern markiert.",
+        "data": {
+          "device": "Gerät"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen. Stelle sicher, dass es eingeschaltet und in Reichweite ist.",
+      "invalid_address": "Ungültiges Format der Bluetooth-Adresse.",
+      "discovery_failed": "Die Gerätesuche ist fehlgeschlagen. Stelle sicher, dass Bluetooth aktiviert ist.",
+      "no_devices_found": "Keine Panels gefunden. Stelle sicher, dass das Panel eingeschaltet und nicht mit einer Handy-App verbunden ist – ein verbundenes Panel sendet nicht mehr.",
+      "device_not_found": "Ausgewähltes Gerät nicht gefunden.",
+      "unknown": "Unerwarteter Fehler."
+    },
+    "abort": {
+      "already_configured": "Das Gerät ist bereits eingerichtet.",
+      "cannot_connect": "Verbindung zum Gerät fehlgeschlagen.",
+      "device_not_found": "Gerät nicht gefunden.",
+      "discovery_failed": "Die Gerätesuche ist fehlgeschlagen.",
+      "no_devices_found": "Keine Geräte gefunden.",
+      "unknown": "Unbekannter Fehler."
     }
   },
   "options": {
@@ -19,6 +59,19 @@
           "password": "Passwort (nur für ein in der Hersteller-App gesperrtes Panel)"
         }
       }
+    }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "Ein/Aus"
+      }
+    }
+  },
+  "issues": {
+    "unknown_panel": {
+      "title": "Panel {product_id} ist nicht in der Markentabelle",
+      "description": "Dein Panel unter {address} funktioniert normal — die Auflösung kommt vom Gerätetyp, nicht von der Marke, im Betrieb fehlt also nichts. Lediglich das Herstellerfeld in der Geräteverwaltung bleibt leer.\n\nÜber **Mehr erfahren** öffnest du eine Fehlermeldung, in der die technischen Werte bereits eingetragen sind. Ergänze bitte Marke und Modell sowie, wenn möglich, ein Foto des Typenschilds auf der Rückseite — das ist das Einzige, was nur du sehen kannst. Ein Foto der Verpackung hilft zusätzlich, ist aber optional.\n\nSobald die Produkt-ID aufgenommen ist, verschwindet dieser Hinweis von selbst."
     }
   }
 }

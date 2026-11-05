@@ -1,16 +1,77 @@
 {
+  "config": {
+    "step": {
+      "user": {
+        "title": "Choisir le panneau LED",
+        "description": "Choisis ton panneau ou la saisie manuelle. Seuls les panneaux sont listés (nommés LED_BLE_* ou avec les données d'annonce du fabricant) ; ceux déjà configurés n'apparaissent pas. Si le tien manque, essaie « Show all Bluetooth devices ».",
+        "data": {
+          "device": "Appareil"
+        }
+      },
+      "manual": {
+        "title": "Configuration manuelle",
+        "description": "Saisis manuellement l'adresse Bluetooth de ton panneau.",
+        "data": {
+          "address": "Adresse Bluetooth",
+          "name": "Nom de l'appareil"
+        }
+      },
+      "bluetooth_confirm": {
+        "title": "Ajouter le panneau LED",
+        "description": "Ajouter le panneau {name} ({address}) à Home Assistant ?"
+      },
+      "pick_any": {
+        "title": "Choisir n'importe quel appareil Bluetooth",
+        "description": "Tous les appareils Bluetooth connectables que Home Assistant voit. Les appareils reconnus comme panneaux sont marqués d'une étoile.",
+        "data": {
+          "device": "Appareil"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Connexion à l'appareil impossible. Vérifie qu'il est allumé et à portée.",
+      "invalid_address": "Format d'adresse Bluetooth invalide.",
+      "discovery_failed": "La recherche d'appareils a échoué. Vérifie que le Bluetooth est activé.",
+      "no_devices_found": "Aucun panneau trouvé. Vérifie que le panneau est allumé et non connecté à une application mobile – un panneau connecté cesse d'émettre.",
+      "device_not_found": "Appareil sélectionné introuvable.",
+      "unknown": "Erreur inattendue."
+    },
+    "abort": {
+      "already_configured": "L'appareil est déjà configuré.",
+      "cannot_connect": "Connexion à l'appareil impossible.",
+      "device_not_found": "Appareil introuvable.",
+      "discovery_failed": "La recherche d'appareils a échoué.",
+      "no_devices_found": "Aucun appareil trouvé.",
+      "unknown": "Erreur inconnue."
+    }
+  },
   "options": {
     "step": {
       "init": {
         "title": "Options BLE LED Pixel Display",
-        "description": "Certains panneaux (ex : le B.K. Light 32x32 vendu chez Action) annoncent de mauvaises dimensions par Bluetooth. Active l'override et indique les dimensions physiques réelles si l'affichage est incorrect.",
+        "description": "Certains panneaux (ex : le B.K. Light 32x32 vendu chez Action) annoncent de mauvaises dimensions par Bluetooth. Active l'override et indique les dimensions physiques réelles si l'affichage est incorrect.\n\nTous les panneaux n'ont pas les préréglages, le tableau de score, le compte à rebours ni le chronomètre. Ils sont proposés selon le modèle, comme dans l'application du fabricant. Si ton panneau est plus récent que cette liste, tu peux quand même les activer ici.",
         "data": {
           "override_dimensions": "Forcer les dimensions du panneau",
           "panel_width": "Largeur du panneau (pixels, 0 = valeur du firmware)",
           "panel_height": "Hauteur du panneau (pixels, 0 = valeur du firmware)",
-          "vertical_scroll": "Proposer les effets de texte défilement vers le haut et vers le bas (toujours actifs sur les panneaux 32x32)"
+          "vertical_scroll": "Proposer les effets de texte défilement vers le haut et vers le bas (toujours actifs sur les panneaux 32x32)",
+          "force_features": "Proposer quand même les préréglages, le tableau de score, le compte à rebours et le chronomètre",
+          "password": "Mot de passe (uniquement pour un panneau verrouillé depuis l'application du fabricant)"
         }
       }
+    }
+  },
+  "entity": {
+    "switch": {
+      "power": {
+        "name": "Alimentation"
+      }
+    }
+  },
+  "issues": {
+    "unknown_panel": {
+      "title": "Le panneau {product_id} n'est pas dans la table des marques",
+      "description": "Ton panneau à l'adresse {address} fonctionne normalement : sa résolution vient du type d'appareil, pas de la marque, rien ne manque donc en fonctionnement. Seul le champ fabricant du registre des appareils reste vide.\n\nSélectionne **En savoir plus** pour ouvrir un rapport de bug dont les valeurs techniques sont déjà remplies. Ajoute la marque et le modèle, et si possible une photo de l'étiquette au dos – c'est la seule chose que toi seul peux voir. Une photo de l'emballage aide aussi, mais reste facultative.\n\nDès que l'identifiant produit est ajouté, cet avis disparaît tout seul."
     }
   }
 }
