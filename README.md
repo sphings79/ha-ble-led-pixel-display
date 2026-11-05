@@ -551,4 +551,4 @@ Unofficial, community-built integration. Not affiliated with, endorsed by, or su
 
 ---
 
-<sub>Home Assistant LED matrix · Bluetooth LE pixel display · BGLight Home Assistant · B.K. Light LED Pixel Board Action · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color integration · LED_BLE · 64x16 pixel panel · HACS custom integration · display sensor value on LED panel · animated GIF on LED matrix · Material Design Icon on display · scrolling text ticker · energy dashboard wall display · PV production display · battery state of charge panel · no cloud · local Bluetooth · pypixelcolor</sub>
+<sub>Home Assistant LED matrix · Bluetooth LE pixel display · BGLight Home Assistant · B.K. Light LED Pixel Board Action · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color integration · LED_BLE · 64x16 pixel panel · Marketplace custom integration · HACS custom integration · display sensor value on LED panel · animated GIF on LED matrix · Material Design Icon on display · scrolling text ticker · energy dashboard wall display · PV production display · battery state of charge panel · no cloud · local Bluetooth · pypixelcolor</sub>
