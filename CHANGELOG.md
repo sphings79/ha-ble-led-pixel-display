@@ -340,7 +340,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.3.8] - 2026-11-04
 
-First release from the scyto/ha-ble-led-pixel-display fork, based on 2.3.7.
+Builds on 2.3.7. Versions 2.3.8 to 2.8.1 were released from the scyto/ha-ble-led-pixel-display fork.
 
 ### Fixed
 
