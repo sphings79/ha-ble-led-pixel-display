@@ -257,12 +257,23 @@ Home Assistant usually discovers it by itself and offers it under **Settings →
 
 ## Entities you get
 
-Entity names start with the panel's name (for example *LED_BLE_7E9E1E82 Text
-Font*), and the device page splits them into three sections. The everyday
-controls sit at the top. The settings are under **Configuration**, where the
-alphabetical sort groups them by mode through their `Clock`, `Image` and
-`Text` prefixes. Settings in Configuration are also not offered to voice
-assistants by default.
+Entity names start with the panel's name (for example *LED_BLE_7E9E1E82
+Message Font*), and the device page splits them into three sections. The
+everyday controls sit at the top. The settings are under **Configuration**.
+Home Assistant gives integrations no separators or sub-groups there and
+sorts by name, so the names carry the grouping:
+
+| Prefix | Applies to |
+| --- | --- |
+| `Clock` | `clock` mode |
+| `Image` | `textimage` mode only |
+| `Message` | how the message looks in both `text` and `textimage` |
+| `Slot` | stored slots |
+| `Text` | `text` mode only |
+
+For real separators, use the [dashboard card](#a-dashboard-card-that-follows-the-mode)
+below. Settings in Configuration are also not offered to voice assistants by
+default.
 
 **Controls**
 
@@ -283,15 +294,15 @@ assistants by default.
 | **Clock Sync Time** | `button` | `clock` | Sets the device clock |
 | **Image Antialiasing** | `switch` | `textimage` | Smoothing |
 | **Image Font Size**, **Image Line Spacing** | `number` | `textimage` | Layout |
-| **Text Font** | `select` | `text`, `textimage` | TTF/OTF fonts, see [Fonts](#fonts) |
-| **Text Color**, **Text Background Color** | `light` | `text`, `textimage` | Colours as RGB |
+| **Message Font** | `select` | `text`, `textimage` | TTF/OTF fonts, see [Fonts](#fonts) |
+| **Message Color**, **Message Background Color** | `light` | `text`, `textimage` | Colours as RGB |
 | **Text Size** | `select` | `text` | Character height |
 | **Text Effect**, **Text Gradient** | `select` | `text` | Scrolling, effects and colour ramps |
 | **Text Speed** | `number` | `text` | Effect speed |
 | **Auto Update** | `switch` | `text`, `textimage` | **Read [Avoiding flicker](#avoiding-flicker-how-updates-actually-work) before touching this** |
-| **Slot** | `number` | all | Slot 1–10 that the three slot buttons act on |
-| **Save to Slot** | `button` | `text`, `textimage` | Sends the current message and keeps a copy in the chosen slot |
-| **Show Slot**, **Clear Slot** | `button` | all | Shows or erases the chosen slot. An empty slot makes the panel cycle through the filled ones, because the panel cannot report which slots are empty |
+| **Slot** | `number` | all | Slot 1–10 that the slot buttons below act on |
+| **Slot Save** | `button` | `text`, `textimage` | Sends the current message and keeps a copy in the chosen slot |
+| **Slot Show**, **Slot Clear** | `button` | all | Shows or erases the chosen slot. An empty slot makes the panel cycle through the filled ones, because the panel cannot report which slots are empty |
 
 **Diagnostic**: Device Type, Display Width, Display Height, firmware versions,
 Product ID, Brand, Supported features, Password protection.
@@ -325,18 +336,30 @@ cards:
     conditions:
       - condition: state
         entity: select.led_ble_7e9e1e82_mode
+        state:
+          - text
+          - textimage
+    card:
+      type: entities
+      title: Message (text and textimage)
+      entities:
+        - select.led_ble_7e9e1e82_text_font
+        - light.led_ble_7e9e1e82_text_color
+        - light.led_ble_7e9e1e82_text_background_color
+        - switch.led_ble_7e9e1e82_auto_update
+  - type: conditional
+    conditions:
+      - condition: state
+        entity: select.led_ble_7e9e1e82_mode
         state: text
     card:
       type: entities
-      title: Text
+      title: Text mode
       entities:
-        - select.led_ble_7e9e1e82_text_font
         - select.led_ble_7e9e1e82_text_size
         - select.led_ble_7e9e1e82_text_effect
         - number.led_ble_7e9e1e82_text_speed
         - select.led_ble_7e9e1e82_text_gradient
-        - light.led_ble_7e9e1e82_text_color
-        - light.led_ble_7e9e1e82_text_background_color
   - type: conditional
     conditions:
       - condition: state
@@ -344,14 +367,11 @@ cards:
         state: textimage
     card:
       type: entities
-      title: Text image
+      title: Textimage mode
       entities:
-        - select.led_ble_7e9e1e82_text_font
         - number.led_ble_7e9e1e82_image_font_size
         - number.led_ble_7e9e1e82_image_line_spacing
         - switch.led_ble_7e9e1e82_image_antialiasing
-        - light.led_ble_7e9e1e82_text_color
-        - light.led_ble_7e9e1e82_text_background_color
   - type: conditional
     conditions:
       - condition: state
@@ -365,7 +385,21 @@ cards:
         - switch.led_ble_7e9e1e82_clock_24h
         - switch.led_ble_7e9e1e82_clock_show_date
         - button.led_ble_7e9e1e82_clock_sync_time
+  - type: entities
+    title: Slots
+    entities:
+      - number.led_ble_7e9e1e82_slot
+      - button.led_ble_7e9e1e82_slot_save
+      - button.led_ble_7e9e1e82_slot_show
+      - button.led_ble_7e9e1e82_slot_clear
 ```
+
+Entity ids are set when a panel is first added and later renames keep them.
+Panels added before 2.6.1 have `..._text_font`, `..._text_color` and
+`..._text_background_color`, as in the card above; panels added since get
+`..._message_font`, `..._message_color` and `..._message_background_color`.
+Panels that had 2.6.0 installed keep that release's slot button ids
+(`..._save_to_slot`, `..._show_slot`, `..._clear_slot`).
 
 ## Display modes
 
@@ -548,7 +582,7 @@ Four coloured quadrants — verifies resolution and colour channel order in one 
 
 ## Fonts
 
-Fonts are picked in the **Text Font** select entity and looked up in this order:
+Fonts are picked in the **Message Font** select entity and looked up in this order:
 
 1. `/config/fonts/` — your own fonts (create the folder if it does not exist)
 2. `custom_components/ble_led_pixel/fonts/` — shipped with the integration

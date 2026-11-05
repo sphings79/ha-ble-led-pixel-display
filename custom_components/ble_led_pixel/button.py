@@ -40,7 +40,11 @@ async def async_setup_entry(
 
 
 class _BleLedPixelSlotButton(ButtonEntity):
-    """A button acting on the slot chosen in the Slot number entity."""
+    """A button acting on the slot chosen in the Slot number entity.
+
+    Named "Slot <action>" so the device page, which sorts by name, keeps the
+    slot controls together with the Slot number first.
+    """
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -78,7 +82,7 @@ class BleLedPixelSaveSlotButton(_BleLedPixelSlotButton):
     cannot be stored.
     """
 
-    _label = "Save to Slot"
+    _label = "Slot Save"
     _key = "save_slot"
     _attr_icon = "mdi:content-save"
 
@@ -101,7 +105,7 @@ class BleLedPixelShowSlotButton(_BleLedPixelSlotButton):
     something, since it cannot report which ones are empty.
     """
 
-    _label = "Show Slot"
+    _label = "Slot Show"
     _key = "show_slot"
     _attr_icon = "mdi:play-box-outline"
 
@@ -112,7 +116,7 @@ class BleLedPixelShowSlotButton(_BleLedPixelSlotButton):
 class BleLedPixelClearSlotButton(_BleLedPixelSlotButton):
     """Erase the chosen slot."""
 
-    _label = "Clear Slot"
+    _label = "Slot Clear"
     _key = "clear_slot"
     _attr_icon = "mdi:delete-outline"
 

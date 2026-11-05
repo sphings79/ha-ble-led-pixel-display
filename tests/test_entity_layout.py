@@ -64,5 +64,5 @@ def test_everyday_controls_stay_in_controls(cls):
 
 
 def test_light_names_sort_with_the_text_settings():
-    assert light.BleLedPixelTextColorLight._light_name == "Text Color"
-    assert light.BleLedPixelBackgroundColorLight._light_name == "Text Background Color"
+    assert light.BleLedPixelTextColorLight._light_name == "Message Color"
+    assert light.BleLedPixelBackgroundColorLight._light_name == "Message Background Color"

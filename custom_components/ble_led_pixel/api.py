@@ -69,10 +69,8 @@ from .const import (
 )
 
 try:
-    from pypixelcolor.commands.show_slot import show_slot as pypixelcolor_show_slot
     from pypixelcolor.commands.delete import delete as pypixelcolor_delete
 except ImportError:
-    pypixelcolor_show_slot = None
     pypixelcolor_delete = None
 
 _LOGGER = logging.getLogger(__name__)
@@ -80,6 +78,16 @@ _LOGGER = logging.getLogger(__name__)
 # Erase everything stored on the panel (opcode 0x8003, deleteAllData in the
 # vendor app). See docs/protocol.md, A.8.
 DELETE_ALL_COMMAND = bytes([0x04, 0x00, 0x03, 0x80])
+
+
+def show_slot_command(slot: int) -> bytes:
+    """Frame that shows a stored slot (opcode 0x8008), as the vendor app sends it.
+
+    pypixelcolor sends ``07 00 08 80 01 00 nn`` -- a one-entry slot list --
+    which the unbranded 64x20 panel (product 000105) ignores. The decompiled
+    app sends ``05 00 08 80 nn``; see docs/protocol.md, C.2.
+    """
+    return bytes([0x05, 0x00, 0x08, 0x80, slot & 0xFF])
 
 
 class BleLedPixelAPI:
@@ -1331,12 +1339,12 @@ class BleLedPixelAPI:
                 _LOGGER.error("Failed to send test pattern")
                 return False
 
-            if pypixelcolor_show_slot is not None:
-                show_plan = pypixelcolor_show_slot(0)
-                shown = await self._bluetooth.send_plan(show_plan, still_current=still_current)
-                if not shown:
-                    _LOGGER.error("Failed to show_slot(0) after sending test pattern")
-                    return False
+            shown = await self._bluetooth.send_command(
+                show_slot_command(0), content=True, still_current=still_current
+            )
+            if not shown:
+                _LOGGER.error("Failed to show_slot(0) after sending test pattern")
+                return False
 
             _LOGGER.info("Test pattern sent (%dx%d), save_slot=0, shown via slot 0", width, height)
             return True
@@ -1347,8 +1355,8 @@ class BleLedPixelAPI:
     async def show_slot(self, slot: int) -> bool:
         """Display a picture already stored on the panel.
 
-        Sends seven bytes instead of re-transmitting the image, which on a
-        32x32 panel means 7 bytes rather than 12288. Store pictures first with
+        Sends five bytes instead of re-transmitting the image, which on a
+        32x32 panel means 5 bytes rather than 12288. Store pictures first with
         the save_slot argument of send_image_file or send_mdi_icon.
 
         Args:
@@ -1359,19 +1367,18 @@ class BleLedPixelAPI:
             True when the command was sent.
         """
         still_current = self._claim_content()
-        if pypixelcolor_show_slot is None:
-            _LOGGER.error("pypixelcolor is not available")
-            return False
         try:
-            success = await self._bluetooth.send_plan(pypixelcolor_show_slot(slot), still_current=still_current)
-            if success:
-                _LOGGER.debug("Showing slot %d", slot)
-            else:
-                _LOGGER.error("Failed to show slot %d", slot)
-            return success
-        except Exception as err:
+            success = await self._send_with_reconnect(
+                show_slot_command(slot), content=True, still_current=still_current
+            )
+        except Exception as err:  # noqa: BLE001 - reported as a failed action
             _LOGGER.error("Error showing slot %d: %s", slot, err)
             return False
+        if success:
+            _LOGGER.debug("Showing slot %d", slot)
+        else:
+            _LOGGER.error("Failed to show slot %d", slot)
+        return success
 
     async def delete_slot(self, slot: int) -> bool:
         """Erase one stored picture from the panel.

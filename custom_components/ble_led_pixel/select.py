@@ -81,7 +81,7 @@ class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Text Font"
+        self._attr_name = "Message Font"
         self._attr_unique_id = f"{address}_font_select"
 
         # Get available fonts from all locations

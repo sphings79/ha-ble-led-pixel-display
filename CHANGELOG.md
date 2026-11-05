@@ -127,6 +127,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.6.1] - 2026-11-05
+
+### Fixed
+
+- **Show Slot did nothing.** The panel ignored the seven-byte frame
+  pypixelcolor sends (`07 00 08 80 01 00 nn`). It now sends the vendor
+  app's five-byte frame, `05 00 08 80 nn`.
+
+### Changed
+
+- **Slot controls sort together.** The buttons are now named Slot Save,
+  Slot Show and Slot Clear, so the device page lists them as one block,
+  with the Slot number first. Existing entity ids do not change. The
+  dashboard card example in the README gains a Slots section.
+- **Settings shared by text and textimage mode use a `Message` prefix.**
+  Text Font, Text Color and Text Background Color are now Message Font,
+  Message Color and Message Background Color, so the `Text` prefix means
+  text mode only and `Image` means textimage only. Entity ids do not
+  change.
+- **The README dashboard card follows the settings' scope**: settings for
+  both text modes first, then text mode only, textimage only, clock, and
+  slots.
+
 ## [2.6.0] - 2026-11-04
 
 ### Added

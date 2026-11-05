@@ -41,6 +41,12 @@ class Bluetooth:
         self.sent.append(getattr(plan, "text", "other content"))
         return True
 
+    async def send_command(self, command, content=False, still_current=None):
+        if still_current is not None and not still_current():
+            return True
+        self.sent.append("other content")
+        return True
+
 
 def make_api():
     api = api_module.BleLedPixelAPI.__new__(api_module.BleLedPixelAPI)

@@ -1295,17 +1295,21 @@ commands are in `pypixelcolor` but no integration exposed them:
 
 | Action | Frame | Opcode |
 |---|---|---|
-| Show slot | `07 00 08 80 01 00 <n>` | `0x8008` |
+| Show slot | `05 00 08 80 <n>` | `0x8008` |
 | Delete slot | `07 00 02 01 01 00 <n>` | `0x0102` |
 | Delete everything | `04 00 03 80` | `0x8003` |
 
 Writing is already covered: `send_image_file` and `send_mdi_icon` take a
 `save_slot` argument that stores the picture as it is sent.
 
-Showing a stored picture costs **seven bytes**. Sending the same picture costs
+Showing a stored picture costs **five bytes**. Sending the same picture costs
 a full frame buffer -- 12288 bytes on a 32×32 panel. For anything that cycles
 through a fixed set of pictures, storing them once and switching by slot number
 is dramatically cheaper over Bluetooth.
+
+pypixelcolor sends the seven-byte form `07 00 08 80 01 00 <n>` (a one-entry
+slot list). The unbranded 64x20 panel (product 000105) ignores it and only
+acts on the app's five-byte form, which this integration sends since 2.6.1.
 
 Showing an empty slot does not blank the panel: it cycles through the slots
 that do hold something. The number of slots is not documented anywhere and the
