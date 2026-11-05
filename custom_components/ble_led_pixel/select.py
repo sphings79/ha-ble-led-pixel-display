@@ -32,11 +32,12 @@ from .const import (
     text_size_from_font_size,
 )
 from .device_types import clock_style_count
-from .entity import panel_device_info
+from .entity import ModeScopedEntity, panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import update_panel_display
 from .fonts import get_available_fonts
 
+from .const import MODE_CLOCK, MODE_TEXT, MODE_TEXT_IMAGE
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -61,8 +62,10 @@ async def async_setup_entry(
     ])
 
 
-class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
+class BleLedPixelFontSelect(ModeScopedEntity, SelectEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display font selection."""
+
+    _modes = frozenset({MODE_TEXT, MODE_TEXT_IMAGE})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -131,10 +134,6 @@ class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True
 
 
 class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
@@ -175,6 +174,8 @@ class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
         if last_state is not None and last_state.state in self._attr_options:
             self._attr_current_option = last_state.state
             _LOGGER.debug("Restored mode selection: %s", self._attr_current_option)
+        # Settings for other modes grey out from here on.
+        self._api.set_current_mode(self._attr_current_option)
 
     @property
     def current_option(self) -> str | None:
@@ -186,6 +187,11 @@ class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
         if option in self._attr_options:
             self._attr_current_option = option
             _LOGGER.info("Mode changed to: %s", option)
+            # Before the update: it reads the settings' states, and those of
+            # the new mode must be available again by then.
+            self._api.set_current_mode(option)
+            if getattr(self, "hass", None) is not None and getattr(self, "entity_id", None):
+                self.async_write_ha_state()
 
             # Trigger display update if auto-update is enabled
             await self._trigger_auto_update()
@@ -212,8 +218,10 @@ class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
         return True
 
 
-class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
+class BleLedPixelClockStyleSelect(ModeScopedEntity, SelectEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display clock style selection."""
+
+    _modes = frozenset({MODE_CLOCK})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -291,18 +299,16 @@ class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True
 
-class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
+class BleLedPixelTextEffectSelect(ModeScopedEntity, SelectEntity, RestoreEntity):
     """How the panel animates text written to the text entity.
 
     The effect is a property of the text command, so it is picked here and
     applied the next time the display is refreshed - it is not a command of
     its own.
     """
+
+    _modes = frozenset({MODE_TEXT})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -414,13 +420,15 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
             _LOGGER.debug("Could not refresh after the effect change: %s", err)
 
 
-class BleLedPixelTextGradientSelect(SelectEntity, RestoreEntity):
+class BleLedPixelTextGradientSelect(ModeScopedEntity, SelectEntity, RestoreEntity):
     """Colour gradient applied to text, the protocol's "rainbow mode".
 
     Off leaves the text in the colour picked by the text colour light. The
     panel renders the gradient itself; the labels describe the ramps rather
     than naming them, because the vendor numbers them and nothing more.
     """
+
+    _modes = frozenset({MODE_TEXT})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -536,7 +544,7 @@ def _stored_state(hass: HomeAssistant, entity_id: str):
     return stored
 
 
-class BleLedPixelTextSizeSelect(SelectEntity, RestoreEntity):
+class BleLedPixelTextSizeSelect(ModeScopedEntity, SelectEntity, RestoreEntity):
     """Character height in text mode.
 
     The panel draws text mode itself, in whole 16px rows, so only 16, 32, 48
@@ -548,6 +556,8 @@ class BleLedPixelTextSizeSelect(SelectEntity, RestoreEntity):
     Image Font Size number amounted to in text mode, so text looks the same
     as before.
     """
+
+    _modes = frozenset({MODE_TEXT})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG

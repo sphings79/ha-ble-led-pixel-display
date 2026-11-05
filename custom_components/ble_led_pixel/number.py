@@ -13,9 +13,10 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
-from .entity import panel_device_info
+from .entity import ModeScopedEntity, panel_device_info
 from .common import get_entity_id_by_unique_id
 
+from .const import MODE_CLOCK, MODE_TEXT, MODE_TEXT_IMAGE
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -80,13 +81,15 @@ class BleLedPixelSlot(NumberEntity, RestoreEntity):
         self.async_write_ha_state()
 
 
-class BleLedPixelFontSize(NumberEntity, RestoreEntity):
+class BleLedPixelFontSize(ModeScopedEntity, NumberEntity, RestoreEntity):
     """Font size for the textimage mode, which this integration renders.
 
     Text mode uses the Text Size select instead: the panel draws that mode
     itself and only in whole 16px rows. The entity id is unchanged so
     existing dashboards and automations keep working.
     """
+
+    _modes = frozenset({MODE_TEXT_IMAGE})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -154,14 +157,12 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
             _LOGGER.error("Invalid font size: %f (min: %f, max: %f)", 
                          value, self._attr_native_min_value, self._attr_native_max_value)
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True
 
 
-class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
+class BleLedPixelLineSpacing(ModeScopedEntity, NumberEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display line spacing setting."""
+
+    _modes = frozenset({MODE_TEXT_IMAGE})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -219,10 +220,6 @@ class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
             _LOGGER.error("Invalid line spacing: %f (min: %f, max: %f)", 
                          value, self._attr_native_min_value, self._attr_native_max_value)
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True
 
 
 class BleLedPixelBrightness(NumberEntity, RestoreEntity):
@@ -302,8 +299,10 @@ class BleLedPixelBrightness(NumberEntity, RestoreEntity):
         return True
 
 
-class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
+class BleLedPixelTextSpeed(ModeScopedEntity, NumberEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display text speed setting."""
+
+    _modes = frozenset({MODE_TEXT})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -380,7 +379,3 @@ class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
         except Exception as err:
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True

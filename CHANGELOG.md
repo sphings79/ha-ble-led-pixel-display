@@ -127,6 +127,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.7.0] - 2026-11-05
+
+### Changed
+
+- **Settings the current mode does not use are greyed out.** On the device
+  page and in dashboards they show as unavailable, and come back when you
+  switch to a mode that uses them. Clock settings grey out in the text
+  modes, text-only settings in textimage and clock, and so on. Mode,
+  Message, Brightness, Auto Update, Update Display and the Slot number,
+  Show and Clear stay available in every mode.
+- Their values are kept, also across a restart while greyed out: each one
+  is saved alongside Home Assistant's own restore data, which stores
+  "unavailable" for an unavailable entity.
+- An automation cannot change a greyed-out setting, since Home Assistant
+  skips unavailable entities in actions. Switch the mode first.
+
 ## [2.6.2] - 2026-11-05
 
 ### Changed

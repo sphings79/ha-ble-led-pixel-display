@@ -273,6 +273,12 @@ setting's name says which mode it applies to:
 
 Auto Update has no prefix because it applies in every mode.
 
+Settings the current mode does not use also show as **unavailable**
+(greyed out) and come back when you switch to a mode that uses them. Their
+values are kept, across restarts too. One consequence: an automation cannot
+change a greyed-out setting, because Home Assistant skips unavailable
+entities in actions. Switch the mode first, then change the setting.
+
 For real separators, use the [dashboard card](#a-dashboard-card-that-follows-the-mode)
 below. Settings in Configuration are also not offered to voice assistants by
 default.

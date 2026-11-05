@@ -18,10 +18,11 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
-from .entity import panel_device_info
+from .entity import ModeScopedEntity, panel_device_info
 from .color import rgb_to_hex
 from .common import get_entity_id_by_unique_id
 
+from .const import MODE_CLOCK, MODE_TEXT, MODE_TEXT_IMAGE
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -42,8 +43,10 @@ async def async_setup_entry(
     ])
 
 
-class BleLedPixelColorLight(LightEntity, RestoreEntity):
+class BleLedPixelColorLight(ModeScopedEntity, LightEntity, RestoreEntity):
     """Base class for LED panel color selection light entities."""
+
+    _modes = frozenset({MODE_TEXT, MODE_TEXT_IMAGE})
 
     _attr_color_mode = ColorMode.RGB
     _attr_supported_color_modes = {ColorMode.RGB}

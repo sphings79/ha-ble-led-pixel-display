@@ -159,7 +159,12 @@ async def update_panel_display(hass: HomeAssistant, device_name: str, api, text:
     """
     try:
         # Get current mode
-        mode = await _get_entity_setting(hass, device_name, "select", "mode_select", str, api._address)
+        # The API holds the mode the Mode select just chose. Its state in
+        # hass.states is only written after the select's handler returns,
+        # which is after this update when Auto Update triggered it.
+        mode = getattr(api, "current_mode", None) or await _get_entity_setting(
+            hass, device_name, "select", "mode_select", str, api._address
+        )
         if not mode:
             mode = MODE_TEXT_IMAGE  # Default to textimage mode
 

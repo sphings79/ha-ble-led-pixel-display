@@ -13,10 +13,11 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
-from .entity import panel_device_info
+from .entity import ModeScopedEntity, panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import update_panel_display
 
+from .const import MODE_CLOCK, MODE_TEXT, MODE_TEXT_IMAGE
 _LOGGER = logging.getLogger(__name__)
 
 # Marks a power state that was set through Home Assistant, as opposed to the
@@ -167,8 +168,10 @@ class BleLedPixelSwitch(SwitchEntity, RestoreEntity):
             self._available = False
 
 
-class BleLedPixelAntialiasingSwitch(SwitchEntity, RestoreEntity):
+class BleLedPixelAntialiasingSwitch(ModeScopedEntity, SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display antialiasing setting."""
+
+    _modes = frozenset({MODE_TEXT_IMAGE})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -209,10 +212,6 @@ class BleLedPixelAntialiasingSwitch(SwitchEntity, RestoreEntity):
         """Return True if antialiasing is enabled."""
         return self._is_on
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable antialiasing."""
@@ -283,8 +282,10 @@ class BleLedPixelAutoUpdateSwitch(SwitchEntity, RestoreEntity):
         _LOGGER.debug("Auto-update disabled - use update button for manual updates")
 
 
-class BleLedPixelClock24HSwitch(SwitchEntity, RestoreEntity):
+class BleLedPixelClock24HSwitch(ModeScopedEntity, SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display clock 24h format setting."""
+
+    _modes = frozenset({MODE_CLOCK})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -327,10 +328,6 @@ class BleLedPixelClock24HSwitch(SwitchEntity, RestoreEntity):
         """Return True if 24h format is enabled."""
         return self._is_on
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable 24h format."""
@@ -363,8 +360,10 @@ class BleLedPixelClock24HSwitch(SwitchEntity, RestoreEntity):
             _LOGGER.debug("Could not trigger auto-update: %s", err)
 
 
-class BleLedPixelClockShowDateSwitch(SwitchEntity, RestoreEntity):
+class BleLedPixelClockShowDateSwitch(ModeScopedEntity, SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display clock show date setting."""
+
+    _modes = frozenset({MODE_CLOCK})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -407,10 +406,6 @@ class BleLedPixelClockShowDateSwitch(SwitchEntity, RestoreEntity):
         """Return True if show date is enabled."""
         return self._is_on
 
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Enable showing date."""

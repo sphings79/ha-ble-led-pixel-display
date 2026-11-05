@@ -13,9 +13,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .api import BleLedPixelAPI
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
-from .entity import panel_device_info
+from .entity import ModeScopedEntity, panel_device_info
 from .common import update_panel_display
 
+from .const import MODE_CLOCK, MODE_TEXT, MODE_TEXT_IMAGE
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -74,13 +75,15 @@ class _BleLedPixelSlotButton(ButtonEntity):
         return f"{self._label} failed for slot {slot}; see the log"
 
 
-class BleLedPixelSaveSlotButton(_BleLedPixelSlotButton):
+class BleLedPixelSaveSlotButton(ModeScopedEntity, _BleLedPixelSlotButton):
     """Store what the current settings show in the chosen slot.
 
     Re-sends the current text with the current mode's settings, so the panel
     shows it and keeps a copy. Clock mode is drawn by the panel itself and
     cannot be stored.
     """
+
+    _modes = frozenset({MODE_TEXT, MODE_TEXT_IMAGE})
 
     _label = "Slot: Save"
     _key = "save_slot"
@@ -162,8 +165,10 @@ class BleLedPixelUpdateButton(ButtonEntity):
         return True
 
 
-class BleLedPixelSyncTimeButton(ButtonEntity):
+class BleLedPixelSyncTimeButton(ModeScopedEntity, ButtonEntity):
     """Representation of an BLE LED Pixel Display time sync button."""
+
+    _modes = frozenset({MODE_CLOCK})
 
     _attr_has_entity_name = True
     _attr_entity_category = EntityCategory.CONFIG
@@ -209,8 +214,3 @@ class BleLedPixelSyncTimeButton(ButtonEntity):
 
         except Exception as err:
             _LOGGER.error("Error during time sync: %s", err)
-
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return True

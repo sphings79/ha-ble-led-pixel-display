@@ -149,6 +149,10 @@ class BleLedPixelAPI:
         # Slot the device page's Save/Show/Clear Slot buttons act on, set by
         # the Slot number entity.
         self.selected_slot = 1
+        # Display mode, set by the Mode select. Settings for other modes
+        # show as unavailable; None (not known yet) shows them all.
+        self.current_mode: str | None = None
+        self._mode_listeners: list[Callable[[], None]] = []
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
 
@@ -461,6 +465,27 @@ class BleLedPixelAPI:
             except Exception as err:  # noqa: BLE001
                 _LOGGER.debug("Reconnect task ended with: %s", err)
             self._reconnect_task = None
+
+    def set_current_mode(self, mode: str | None) -> None:
+        """Record the display mode and tell the mode-scoped settings."""
+        if mode == self.current_mode:
+            return
+        self.current_mode = mode
+        for listener in list(self._mode_listeners):
+            try:
+                listener()
+            except Exception:  # noqa: BLE001 - one entity must not stop the rest
+                _LOGGER.exception("Mode listener failed")
+
+    def add_mode_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Call listener when the mode changes; returns the unsubscribe."""
+        self._mode_listeners.append(listener)
+
+        def remove() -> None:
+            if listener in self._mode_listeners:
+                self._mode_listeners.remove(listener)
+
+        return remove
 
     def _slot_save_check(self, slot: int) -> Callable[[], bool]:
         """A check that neither this slot nor all slots were erased since."""
