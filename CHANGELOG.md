@@ -600,6 +600,16 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.4.0-beta.8] - 2026-11-05
+
+### Fixed
+
+- **The restore after a restart is tried again once when it fails.** Right after
+  a restart a panel is often reachable but does not acknowledge its first
+  transfer; the display then kept its old content until something else was sent.
+  The restore now repeats once after 15 seconds, and logs a warning if that fails
+  too.
+
 ## [2.4.0-beta.7] - 2026-11-05
 
 ### Added

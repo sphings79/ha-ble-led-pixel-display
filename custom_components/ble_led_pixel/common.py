@@ -117,14 +117,17 @@ async def resolve_template_variables(hass: HomeAssistant, text: str) -> str:
         return text
 
 
-async def restore_panel_display(hass: HomeAssistant, device_name: str, api) -> bool:
-    """Send Home Assistant's restored settings to the panel.
+# The restore is tried again once when it fails: right after a restart the
+# panel is often reachable but does not acknowledge its first transfer.
+RESTORE_ATTEMPTS = 2
+RESTORE_RETRY_DELAY = 15.0
 
-    The panel keeps showing whatever it last stored -- a message from the
-    phone app, say -- until something is sent, so after a restart Home
-    Assistant's entities and the panel disagree. Runs only when Auto Update
-    is on (with it off, nothing reaches the panel until Update Display is
-    pressed) and the power switch is not off.
+
+def restore_wanted(hass: HomeAssistant, api) -> bool:
+    """Whether the panel should get Home Assistant's saved settings at all.
+
+    Only when Auto Update is on (with it off, nothing reaches the panel until
+    Update Display is pressed) and the power switch is not off.
     """
     auto_id = get_entity_id_by_unique_id(hass, api._address, "auto_update", "switch")
     auto_state = hass.states.get(auto_id) if auto_id else None
@@ -136,11 +139,52 @@ async def restore_panel_display(hass: HomeAssistant, device_name: str, api) -> b
     if power_state is not None and power_state.state == "off":
         _LOGGER.debug("Panel switched off; not restoring the panel display")
         return False
+    return True
+
+
+async def restore_panel_display(hass: HomeAssistant, device_name: str, api) -> bool:
+    """Send Home Assistant's restored settings to the panel.
+
+    The panel keeps showing whatever it last stored -- a message from the
+    phone app, say -- until something is sent, so after a restart Home
+    Assistant's entities and the panel disagree. Returns False when nothing
+    was sent, because it was not wanted (see restore_wanted) or because the
+    send failed.
+    """
+    if not restore_wanted(hass, api):
+        return False
     _LOGGER.info("Restoring the panel display from Home Assistant's saved settings")
     # Anything sent meanwhile -- a start-up automation, a send_text action --
     # is newer than the saved settings and must stay on the panel.
     with api.restoring():
         return await update_panel_display(hass, device_name, api)
+
+
+async def restore_panel_display_with_retry(
+    hass: HomeAssistant, device_name: str, api, schedule, attempt: int = 1
+) -> None:
+    """Restore the panel, and try again later if the send failed.
+
+    `schedule(delay, attempt)` arranges for this to run again with the given
+    attempt number once the link is up. A restore that was not wanted is not a
+    failure and is not retried.
+    """
+    if not restore_wanted(hass, api):
+        return
+    if await restore_panel_display(hass, device_name, api):
+        return
+    if attempt >= RESTORE_ATTEMPTS:
+        _LOGGER.warning(
+            "Could not restore the display of %s after %d attempts; it keeps "
+            "its old content until something is sent",
+            api._address, attempt,
+        )
+        return
+    _LOGGER.info(
+        "Restoring the display of %s failed; trying again in %.0fs",
+        api._address, RESTORE_RETRY_DELAY,
+    )
+    schedule(RESTORE_RETRY_DELAY, attempt + 1)
 
 
 async def update_panel_display(hass: HomeAssistant, device_name: str, api, text: str = None, save_slot: int = 0) -> bool:

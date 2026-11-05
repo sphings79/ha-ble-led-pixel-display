@@ -160,6 +160,68 @@ def test_restore_display_respects_auto_update_and_power(monkeypatch, auto, power
     assert calls == (["Panel"] if sent else [])
 
 
+def _retry_setup(monkeypatch, *, auto="on", results):
+    """A hass and API with the restore wired to return `results` in turn."""
+    ids = {"auto_update": "switch.auto", "power": "switch.power"}
+    monkeypatch.setattr(
+        common, "get_entity_id_by_unique_id",
+        lambda hass, address, suffix, platform=None: ids[suffix],
+    )
+    outcomes = list(results)
+    sent = []
+
+    async def fake_update(hass, name, api, text=None):
+        sent.append(name)
+        return outcomes.pop(0)
+
+    monkeypatch.setattr(common, "update_panel_display", fake_update)
+    hass = SimpleNamespace(states=FakeStates({"switch.auto": auto, "switch.power": "on"}))
+    api = SimpleNamespace(_address="AA:BB", restoring=contextlib.nullcontext)
+    return hass, api, sent
+
+
+def test_a_failed_restore_is_scheduled_again_once(monkeypatch):
+    hass, api, sent = _retry_setup(monkeypatch, results=[False])
+    scheduled = []
+    run(common.restore_panel_display_with_retry(
+        hass, "Panel", api, lambda delay, attempt: scheduled.append((delay, attempt))
+    ))
+    assert sent == ["Panel"]
+    assert scheduled == [(common.RESTORE_RETRY_DELAY, 2)]
+
+
+def test_the_last_attempt_gives_up(monkeypatch):
+    hass, api, sent = _retry_setup(monkeypatch, results=[False])
+    scheduled = []
+    run(common.restore_panel_display_with_retry(
+        hass, "Panel", api,
+        lambda delay, attempt: scheduled.append((delay, attempt)),
+        attempt=common.RESTORE_ATTEMPTS,
+    ))
+    assert sent == ["Panel"]
+    assert scheduled == []
+
+
+def test_a_successful_restore_is_not_repeated(monkeypatch):
+    hass, api, sent = _retry_setup(monkeypatch, results=[True])
+    scheduled = []
+    run(common.restore_panel_display_with_retry(
+        hass, "Panel", api, lambda delay, attempt: scheduled.append((delay, attempt))
+    ))
+    assert sent == ["Panel"]
+    assert scheduled == []
+
+
+def test_an_unwanted_restore_is_not_a_failure(monkeypatch):
+    hass, api, sent = _retry_setup(monkeypatch, auto="off", results=[])
+    scheduled = []
+    run(common.restore_panel_display_with_retry(
+        hass, "Panel", api, lambda delay, attempt: scheduled.append((delay, attempt))
+    ))
+    assert sent == []
+    assert scheduled == []
+
+
 def _client():
     client = BluetoothClient.__new__(BluetoothClient)
     client._send_lock = asyncio.Lock()

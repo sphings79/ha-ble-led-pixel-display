@@ -170,13 +170,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Once Home Assistant has started (entities restored, templates ready),
     # send the restored settings so the panel matches what Home Assistant
     # shows. A panel not connected by then gets them when its link comes up.
-    async def _restore_display() -> None:
-        from .common import restore_panel_display
+    async def _restore_display(attempt: int = 1) -> None:
+        from .common import restore_panel_display_with_retry
 
         try:
-            await restore_panel_display(hass, name, api)
+            await restore_panel_display_with_retry(
+                hass, name, api, _schedule_restore, attempt
+            )
         except Exception as err:  # noqa: BLE001 - never fail over this
             _LOGGER.warning("Could not restore the panel display: %s", err)
+
+    def _schedule_restore(delay: float, attempt: int) -> None:
+        # Not awaited here: this runs inside the connect that triggered it,
+        # which must not be held up for the delay.
+        async def _later() -> None:
+            await asyncio.sleep(delay)
+            api.call_when_connected(lambda: _restore_display(attempt))
+
+        entry.async_create_background_task(
+            hass, _later(), name=f"ble_led_pixel restore retry {address}"
+        )
 
     @callback
     def _at_started(_hass: HomeAssistant) -> None:
