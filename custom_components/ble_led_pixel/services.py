@@ -19,14 +19,19 @@ are unchanged - only where and how they get registered.
 """
 from __future__ import annotations
 
+from typing import Any
+
 import voluptuous as vol
 
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.const import ATTR_ENTITY_ID, ENTITY_MATCH_ALL, Platform
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import service
 
 from .const import DOMAIN, MAX_WRITABLE_SLOT, MIN_WRITABLE_SLOT
+from .exceptions import BleLedPixelConnectionError
 
 ICON_ITEM_SCHEMA = vol.Schema({
     vol.Required("icon"): cv.string,
@@ -58,6 +63,75 @@ TEXT_ITEM_SCHEMA = vol.Schema({
         vol.Coerce(int), vol.Range(min=50, max=5000)
     ),
 })
+
+
+def _hex_frame(value: Any) -> bytes:
+    """One frame as hex, spaces allowed: '05 00 08 80 01'."""
+    text = "".join(str(value).split())
+    if text.lower().startswith("0x"):
+        text = text[2:]
+    try:
+        frame = bytes.fromhex(text)
+    except ValueError as err:
+        raise vol.Invalid(f"'{value}' is not hex bytes, e.g. '05 00 08 80 01'") from err
+    if not 1 <= len(frame) <= 512:
+        raise vol.Invalid("A frame is 1 to 512 bytes")
+    return frame
+
+
+SEND_RAW_COMMAND_SCHEMA = cv.make_entity_service_schema({
+    vol.Required("frames"): vol.All(
+        cv.ensure_list, [_hex_frame], vol.Length(min=1, max=10)
+    ),
+    vol.Optional("gap", default=0.5): vol.All(
+        vol.Coerce(float), vol.Range(min=0, max=10)
+    ),
+    vol.Optional("listen", default=2.0): vol.All(
+        vol.Coerce(float), vol.Range(min=0, max=30)
+    ),
+})
+
+
+async def _async_send_raw_command(
+    hass: HomeAssistant, call: ServiceCall
+) -> dict[str, Any] | None:
+    """Send frames to the targeted panels exactly as given (administrators only).
+
+    Registered as an admin service, so Home Assistant refuses any caller that
+    is not an administrator before this runs. Nothing is checked on the way to
+    the panel -- the frames can set or clear its password or erase its storage
+    -- which is why this is not an ordinary entity action.
+    """
+    if call.data.get(ATTR_ENTITY_ID) in (ENTITY_MATCH_ALL, [ENTITY_MATCH_ALL]):
+        raise ServiceValidationError(
+            f"{DOMAIN}.send_raw_command needs an explicit target, not 'all'."
+        )
+    data = service.remove_entity_service_fields(call)
+    registry = er.async_get(hass)
+    apis: dict[str, tuple[str, Any]] = {}
+    for entity_id in sorted(await service.async_extract_entity_ids(call)):
+        entry = registry.async_get(entity_id)
+        if entry is None or entry.platform != DOMAIN or entry.config_entry_id is None:
+            continue
+        api = hass.data.get(DOMAIN, {}).get(entry.config_entry_id)
+        if api is not None and hasattr(api, "send_raw_frames"):
+            # One send per panel, however many of its entities were targeted.
+            apis.setdefault(entry.config_entry_id, (entity_id, api))
+    if not apis:
+        raise ServiceValidationError(
+            f"{DOMAIN}.send_raw_command needs a BLE LED Pixel panel as its "
+            "target: pick the panel's device or one of its entities."
+        )
+    results: dict[str, Any] = {}
+    for entity_id, api in apis.values():
+        try:
+            log = await api.send_raw_frames(
+                data["frames"], gap=data["gap"], listen=data["listen"]
+            )
+        except BleLedPixelConnectionError as err:
+            raise HomeAssistantError(f"Could not reach the panel: {err}") from err
+        results[entity_id] = {"log": log}
+    return results if call.return_response else None
 
 
 def async_setup_services(hass: HomeAssistant) -> None:
@@ -360,4 +434,16 @@ def async_setup_services(hass: HomeAssistant) -> None:
             vol.Optional("enabled", default=True): cv.boolean,
         },
         func="async_set_password",
+    )
+
+    async def send_raw_command(call: ServiceCall) -> dict[str, Any] | None:
+        return await _async_send_raw_command(hass, call)
+
+    service.async_register_admin_service(
+        hass,
+        DOMAIN,
+        "send_raw_command",
+        send_raw_command,
+        schema=SEND_RAW_COMMAND_SCHEMA,
+        supports_response=SupportsResponse.OPTIONAL,
     )

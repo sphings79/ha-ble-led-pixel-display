@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -40,6 +41,9 @@ async def async_setup_entry(
 
 class BleLedPixelSlot(NumberEntity, RestoreEntity):
     """Which panel slot the Save, Show and Clear Slot buttons act on."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = MIN_WRITABLE_SLOT
@@ -79,11 +83,13 @@ class BleLedPixelSlot(NumberEntity, RestoreEntity):
 class BleLedPixelFontSize(NumberEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display font size setting."""
 
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0.0  # 0 = auto-sizing
     _attr_native_step = 0.5  # Allow half-pixel increments
     _attr_icon = "mdi:format-size"
-    _attr_entity_category = None
 
     def __init__(
         self, 
@@ -152,12 +158,14 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
 class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display line spacing setting."""
 
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
     _attr_mode = NumberMode.BOX
     _attr_native_min_value = 0  # No extra spacing
     _attr_native_max_value = 20  # Maximum 20 pixels of spacing
     _attr_native_step = 1
     _attr_icon = "mdi:format-line-spacing"
-    _attr_entity_category = None
 
     def __init__(
         self, 
@@ -215,12 +223,13 @@ class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
 class BleLedPixelBrightness(NumberEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display brightness setting."""
 
+    _attr_has_entity_name = True
+
     _attr_mode = NumberMode.SLIDER
     _attr_native_min_value = 1  # Minimum brightness (0 is invalid)
     _attr_native_max_value = 100  # Maximum brightness
     _attr_native_step = 1
     _attr_icon = "mdi:brightness-6"
-    _attr_entity_category = None
 
     def __init__(
         self, 
@@ -290,6 +299,9 @@ class BleLedPixelBrightness(NumberEntity, RestoreEntity):
 
 class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display text speed setting."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _attr_mode = NumberMode.SLIDER
     _attr_native_min_value = 0

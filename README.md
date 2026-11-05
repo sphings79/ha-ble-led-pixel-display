@@ -505,6 +505,21 @@ This is the lightest option: the panel does the scrolling itself, Home Assistant
 
 Four coloured quadrants — verifies resolution and colour channel order in one shot.
 
+### Trying commands on new hardware (administrators only)
+
+`send_raw_command` sends hex frames to a panel exactly as given and returns every reply it makes, so a command can be tried from **Developer Tools → Actions** (tick *Return response*). Nothing is checked: a frame can set or clear the panel's password or erase its storage. For that reason only administrators can call it, and it needs an explicit panel as its target.
+
+```yaml
+- action: ble_led_pixel.send_raw_command
+  target: { device_id: <your panel> }
+  data:
+    frames: ["04 00 01 01", "05 00 08 80 01"]
+```
+
+## Where the entities appear
+
+The everyday controls — power, mode, message, brightness, Update Display and the gallery — sit at the top of the device page. Everything that is a setting (fonts, colours, sizes, effects, clock options, slots) is listed under **Configuration**, and is left out of automatically generated dashboards and of voice assistants' default exposure. Entity names start with the panel's name.
+
 ## Fonts
 
 Fonts are picked in the **Font** select entity and looked up in this order:

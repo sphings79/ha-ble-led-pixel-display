@@ -43,6 +43,8 @@ async def async_setup_entry(
 class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display text display."""
 
+    _attr_has_entity_name = True
+
     _attr_mode = TextMode.TEXT
     _attr_native_max = 500  # Maximum 500 characters per protocol
 

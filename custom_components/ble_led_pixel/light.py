@@ -11,6 +11,7 @@ from homeassistant.components.light import (
     LightEntity,
 )
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
@@ -44,6 +45,9 @@ async def async_setup_entry(
 class BleLedPixelColorLight(LightEntity, RestoreEntity):
     """Base class for LED panel color selection light entities."""
 
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
     _attr_color_mode = ColorMode.RGB
     _attr_supported_color_modes = {ColorMode.RGB}
 
@@ -67,7 +71,7 @@ class BleLedPixelColorLight(LightEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._device_name = name
-        self._attr_name = self._light_name  # Just the light name, device name is redundant
+        self._attr_name = self._light_name  # has_entity_name prefixes the device name
         self._attr_unique_id = f"{address}_{self._entity_suffix}"
         self._attr_is_on = True  # Start as "on"
         self._attr_rgb_color = self._default_rgb

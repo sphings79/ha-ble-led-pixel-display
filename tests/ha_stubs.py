@@ -19,6 +19,14 @@ def _identity(func):
 
 FUNCTIONS = {
     "callback": _identity,
+    "make_entity_service_schema": _identity,
+}
+
+
+# Plain values the integration compares against.
+CONSTANTS = {
+    "ATTR_ENTITY_ID": "entity_id",
+    "ENTITY_MATCH_ALL": "all",
 }
 
 
@@ -50,16 +58,23 @@ class _StubMeta(type):
     def __getattr__(cls, name: str):
         if name.startswith("__"):
             raise AttributeError(name)
-        value = _stub_class(name)
+        value = FUNCTIONS.get(name)
+        if value is not None:
+            value = staticmethod(value)
+        else:
+            value = _stub_class(name)
         setattr(cls, name, value)
-        return value
+        return getattr(cls, name) if isinstance(value, staticmethod) else value
 
 
 class _StubModule(types.ModuleType):
     def __getattr__(self, name: str):
         if name.startswith("__"):
             raise AttributeError(name)
-        value = FUNCTIONS.get(name) or _stub_class(name)
+        if name in CONSTANTS:
+            value = CONSTANTS[name]
+        else:
+            value = FUNCTIONS.get(name) or _stub_class(name)
         setattr(self, name, value)
         return value
 

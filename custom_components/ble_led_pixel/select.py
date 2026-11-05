@@ -8,6 +8,7 @@ from typing import Any
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -71,6 +72,9 @@ async def async_setup_entry(
 
 class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display font selection."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
         self, 
@@ -144,6 +148,8 @@ class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
 
 class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display mode selection."""
+
+    _attr_has_entity_name = True
 
     def __init__(
         self,
@@ -221,6 +227,9 @@ class BleLedPixelModeSelect(SelectEntity, RestoreEntity):
 
 class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display clock style selection."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
         self,
@@ -307,6 +316,9 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
     applied the next time the display is refreshed - it is not a command of
     its own.
     """
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _attr_icon = "mdi:animation"
 
@@ -422,6 +434,9 @@ class BleLedPixelTextGradientSelect(SelectEntity, RestoreEntity):
     panel renders the gradient itself; the labels describe the ramps rather
     than naming them, because the vendor numbers them and nothing more.
     """
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _attr_icon = "mdi:gradient-horizontal"
 
@@ -547,6 +562,9 @@ class BleLedPixelTextSizeSelect(SelectEntity, RestoreEntity):
     as before.
     """
 
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+
     _attr_icon = "mdi:format-size"
 
     def __init__(
@@ -645,6 +663,8 @@ class BleLedPixelGallerySelect(SelectEntity, RestoreEntity):
     being up there: no file paths, no service call, just a dropdown on the
     device page that also works as an automation target.
     """
+
+    _attr_has_entity_name = True
 
     _attr_icon = "mdi:image-multiple"
 

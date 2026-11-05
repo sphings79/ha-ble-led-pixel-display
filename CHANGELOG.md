@@ -615,6 +615,17 @@ out is easy and undoing it needs physical access to the power supply.
   manual entry as fallbacks. Panels already set up are left out.
 - Unbranded 64x20 panels (product 000105) are listed as Generic.
 - Unit tests and CI: HACS and hassfest validation, byte-compilation and pytest.
+- **Settings sit under Configuration on the device page**, and entity names
+  follow Home Assistant's `has_entity_name` convention, so two panels no longer
+  compete for the same entity ids. Names are unchanged apart from the device
+  name in front; entity ids of existing entities do not change, but entities
+  created from now on take the panel's name in their id. Everyday controls
+  (power, mode, message, brightness, Update Display, gallery) stay at the top.
+  Settings in Configuration are left out of automatically generated dashboards
+  and of voice assistants' default exposure.
+- **`send_raw_command`** (administrators only): sends hex frames to a panel
+  exactly as given and returns every reply, for working out commands on new
+  hardware. Not an ordinary entity action, because the frames are not checked.
 - Bundled a new font, `Lepidos` (3x7 pixel font, CC0/public domain, by SurrealEmber -
   https://surrealember.itch.io/lepidos), designed to be rendered at multiples of 16px for
   crisp, correctly-proportioned glyphs.
@@ -744,7 +755,7 @@ out is easy and undoing it needs physical access to the power supply.
 Based on the work of scyto in
 [scyto/ha-ble-led-pixel-display](https://github.com/scyto/ha-ble-led-pixel-display),
 taken over selectively; the mode-dependent greying out and renaming of entities
-and the `send_raw_command` debug action were left out.
+were left out.
 
 ## [0.1.0] - 2024-11-19
 

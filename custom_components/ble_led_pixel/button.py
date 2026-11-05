@@ -6,6 +6,7 @@ from typing import Any
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -40,6 +41,9 @@ async def async_setup_entry(
 
 class _BleLedPixelSlotButton(ButtonEntity):
     """A button acting on the slot chosen in the Slot number entity."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _label = ""
     _key = ""
@@ -119,6 +123,8 @@ class BleLedPixelClearSlotButton(_BleLedPixelSlotButton):
 class BleLedPixelUpdateButton(ButtonEntity):
     """Representation of an BLE LED Pixel Display update button."""
 
+    _attr_has_entity_name = True
+
     _attr_icon = "mdi:refresh"
 
     def __init__(
@@ -154,6 +160,9 @@ class BleLedPixelUpdateButton(ButtonEntity):
 
 class BleLedPixelSyncTimeButton(ButtonEntity):
     """Representation of an BLE LED Pixel Display time sync button."""
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
 
     _attr_icon = "mdi:clock-sync"
 
