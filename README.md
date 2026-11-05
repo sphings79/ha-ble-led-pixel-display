@@ -304,7 +304,7 @@ default.
 | **Clock: Sync Time** | `button` | `clock` | Sets the device clock |
 | **Slot** | `number` | all | Slot 1–10 that the slot buttons below act on |
 | **Slot: Save** | `button` | `text`, `textimage` | Sends the current message and keeps a copy in the chosen slot |
-| **Slot: Show**, **Slot: Clear** | `button` | all | Shows or erases the chosen slot. An empty slot makes the panel cycle through the filled ones, because the panel cannot report which slots are empty |
+| **Slot: Show**, **Slot: Clear** | `button` | all | Shows or erases the chosen slot. An empty slot makes the panel cycle through the filled ones, because the panel cannot report which slots are empty. Switching from one stored slot to another can take about 5 seconds to appear (from text sent by Home Assistant it is instant); press once and wait |
 | **Text & Image: Font** | `select` | `text`, `textimage` | TTF/OTF fonts, see [Fonts](#fonts) |
 | **Text & Image: Color**, **Text & Image: Background Color** | `light` | `text`, `textimage` | Colours as RGB |
 | **Auto Update** | `switch` | all | **Read [Avoiding flicker](#avoiding-flicker-how-updates-actually-work) before touching this** |

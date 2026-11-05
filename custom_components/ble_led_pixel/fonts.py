@@ -127,6 +127,13 @@ def get_font_path(font_name: str, locations: list[Path] | None = None) -> Path |
         ):
             hit = _FONT_INDEX.get(f"{font_name.lower()}.ttf")
         if hit is None:
+            # A path this module already resolved, passed back in (text mode
+            # resolves the font, then the API resolves it again). Accept it
+            # only when it is the indexed file itself; no filesystem access.
+            by_name = _FONT_INDEX.get(Path(font_name).name.lower())
+            if by_name is not None and str(by_name) == font_name:
+                hit = by_name
+        if hit is None:
             _LOGGER.warning("Font %s not found in any location", font_name)
         return hit
 

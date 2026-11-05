@@ -5,7 +5,10 @@ show_slot:
     Store it first using the "save slot" field of send_text, send_image_file
     or send_mdi_icon. Works after unsaved content too: the integration first
     switches the panel back to its stored content. Showing an empty slot makes
-    the panel cycle through the slots that do hold something.
+    the panel cycle through the slots that do hold something. Coming from
+    unsaved content (such as text sent from Home Assistant) the slot appears
+    at once; when the panel is already showing stored slots it can take about
+    5 seconds, while the panel restarts its play list.
   target:
     entity:
       integration: ble_led_pixel
