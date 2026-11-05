@@ -13,8 +13,16 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError
 from .fonts import resolve_font_for_library
-from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, VERTICAL_TEXT_EFFECTS
-from .entity import panel_device_info
+from .const import (
+    CONF_ADDRESS,
+    CONF_NAME,
+    DATA_PANEL_ENTITIES,
+    DOMAIN,
+    MODE_TEXT,
+    MODE_TEXT_IMAGE,
+    VERTICAL_TEXT_EFFECTS,
+)
+from .entity import ModeScopedEntity, panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import resolve_template_variables, update_panel_display
 
@@ -40,10 +48,16 @@ async def async_setup_entry(
     # https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/
 
 
-class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
-    """Representation of an BLE LED Pixel Display text display."""
+class BleLedPixelTextDisplay(ModeScopedEntity, TextEntity, RestoreEntity):
+    """The panel's Message, and the entity that carries its actions.
+
+    The Message itself is only shown in text and text image mode, so it is
+    greyed out in clock mode. The actions (send_text, show_slot and the rest)
+    are dispatched by services.py, which does not skip it then.
+    """
 
     _attr_has_entity_name = True
+    _modes = frozenset({MODE_TEXT, MODE_TEXT_IMAGE})
 
     _attr_mode = TextMode.TEXT
     _attr_native_max = 500  # Maximum 500 characters per protocol
@@ -79,7 +93,10 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         """Run when entity about to be added to hass."""
         await super().async_added_to_hass()
-        
+        panels = self.hass.data.setdefault(DATA_PANEL_ENTITIES, set())
+        panels.add(self)
+        self.async_on_remove(lambda: panels.discard(self))
+
         # Restore last state if available
         last_state = await self.async_get_last_state()
         if last_state is not None and last_state.state:
@@ -90,13 +107,6 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
     def native_value(self) -> str | None:
         """Return the current text value."""
         return self._current_text
-
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        # Always return True to allow reconnection attempts
-        # The actual connection state will be handled in the async_set_value method
-        return True
 
     async def async_set_value(self, value: str) -> None:
         """Set the text to display."""
@@ -386,6 +396,21 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         if not success:
             _LOGGER.error("Failed to show emoji '%s'", emoji)
             raise HomeAssistantError(f"Failed to show emoji '{emoji}' - check the logs for details")
+
+    async def async_send_raw_command(
+        self, frames: list[bytes], gap: float = 0.5, listen: float = 2.0
+    ) -> dict:
+        """Send frames exactly as given, for debugging (action: send_raw_command).
+
+        Returns what was sent and every notification the panel sent back, in
+        order, so a command can be tried on real hardware from Developer
+        Tools. The panel's own checks are the only safety net.
+        """
+        try:
+            log = await self._api.send_raw_frames(frames, gap=gap, listen=listen)
+        except BleLedPixelConnectionError as err:
+            raise HomeAssistantError(f"Could not reach the panel: {err}") from err
+        return {"log": log}
 
     async def async_show_slot(self, slot: int) -> None:
         """Display a picture already stored on the panel (action: show_slot).

@@ -282,6 +282,49 @@ send_test_pattern:
       integration: ble_led_pixel
       domain: text
 
+send_raw_command:
+  name: "[DIAGNOSTIC] Send raw command"
+  description: >-
+    For working out commands on real hardware. Sends each frame to the panel
+    exactly as given, one after another, then listens for a while and returns
+    what was sent and every reply the panel made, in order (tick "Return
+    response" in Developer Tools to see it). Nothing is checked, so a wrong
+    frame does whatever the panel makes of it. Each frame is hex, spaces
+    allowed: the first two bytes are the frame length, little-endian.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
+  fields:
+    frames:
+      name: Frames
+      description: One to ten frames, each as hex, e.g. 05 00 08 80 01
+      required: true
+      example: '["04 00 01 01", "05 00 08 80 01"]'
+      selector:
+        text:
+          multiple: true
+    gap:
+      name: Gap
+      description: Seconds to wait between frames
+      default: 0.5
+      selector:
+        number:
+          min: 0
+          max: 10
+          step: 0.1
+          unit_of_measurement: s
+    listen:
+      name: Listen
+      description: Seconds to keep listening for replies after the last frame
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.5
+          unit_of_measurement: s
+
 send_layout:
   name: Send Layout
   description: >-

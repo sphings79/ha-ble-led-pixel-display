@@ -127,6 +127,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.7.1] - 2026-11-05
+
+### Added
+
+- **`ble_led_pixel.send_raw_command`, a diagnostic action.** Sends up to ten
+  frames exactly as given (hex), then returns what was sent and every reply
+  the panel made, in order. It is for working out commands on real
+  hardware, starting with Show Slot.
+
+### Changed
+
+- **Message greys out in clock mode**, like the other settings clock mode
+  does not use. Its text is kept, across restarts too. An automation that
+  writes to Message while the panel is in clock mode is skipped by Home
+  Assistant.
+- The actions (`send_text`, `show_slot` and the rest) keep working in clock
+  mode. They target the Message entity, and Home Assistant's own action
+  dispatch skips unavailable entities, so the integration now dispatches
+  them itself.
+
+### Known issue
+
+- **Show Slot still does nothing on some panels.** 2.6.1 said the 64x20
+  panel (product 000105) needed the five-byte frame; that was not
+  confirmed, and it ignores both forms so far. `send_raw_command` is there
+  to find the frame it does accept.
+
 ## [2.7.0] - 2026-11-05
 
 ### Changed
@@ -171,7 +198,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Show Slot did nothing.** The panel ignored the seven-byte frame
   pypixelcolor sends (`07 00 08 80 01 00 nn`). It now sends the vendor
-  app's five-byte frame, `05 00 08 80 nn`.
+  app's five-byte frame, `05 00 08 80 nn`. (Later testing showed the 64x20
+  panel ignores this one too; see 2.7.1.)
 
 ### Changed
 

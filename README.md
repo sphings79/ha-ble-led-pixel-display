@@ -278,6 +278,8 @@ Settings the current mode does not use also show as **unavailable**
 values are kept, across restarts too. One consequence: an automation cannot
 change a greyed-out setting, because Home Assistant skips unavailable
 entities in actions. Switch the mode first, then change the setting.
+Message greys out in `clock` mode too, but the integration's own actions
+(`send_text`, `show_slot` and the others) still work then.
 
 For real separators, use the [dashboard card](#a-dashboard-card-that-follows-the-mode)
 below. Settings in Configuration are also not offered to voice assistants by
@@ -289,7 +291,7 @@ default.
 | --- | --- | --- |
 | *(panel name)* | `switch` | Power |
 | **Mode** | `select` | `textimage`, `text` or `clock`, see [Display modes](#display-modes) |
-| **Message** | `text` | The text shown on the panel. Write to it from any automation. |
+| **Message** | `text` | The text shown in `text` and `textimage` mode, greyed out in `clock` mode. Write to it from any automation. |
 | **Brightness** | `number` | 1–100 |
 | **Update Display** | `button` | Renders the stored state to the panel |
 
@@ -588,6 +590,24 @@ This is the lightest option: the panel does the scrolling itself, Home Assistant
 ```
 
 Four coloured quadrants — verifies resolution and colour channel order in one shot.
+
+### Trying raw commands
+
+```yaml
+- action: ble_led_pixel.send_raw_command
+  target: { entity_id: text.display }
+  data:
+    frames: ["04 00 01 01", "05 00 08 80 01"]
+    gap: 0.5      # seconds between frames
+    listen: 2     # seconds to wait for replies after the last one
+  response_variable: result
+```
+
+Sends each frame exactly as given and returns what was sent and every reply
+from the panel, in order. In Developer Tools > Actions, tick *Return response*
+to see it. Nothing is checked, so this is for working out commands on your
+own hardware. Frames start with their own length, two bytes little-endian;
+[docs/protocol.md](docs/protocol.md) lists the known ones.
 
 ## Fonts
 

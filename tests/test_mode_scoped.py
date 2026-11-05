@@ -18,11 +18,13 @@ from custom_components.ble_led_pixel import (  # noqa: E402
     number,
     select,
     switch,
+    text,
 )
 from custom_components.ble_led_pixel import api as api_module  # noqa: E402
 
 BOTH = {"text", "textimage"}
 SCOPES = {
+    text.BleLedPixelTextDisplay: BOTH,
     select.BleLedPixelFontSelect: BOTH,
     light.BleLedPixelTextColorLight: BOTH,
     light.BleLedPixelBackgroundColorLight: BOTH,

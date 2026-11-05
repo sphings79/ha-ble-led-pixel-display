@@ -1,6 +1,9 @@
 """Constants for the BLE LED Pixel Display integration."""
 
 DOMAIN = "ble_led_pixel"
+
+# Every loaded panel's Message entity, which carries the panel actions.
+DATA_PANEL_ENTITIES = f"{DOMAIN}_panel_entities"
 DEFAULT_NAME = "LED Pixel Display"
 
 # Bluetooth UUIDs from protocol documentation

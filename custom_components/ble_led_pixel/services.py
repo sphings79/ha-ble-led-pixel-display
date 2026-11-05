@@ -11,22 +11,26 @@ they're briefly flagged as referencing an "unknown action" even though the
 action becomes available moments later. Registering here instead means the
 action exists immediately, regardless of whether any device has loaded yet.
 
-Uses homeassistant.helpers.service.async_register_platform_entity_service,
-which still dispatches to a named method on each entity targeted by the
-service call (same func-by-name mechanism as the older
-platform.async_register_entity_service), so the entity methods in text.py
-are unchanged - only where and how they get registered.
+Each action dispatches to a named method on every panel's Message entity
+that the call targets, like Home Assistant's own entity actions, but without
+skipping entities that are unavailable: the Message is greyed out in clock
+mode, and the actions must keep working then.
 """
 from __future__ import annotations
 
+import asyncio
+from typing import Any
+
 import voluptuous as vol
 
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.auth.permissions.const import POLICY_CONTROL
+from homeassistant.const import ATTR_ENTITY_ID, ENTITY_MATCH_ALL
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
+from homeassistant.exceptions import ServiceValidationError, Unauthorized, UnknownUser
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import service
 
-from .const import DOMAIN
+from .const import DATA_PANEL_ENTITIES, DOMAIN
 
 ICON_ITEM_SCHEMA = vol.Schema({
     vol.Required("icon"): cv.string,
@@ -60,45 +64,159 @@ TEXT_ITEM_SCHEMA = vol.Schema({
 })
 
 
+def _panel_entities(hass: HomeAssistant) -> set:
+    """The Message entities of every loaded panel, which carry the actions."""
+    return hass.data.setdefault(DATA_PANEL_ENTITIES, set())
+
+
+def _excluded_entity_ids(hass: HomeAssistant, call: ServiceCall) -> set[str]:
+    """Entities an `entity_id: all` call excludes, on versions that support it.
+
+    Targeted calls get their exclusions applied by async_extract_entity_ids.
+    Home Assistant releases without an exclude block have nothing to exclude.
+    """
+    try:
+        from homeassistant.helpers import target as target_helpers
+    except ImportError:
+        return set()
+    extract = getattr(target_helpers, "async_extract_excluded_entity_ids", None)
+    selection = getattr(target_helpers, "TargetSelection", None)
+    if extract is None or selection is None:
+        return set()
+    return set(extract(hass, selection(call.data)))
+
+
+async def _resolve_targets(hass: HomeAssistant, call: ServiceCall) -> list:
+    """Find the panels an action call targets, whether available or not.
+
+    Home Assistant's own entity-action dispatch skips unavailable entities.
+    The Message entity is greyed out (unavailable) while the panel is in
+    clock mode, but the actions it carries act on the panel, not on the
+    Message, so they must still run then.
+    """
+    entities = _panel_entities(hass)
+    target_all = call.data.get(ATTR_ENTITY_ID) in (ENTITY_MATCH_ALL, [ENTITY_MATCH_ALL])
+    if target_all:
+        excluded = _excluded_entity_ids(hass, call)
+        targets = [entity for entity in entities if entity.entity_id not in excluded]
+    else:
+        wanted = await service.async_extract_entity_ids(call)
+        targets = [entity for entity in entities if entity.entity_id in wanted]
+    targets.sort(key=lambda entity: entity.entity_id)
+
+    if call.context.user_id:
+        user = await hass.auth.async_get_user(call.context.user_id)
+        if user is None:
+            raise UnknownUser(context=call.context)
+        if not user.is_admin:
+            allowed = user.permissions.check_entity
+            if target_all:
+                # As Home Assistant does: "all" means all the user controls.
+                targets = [
+                    entity for entity in targets
+                    if allowed(entity.entity_id, POLICY_CONTROL)
+                ]
+            else:
+                for entity in targets:
+                    if not allowed(entity.entity_id, POLICY_CONTROL):
+                        raise Unauthorized(
+                            context=call.context,
+                            entity_id=entity.entity_id,
+                            permission=POLICY_CONTROL,
+                        )
+
+    if not targets:
+        raise ServiceValidationError(
+            f"{DOMAIN}.{call.service} needs a BLE LED Pixel panel as its target: "
+            "pick the panel's Message entity, the device, or its area."
+        )
+    return targets
+
+
+def _register_panel_action(
+    hass: HomeAssistant,
+    name: str,
+    *,
+    schema: dict,
+    func: str,
+    supports_response: SupportsResponse = SupportsResponse.NONE,
+) -> None:
+    """Register one action that runs a method on each targeted panel."""
+
+    async def handle(call: ServiceCall) -> dict[str, Any] | None:
+        data = service.remove_entity_service_fields(call)
+        targets = await _resolve_targets(hass, call)
+        for entity in targets:
+            entity.async_set_context(call.context)
+        # Every panel is tried, as Home Assistant does: one that is offline
+        # must not keep the others from updating. The first failure is
+        # raised once all have finished.
+        outcomes = await asyncio.gather(
+            *(getattr(entity, func)(**data) for entity in targets),
+            return_exceptions=True,
+        )
+        for outcome in outcomes:
+            if isinstance(outcome, BaseException):
+                raise outcome
+        results = {
+            entity.entity_id: outcome for entity, outcome in zip(targets, outcomes)
+        }
+        return results if call.return_response else None
+
+    hass.services.async_register(
+        DOMAIN,
+        name,
+        handle,
+        schema=cv.make_entity_service_schema(schema),
+        supports_response=supports_response,
+    )
+
+
+def _hex_frame(value: Any) -> bytes:
+    """One frame as hex, spaces allowed: '05 00 08 80 01'."""
+    text = "".join(str(value).split())
+    if text.lower().startswith("0x"):
+        text = text[2:]
+    try:
+        frame = bytes.fromhex(text)
+    except ValueError as err:
+        raise vol.Invalid(f"'{value}' is not hex bytes, e.g. '05 00 08 80 01'") from err
+    if not 1 <= len(frame) <= 512:
+        raise vol.Invalid("A frame is 1 to 512 bytes")
+    return frame
+
+
 def async_setup_services(hass: HomeAssistant) -> None:
     """Register all ble_led_pixel.* actions once, at integration setup."""
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "show_slot",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("slot"): vol.All(vol.Coerce(int), vol.Range(min=0, max=255)),
         },
         func="async_show_slot",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "delete_slot",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("slot"): vol.All(vol.Coerce(int), vol.Range(min=0, max=255)),
         },
         func="async_delete_slot",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "delete_all_slots",
-        entity_domain=Platform.TEXT,
         schema={},
         func="async_delete_all_slots",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "show_emoji",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("emoji"): vol.All(cv.string, vol.Length(min=1)),
             vol.Optional("bg_color", default=[0, 0, 0]): vol.All(
@@ -114,11 +232,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_show_emoji",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "send_mdi_icon",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("icon"): cv.string,
             vol.Optional("color", default=[255, 255, 255]): vol.All(
@@ -137,11 +253,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_send_mdi_icon",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "send_text",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("text"): cv.string,
             vol.Optional("color", default=[255, 255, 255]): vol.All(
@@ -176,20 +290,16 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_send_text",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "send_test_pattern",
-        entity_domain=Platform.TEXT,
         schema={},
         func="async_send_test_pattern",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "send_layout",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Optional("icon"): cv.string,
             vol.Optional("icon_x", default=0): vol.Coerce(int),
@@ -250,11 +360,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_send_layout",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "send_image_file",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("file_path"): cv.string,
             vol.Optional("resize_method", default="crop"): vol.In(["crop", "fit"]),
@@ -265,11 +373,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_send_image_file",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "show_preset",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("preset"): vol.All(vol.Coerce(int), vol.Range(min=1, max=20)),
             vol.Optional("language", default=0): vol.All(
@@ -279,11 +385,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_show_preset",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "set_scoreboard",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("home"): vol.All(vol.Coerce(int), vol.Range(min=0, max=65535)),
             vol.Required("away"): vol.All(vol.Coerce(int), vol.Range(min=0, max=65535)),
@@ -291,11 +395,9 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_set_scoreboard",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "set_countdown",
-        entity_domain=Platform.TEXT,
         schema={
             vol.Required("running"): cv.boolean,
             vol.Optional("minutes", default=0): vol.All(
@@ -308,20 +410,16 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_set_countdown",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "set_stopwatch",
-        entity_domain=Platform.TEXT,
         schema={vol.Required("running"): cv.boolean},
         func="async_set_stopwatch",
     )
 
-    service.async_register_platform_entity_service(
+    _register_panel_action(
         hass,
-        DOMAIN,
         "set_password",
-        entity_domain=Platform.TEXT,
         schema={
             # Digits only; the length is checked against the model, because
             # two known models use four digits and everything else six.
@@ -329,4 +427,22 @@ def async_setup_services(hass: HomeAssistant) -> None:
             vol.Optional("enabled", default=True): cv.boolean,
         },
         func="async_set_password",
+    )
+
+    _register_panel_action(
+        hass,
+        "send_raw_command",
+        schema={
+            vol.Required("frames"): vol.All(
+                cv.ensure_list, [_hex_frame], vol.Length(min=1, max=10)
+            ),
+            vol.Optional("gap", default=0.5): vol.All(
+                vol.Coerce(float), vol.Range(min=0, max=10)
+            ),
+            vol.Optional("listen", default=2.0): vol.All(
+                vol.Coerce(float), vol.Range(min=0, max=30)
+            ),
+        },
+        func="async_send_raw_command",
+        supports_response=SupportsResponse.OPTIONAL,
     )

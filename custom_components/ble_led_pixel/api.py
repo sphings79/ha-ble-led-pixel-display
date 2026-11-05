@@ -1377,6 +1377,26 @@ class BleLedPixelAPI:
             _LOGGER.error("Error sending test pattern: %s", err)
             return False
 
+    async def send_raw_frames(
+        self, frames: list[bytes], gap: float = 0.5, listen: float = 2.0
+    ) -> list[dict[str, str]]:
+        """Send frames exactly as given and report what the panel answers.
+
+        A debugging aid for working out commands on real hardware, such as
+        which form of show slot a panel accepts. Anything queued before this
+        call is treated as superseded.
+
+        Raises:
+            BleLedPixelConnectionError: If the panel cannot be reached.
+        """
+        self._claim_content()
+        if not await self.ensure_connected():
+            raise BleLedPixelConnectionError("Device not connected")
+        log = await self._bluetooth.send_raw_frames(frames, gap=gap, listen=listen)
+        for entry in log:
+            _LOGGER.info("Raw command %s", entry)
+        return log
+
     async def show_slot(self, slot: int) -> bool:
         """Display a picture already stored on the panel.
 

@@ -426,6 +426,44 @@ class BluetoothClient:
                 return True
             return await self._send_command_unlocked(command)
 
+    async def send_raw_frames(
+        self, frames: list[bytes], gap: float = 0.5, listen: float = 2.0
+    ) -> list[dict[str, Any]]:
+        """Write frames as given and collect every notification (debug only).
+
+        For trying commands on hardware. Frames go out one after another on
+        this link, gap seconds apart, and the panel is listened to for listen
+        seconds after the last one. Nothing is checked or retried.
+
+        Returns:
+            One entry per write and per notification, in the order they
+            happened: {"sent": hex} or {"received": hex}.
+
+        Raises:
+            BleLedPixelConnectionError: If not connected.
+        """
+        async with self._send_lock:
+            if not self._connected or not self._client:
+                raise BleLedPixelConnectionError("Device not connected")
+            self._claim_content_write()
+            log: list[dict[str, Any]] = []
+
+            def listener(sender: Any, data: bytearray) -> None:
+                log.append({"received": bytes(data).hex(" ")})
+
+            self._extra_listeners.append(listener)
+            try:
+                for index, frame in enumerate(frames):
+                    if index:
+                        await asyncio.sleep(gap)
+                    log.append({"sent": frame.hex(" ")})
+                    await self._client.write_gatt_char(WRITE_UUID, frame)
+                await asyncio.sleep(listen)
+            finally:
+                if listener in self._extra_listeners:
+                    self._extra_listeners.remove(listener)
+            return log
+
     async def send_command_wait_response(self, command: bytes, timeout: float = 5.0) -> bytes | None:
         """Send a command and return the raw response bytes, if any arrive.
 

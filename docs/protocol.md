@@ -1308,8 +1308,11 @@ through a fixed set of pictures, storing them once and switching by slot number
 is dramatically cheaper over Bluetooth.
 
 pypixelcolor sends the seven-byte form `07 00 08 80 01 00 <n>` (a one-entry
-slot list). The unbranded 64x20 panel (product 000105) ignores it and only
-acts on the app's five-byte form, which this integration sends since 2.6.1.
+slot list). The integration sends the app's five-byte form since 2.6.1. **On
+the unbranded 64x20 panel (product 000105) neither form has shown a stored
+slot yet**, although saving to a slot works and the panel boots into slot 1.
+Which frame that panel accepts is still open; the `send_raw_command` action
+exists to try candidates on the hardware and read the replies.
 
 Showing an empty slot does not blank the panel: it cycles through the slots
 that do hold something. The number of slots is not documented anywhere and the
