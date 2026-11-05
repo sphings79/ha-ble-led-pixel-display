@@ -138,3 +138,35 @@ def test_test_pattern_shows_slot_0_with_the_vendor_apps_frame(monkeypatch):
     api._bluetooth.send_command = send_command
     assert asyncio.run(api.send_test_pattern())
     assert sent == [bytes([0x05, 0x00, 0x08, 0x80, 0x00])]
+
+
+def test_text_speed_finds_mode_and_auto_update_by_unique_id(monkeypatch):
+    """Entity ids need not match the panel name (area prefix, renames)."""
+    from types import SimpleNamespace
+
+    ids = {
+        "mode_select": "select.study_panel_mode",
+        "auto_update": "switch.study_panel_auto_update",
+    }
+    states = {
+        "select.study_panel_mode": SimpleNamespace(state="text"),
+        "switch.study_panel_auto_update": SimpleNamespace(state="on"),
+    }
+    monkeypatch.setattr(
+        number, "get_entity_id_by_unique_id",
+        lambda hass, address, suffix, platform=None: ids[suffix],
+    )
+    updates = []
+
+    async def update(hass, name, api_):
+        updates.append(name)
+        return True
+
+    monkeypatch.setattr(common, "update_panel_display", update)
+    speed = number.BleLedPixelTextSpeed.__new__(number.BleLedPixelTextSpeed)
+    speed.hass = SimpleNamespace(states=SimpleNamespace(get=states.get))
+    speed._api = None
+    speed._address = "AA:BB"
+    speed._name = "LED_BLE_7E9E1E82"
+    asyncio.run(speed._trigger_auto_update())
+    assert updates == ["LED_BLE_7E9E1E82"]

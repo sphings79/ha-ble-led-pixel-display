@@ -82,7 +82,7 @@ class BleLedPixelSaveSlotButton(_BleLedPixelSlotButton):
     cannot be stored.
     """
 
-    _label = "Slot Save"
+    _label = "Slot: Save"
     _key = "save_slot"
     _attr_icon = "mdi:content-save"
 
@@ -105,7 +105,7 @@ class BleLedPixelShowSlotButton(_BleLedPixelSlotButton):
     something, since it cannot report which ones are empty.
     """
 
-    _label = "Slot Show"
+    _label = "Slot: Show"
     _key = "show_slot"
     _attr_icon = "mdi:play-box-outline"
 
@@ -116,7 +116,7 @@ class BleLedPixelShowSlotButton(_BleLedPixelSlotButton):
 class BleLedPixelClearSlotButton(_BleLedPixelSlotButton):
     """Erase the chosen slot."""
 
-    _label = "Slot Clear"
+    _label = "Slot: Clear"
     _key = "clear_slot"
     _attr_icon = "mdi:delete-outline"
 
@@ -184,7 +184,7 @@ class BleLedPixelSyncTimeButton(ButtonEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Clock Sync Time"
+        self._attr_name = "Clock: Sync Time"
         self._attr_unique_id = f"{address}_sync_time_button"
 
         # Device info for grouping in device registry

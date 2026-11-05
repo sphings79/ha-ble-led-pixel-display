@@ -182,7 +182,7 @@ class BleLedPixelColorLight(LightEntity, RestoreEntity):
 class BleLedPixelTextColorLight(BleLedPixelColorLight):
     """Light entity for text/foreground color selection."""
 
-    _light_name = "Message Color"
+    _light_name = "Text & Image: Color"
     _entity_suffix = "text_color"
     _default_rgb = (255, 255, 255)  # White
     _trigger_modes = ["text", "textimage"]
@@ -191,7 +191,7 @@ class BleLedPixelTextColorLight(BleLedPixelColorLight):
 class BleLedPixelBackgroundColorLight(BleLedPixelColorLight):
     """Light entity for background color selection."""
 
-    _light_name = "Message Background Color"
+    _light_name = "Text & Image: Background Color"
     _entity_suffix = "background_color"
     _default_rgb = (0, 0, 0)  # Black
     _trigger_modes = ["textimage"]

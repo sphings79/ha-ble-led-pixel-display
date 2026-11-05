@@ -108,7 +108,7 @@ class BleLedPixelFontSize(NumberEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Image Font Size"
+        self._attr_name = "Text Image Only: Font Size"
         self._attr_unique_id = f"{address}_font_size"
         self._attr_native_value = 0.0  # 0 means auto-sizing
 
@@ -184,7 +184,7 @@ class BleLedPixelLineSpacing(NumberEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Image Line Spacing"
+        self._attr_name = "Text Image Only: Line Spacing"
         self._attr_unique_id = f"{address}_line_spacing"
         self._attr_native_value = 0  # Default to no extra spacing
         
@@ -328,7 +328,7 @@ class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Text Speed"
+        self._attr_name = "Text Only: Speed"
         self._attr_unique_id = f"{address}_text_speed"
         self._attr_native_value = 80  # Default speed
 
@@ -362,11 +362,17 @@ class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
         try:
             from .common import update_panel_display
 
-            mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
+            # By unique id: entity ids follow the names a panel was first
+            # added with (and its area), so building them from the name fails.
+            mode_entity_id = get_entity_id_by_unique_id(
+                self.hass, self._address, "mode_select", "select"
+            )
             mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
 
             if mode_state and mode_state.state == "text":
-                auto_update_entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
+                auto_update_entity_id = get_entity_id_by_unique_id(
+                    self.hass, self._address, "auto_update", "switch"
+                )
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":

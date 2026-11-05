@@ -81,7 +81,7 @@ class BleLedPixelFontSelect(SelectEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Message Font"
+        self._attr_name = "Text & Image: Font"
         self._attr_unique_id = f"{address}_font_select"
 
         # Get available fonts from all locations
@@ -232,7 +232,7 @@ class BleLedPixelClockStyleSelect(SelectEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Clock Style"
+        self._attr_name = "Clock: Style"
         self._attr_unique_id = f"{address}_clock_style_select"
         # How many faces a panel offers depends on its resolution: most
         # have eight, a 32x32 has nine, a 32x16 ten, a 144x16 only six.
@@ -324,7 +324,7 @@ class BleLedPixelTextEffectSelect(SelectEntity, RestoreEntity):
         self._address = address
         self._name = name
 
-        self._attr_name = "Text Effect"
+        self._attr_name = "Text Only: Effect"
         self._attr_unique_id = f"{address}_text_effect_select"
         self._attr_current_option = DEFAULT_TEXT_EFFECT
 
@@ -442,7 +442,7 @@ class BleLedPixelTextGradientSelect(SelectEntity, RestoreEntity):
         self._address = address
         self._name = name
 
-        self._attr_name = "Text Gradient"
+        self._attr_name = "Text Only: Gradient"
         self._attr_unique_id = f"{address}_text_gradient_select"
         self._attr_options = list(TEXT_GRADIENTS)
         self._attr_current_option = DEFAULT_TEXT_GRADIENT
@@ -568,7 +568,7 @@ class BleLedPixelTextSizeSelect(SelectEntity, RestoreEntity):
         self._entry = entry
         self._address = address
         self._name = name
-        self._attr_name = "Text Size"
+        self._attr_name = "Text Only: Size"
         self._attr_unique_id = f"{address}_text_size_select"
         self._chosen: int | None = None
         self._attr_device_info = panel_device_info(api, address, name)

@@ -127,6 +127,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.6.2] - 2026-11-05
+
+### Changed
+
+- **Every setting's name says which mode it applies to.** The device page
+  has no separators, so the names carry it: `Text & Image:` (both text
+  modes), `Text Only:`, `Text Image Only:`, `Clock:` and `Slot:`. For
+  example Text Effect is now Text Only: Effect, Image Font Size is Text
+  Image Only: Font Size, and Message Font is Text & Image: Font. Entity ids
+  do not change.
+- Auto Update keeps its plain name: it applies in every mode, clock
+  included. The README card now shows it next to Update Display.
+
+- The README dashboard card's sections are titled Text & Text Image Mode,
+  Text Mode Only and Text Image Mode Only.
+
+### Fixed
+
+- **Changing Text Only: Speed did not refresh the panel** when the panel's
+  entity ids differ from its name (for example after assigning it to an
+  area). The mode and Auto Update entities are now looked up by unique id.
+
 ## [2.6.1] - 2026-11-05
 
 ### Fixed
