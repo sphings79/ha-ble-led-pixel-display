@@ -6,7 +6,7 @@
   **Live-Daten aus Home Assistant auf ein günstiges Bluetooth-LED-Panel bringen — Text, Bilder, animierte GIFs, Material Design Icons und zusammengesetzte Layouts.**
   Eine Custom Integration für LED-Pixelmatrix-Displays mit iPIXEL-Color-Protokoll, verkauft als **BGLight** und als **B.K. Light LED Pixel Board** bei Action. Vollständig lokal über Bluetooth LE — keine Cloud, keine Hersteller-App, kein Konto.
 
-  [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5?style=for-the-badge)](https://hacs.xyz)
+  [![Marketplace](https://img.shields.io/badge/Marketplace-Custom-41BDF5?style=for-the-badge)](https://my.home-assistant.io/redirect/marketplace_browse/)
   [![Release](https://img.shields.io/github/v/release/sphings79/ha-ble-led-pixel-display?style=for-the-badge&color=7C7CF5)](https://github.com/sphings79/ha-ble-led-pixel-display/releases)
   [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-41BDF5?style=for-the-badge)](https://www.home-assistant.io)
   [![Lizenz](https://img.shields.io/badge/Lizenz-GPL--3.0-3ddc97?style=for-the-badge)](LICENSE)
@@ -229,7 +229,17 @@ einmal pro Änderung, nicht bei jeder Aktualisierung.
 
 ## Installation
 
-### HACS (empfohlen)
+### Marketplace (Home Assistant 2026.11 und neuer)
+
+Home Assistant 2026.11 ersetzt HACS durch den eingebauten **Marketplace**. BLE LED Pixel Display ist nicht im Standardkatalog, also füge es als benutzerdefiniertes Repository hinzu: unter **Einstellungen → Marketplace** `https://github.com/sphings79/ha-ble-led-pixel-display` hinzufügen (Kategorie **Integration**) und es dort installieren. Benutzerdefinierte Repositories setzen voraus, dass der Marketplace mit GitHub verbunden ist; beim ersten Mal fragt er danach.
+
+Du kannst auch diese Schaltfläche benutzen:
+
+[![Öffne deine Home-Assistant-Instanz und zeige dieses Repository im Marketplace an.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sphings79&repository=ha-ble-led-pixel-display&category=integration)
+
+Starte Home Assistant neu, wenn eine Reparaturmeldung dich dazu auffordert.
+
+### HACS (Home Assistant 2026.10 und älter)
 
 1. HACS in Home Assistant öffnen
 2. Drei-Punkte-Menü oben rechts → **Benutzerdefinierte Repositories**
