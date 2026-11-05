@@ -2,10 +2,10 @@ name: Validate
 
 on:
   push:
-    branches: [main, gallery]
+    branches: [main, "beta_v*"]
   pull_request:
   schedule:
-    - cron: "0 0 * * 0"
+    - cron: "0 4 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -16,6 +16,7 @@ jobs:
     name: HACS
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v7
       - uses: hacs/action@main
         with:
           category: integration

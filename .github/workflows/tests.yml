@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main, gallery]
+    branches: [main, "beta_v*"]
   pull_request:
 
 permissions:

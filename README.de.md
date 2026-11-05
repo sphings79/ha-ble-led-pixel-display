@@ -31,6 +31,7 @@
 - [Anzeigemodi](#anzeigemodi)
 - [Flackern vermeiden: wie Updates wirklich funktionieren](#flackern-vermeiden-wie-updates-wirklich-funktionieren)
 - [Beispiele](#beispiele)
+- [Wo die Entitäten erscheinen](#wo-die-entitäten-erscheinen)
 - [Schriften](#schriften)
 - [Warum dieser Fork](#warum-dieser-fork)
 - [Fehlersuche](#fehlersuche)
@@ -148,6 +149,10 @@ data:
 
 Danach holt `show_slot` mit Platz 1, 2 oder 3 sie sofort zurück.
 
+Auch `send_text` kennt `save_slot`, und auf der Geräteseite gibt es eine Zahl **Slot** mit den Buttons **Save Slot**, **Show Slot** und **Clear Slot**, die auf den gewählten Platz wirken. `delete_all_slots` löscht alles, was im Panel gespeichert ist, und lässt sich nicht rückgängig machen.
+
+`show_slot` schaltet das Panel zuerst auf seine gespeicherten Inhalte zurück (DIY-Modus aus), wartet eine Sekunde und wählt dann den Platz. Das wurde an einem 64×20-Panel (Produkt 000105, siehe `docs/protocol.md`, A.8) ermittelt; andere Modelle sind ungetestet. Der Wechsel von einem gespeicherten Platz zu einem anderen kann etwa 5 Sekunden dauern.
+
 **Warum 32×32.** Pixelgrafik skaliert nicht wie Vektorgrafik — ein Motiv, das bei 32×32 lesbar ist, wird bei 16 zu Matsch und bei 64 klobig. Die unterstützten Panels kommen in dreißig Geometrien, ein einzelner Satz passt also nirgends überall. `show_gallery_image` steht deshalb standardmäßig auf `fit`: Das ganze Bild wird verkleinert und mit Schwarz aufgefüllt, statt auf einem breiten Panel einen schmalen Streifen aus der Mitte zu schneiden.
 
 Jedes Bild entsteht in `tools/build_gallery.py` aus Rechtecken, Linien, Kreisen und Polygonen; die wenigen mit Schrift nutzen eine 3×5-Schrift, die Pixel für Pixel im Repo definiert ist, keinen fremden Font. Nichts nachgezeichnet, keine fremden Bildsätze — die Galerie trägt also die Lizenz dieses Repos. Zum Ändern die Zeichenfunktion anpassen und das Skript erneut laufen lassen; es schreibt Bilder, `index.json` und das Dropdown der Aktion gemeinsam neu.
@@ -231,9 +236,19 @@ Das Panel animiert Text auf sieben Arten. Ausgewählt wird der Effekt über die
 Entität **Text Effect** — Fixed, Scroll left, Scroll right, Blinking, Breathing,
 Snowflake oder Laser — und er greift bei der nächsten Aktualisierung.
 
-Die Codes 3 und 4 gibt es, sie werden aber nicht angeboten: `pypixelcolor`
-verweigert sie auf allem außer einem 32×32-Panel, weil sie ein Gerät in eine
-Boot-Schleife bringen können, und keine Quelle benennt sie.
+**Scroll up** und **Scroll down** (Codes 3 und 4) werden auf 32×32-Panels
+angeboten. Auf anderen Panels sind sie aus, bis in den Optionen der Integration
+*Texteffekte „Nach oben scrollen“ und „Nach unten scrollen“ anbieten* eingeschaltet
+wird. `pypixelcolor` warnt, dass sie außerhalb von 32×32 manche Geräte in eine
+Boot-Schleife bringen können; auf mindestens dem 64×20-Panel funktionieren sie.
+Einschalten auf eigenes Risiko, und wieder ausschalten, falls das Panel
+Probleme macht.
+
+Im Modus `text` legt die Auswahl **Text Size** die Zeichenhöhe fest. Das Panel
+zeichnet diesen Modus selbst in ganzen 16-Pixel-Zeilen, deshalb unterscheiden sich
+nur 16, 32, 48 und 64, und angeboten werden nur die Größen, die aufs Panel
+passen. **Font Size** gilt für den Modus `textimage`; beim ersten Start nach dem
+Update wird Text Size daraus übernommen, damit der Text wie zuvor aussieht.
 
 ### Farbverläufe für Text
 
@@ -494,15 +509,31 @@ Das ist die sparsamste Variante: Das Panel scrollt selbst, Home Assistant übert
 
 Vier farbige Quadranten — prüft Auflösung und Reihenfolge der Farbkanäle in einem Durchgang.
 
+### Befehle an neuer Hardware ausprobieren (nur Administratoren)
+
+`send_raw_command` sendet Hex-Frames genau wie angegeben an ein Panel und liefert jede Antwort zurück. So lässt sich ein Befehl in den **Entwicklerwerkzeugen → Aktionen** ausprobieren (*Antwort zurückgeben* ankreuzen). Es wird nichts geprüft: Ein Frame kann das Passwort des Panels setzen oder löschen oder den Speicher leeren. Deshalb dürfen nur Administratoren die Aktion aufrufen, und sie braucht ein ausdrücklich genanntes Panel als Ziel.
+
+```yaml
+- action: ble_led_pixel.send_raw_command
+  target: { device_id: <dein Panel> }
+  data:
+    frames: ["04 00 01 01", "05 00 08 80 01"]
+```
+
+## Wo die Entitäten erscheinen
+
+Die alltäglichen Bedienelemente — Ein/Aus, Modus, Nachricht, Helligkeit, Update Display und die Galerie — stehen oben auf der Geräteseite. Alles, was eine Einstellung ist (Schriften, Farben, Größen, Effekte, Uhroptionen, Plätze), steht unter **Konfiguration** und fehlt in automatisch erzeugten Dashboards und in der Standard-Freigabe für Sprachassistenten. Die Entitätsnamen beginnen mit dem Namen des Panels.
+
 ## Schriften
 
 Die Schrift wird in der Select-Entität **Font** gewählt und in dieser Reihenfolge gesucht:
 
-1. `custom_components/ble_led_pixel/fonts/` — mit der Integration ausgeliefert
-2. Das Paket `pypixelcolor`
-3. Systemschriftverzeichnisse
+1. `<config>/fonts/` — deine eigenen Schriften; sie überleben HACS-Updates, und eine Datei mit dem Namen einer mitgelieferten ersetzt diese
+2. `custom_components/ble_led_pixel/fonts/` — mit der Integration ausgeliefert
+3. Das Paket `pypixelcolor`
+4. Systemschriftverzeichnisse
 
-Die gewählte Schrift wird zu einem absoluten Pfad aufgelöst und so an den Renderer übergeben — dieselbe Schrift funktioniert also in jedem Modus und in der Aktion `send_text`. Für eigene Schriften eine `.ttf` oder `.otf` in den Ordner `fonts/` der Integration legen und neu starten. Lässt sich eine Schrift nirgends finden, wird `VCR_OSD_MONO` verwendet und eine Warnung protokolliert.
+Die gewählte Schrift wird zu einem absoluten Pfad aufgelöst und so an den Renderer übergeben — dieselbe Schrift funktioniert also in jedem Modus und in der Aktion `send_text`. Für eigene Schriften eine `.ttf` oder `.otf` nach `<config>/fonts/` legen und die Integration neu laden. Eine `<Schrift>.json` daneben mit Maßen je Höhe wird im Modus `text` berücksichtigt. Lässt sich eine Schrift nirgends finden, wird `VCR_OSD_MONO` verwendet und eine Warnung protokolliert.
 
 Mitgeliefert: `3x5-de`, `5x5`, `7x5`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`.
 
