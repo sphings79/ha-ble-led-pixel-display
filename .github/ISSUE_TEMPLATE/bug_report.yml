@@ -1,0 +1,35 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Integration version
+      description: Shown in Settings → Devices & services → BLE LED Pixel Display
+    validations:
+      required: true
+  - type: input
+    id: panel
+    attributes:
+      label: Panel
+      description: Size and Product ID, as shown by the diagnostic sensors
+      placeholder: "64x16, 000702"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The action call or automation, as YAML if you can
+      render: yaml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log
+      description: Debug log for `custom_components.ble_led_pixel`, starting at the restart or the action call
+      render: text

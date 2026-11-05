@@ -127,6 +127,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.3.8] - 2026-11-05
+
+### Changed
+
+- **Ready for HACS and the Home Assistant Marketplace.** The brand icons are
+  bundled, `pillow` is no longer listed as a requirement (Home Assistant ships
+  it, and hassfest refuses it), the integration declares that it is set up
+  from the UI only, and the repository validates itself with the HACS and
+  hassfest checks. No behaviour changes.
+
 ## [2.3.7] - 2026-11-01
 
 ### Fixed
