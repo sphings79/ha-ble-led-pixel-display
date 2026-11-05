@@ -127,6 +127,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   board" sold by Action, 13x13 cm and 32x32 pixels. The vendor's own brand
   grouping does not list the `0007` group at all, so this came from hardware.
 
+## [2.8.0] - 2026-11-05
+
+### Fixed
+
+- **Show Slot works on the 64x20 panel.** Probed on the hardware: any unsaved
+  send halts the panel's stored play list, and while it is halted the show
+  frame is acknowledged and ignored. Show Slot (the button and `show_slot`)
+  now first turns DIY mode off (`05 00 04 01 00`), which restarts the play
+  list, and then sends pypixelcolor's seven-byte frame `07 00 08 80 01 00 nn`,
+  which 2.6.1 had wrongly replaced. The panel briefly shows the stored slot
+  it played last on the way. Details in docs/protocol.md, A.8.
+
 ## [2.7.1] - 2026-11-05
 
 ### Added

@@ -1,11 +1,11 @@
 show_slot:
   name: Show stored picture
   description: >
-    Display a picture already stored on the panel. Sends five bytes instead of
-    the whole image - on a 32x32 panel that is 5 bytes rather than 12288. Store
-    pictures first using the "save slot" field of send_image_file or
-    send_mdi_icon. Showing an empty slot makes the panel cycle through the slots
-    that do hold something.
+    Display content already stored on the panel, without sending it again.
+    Store it first using the "save slot" field of send_text, send_image_file
+    or send_mdi_icon. Works after unsaved content too: the integration first
+    switches the panel back to its stored content. Showing an empty slot makes
+    the panel cycle through the slots that do hold something.
   target:
     entity:
       integration: ble_led_pixel

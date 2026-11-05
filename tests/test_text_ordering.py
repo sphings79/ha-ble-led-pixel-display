@@ -141,7 +141,9 @@ def test_older_text_does_not_overwrite_newer_non_text_content():
         assert await old
         return api._bluetooth.sent
 
-    assert asyncio.run(scenario()) == ["other content"]
+    api_module.SHOW_SLOT_SETTLE = 0
+    # DIY off, then the select; the older text is dropped.
+    assert asyncio.run(scenario()) == ["other content", "other content"]
 
 
 def test_any_display_request_supersedes_earlier_ones():

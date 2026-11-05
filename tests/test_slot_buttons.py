@@ -100,7 +100,10 @@ def test_rendered_text_reaches_the_slot(monkeypatch):
     assert api._bluetooth.sent == ["other content"]
 
 
-def test_show_slot_sends_the_vendor_apps_frame():
+def test_show_slot_turns_diy_off_then_selects(monkeypatch):
+    # After any unsaved send the panel ignores the select until DIY mode is
+    # turned off. Probed on the 64x20 panel (docs/protocol.md, A.8).
+    monkeypatch.setattr(api_module, "SHOW_SLOT_SETTLE", 0)
     api = make_api()
     sent = []
 
@@ -109,8 +112,29 @@ def test_show_slot_sends_the_vendor_apps_frame():
         return True
 
     api._bluetooth.send_command = send_command
-    assert asyncio.run(api.show_slot(2))
-    assert sent == [(bytes([0x05, 0x00, 0x08, 0x80, 0x02]), True)]
+    assert asyncio.run(api.show_slot(3))
+    assert sent == [
+        (bytes([0x05, 0x00, 0x04, 0x01, 0x00]), True),
+        (bytes([0x07, 0x00, 0x08, 0x80, 0x01, 0x00, 0x03]), True),
+    ]
+
+
+def test_show_slot_fails_when_diy_off_cannot_be_sent(monkeypatch):
+    monkeypatch.setattr(api_module, "SHOW_SLOT_SETTLE", 0)
+    api = make_api()
+    sent = []
+
+    async def send_command(command, content=False, still_current=None):
+        sent.append(command)
+        return False
+
+    async def no_link():
+        return False
+
+    api._bluetooth.send_command = send_command
+    api.ensure_connected = no_link
+    assert not asyncio.run(api.show_slot(3))
+    assert sent == [bytes([0x05, 0x00, 0x04, 0x01, 0x00])]
 
 
 def test_slot_controls_sort_together_with_the_number_first():
@@ -126,7 +150,7 @@ def test_slot_controls_sort_together_with_the_number_first():
     assert all(name.startswith("Slot") for name in names)
 
 
-def test_test_pattern_shows_slot_0_with_the_vendor_apps_frame(monkeypatch):
+def test_test_pattern_selects_slot_0(monkeypatch):
     monkeypatch.setattr(api_module, "make_image_command", lambda **kwargs: "plan")
     api = make_api()
     sent = []
@@ -137,7 +161,7 @@ def test_test_pattern_shows_slot_0_with_the_vendor_apps_frame(monkeypatch):
 
     api._bluetooth.send_command = send_command
     assert asyncio.run(api.send_test_pattern())
-    assert sent == [bytes([0x05, 0x00, 0x08, 0x80, 0x00])]
+    assert sent == [bytes([0x07, 0x00, 0x08, 0x80, 0x01, 0x00, 0x00])]
 
 
 def test_text_speed_finds_mode_and_auto_update_by_unique_id(monkeypatch):
