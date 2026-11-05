@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI
-from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, MAX_WRITABLE_SLOT, MIN_WRITABLE_SLOT
 from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
 
@@ -34,7 +34,46 @@ async def async_setup_entry(
         BleLedPixelLineSpacing(api, entry, address, name),
         BleLedPixelBrightness(api, entry, address, name),
         BleLedPixelTextSpeed(hass, api, entry, address, name),
+        BleLedPixelSlot(api, address, name),
     ])
+
+
+class BleLedPixelSlot(NumberEntity, RestoreEntity):
+    """Which panel slot the Save, Show and Clear Slot buttons act on."""
+
+    _attr_mode = NumberMode.BOX
+    _attr_native_min_value = MIN_WRITABLE_SLOT
+    _attr_native_max_value = MAX_WRITABLE_SLOT
+    _attr_native_step = 1
+    _attr_icon = "mdi:numeric"
+
+    def __init__(self, api: BleLedPixelAPI, address: str, name: str) -> None:
+        """Initialize the slot number."""
+        self._api = api
+        self._attr_name = "Slot"
+        self._attr_unique_id = f"{address}_slot"
+        self._attr_native_value = float(api.selected_slot)
+        self._attr_device_info = panel_device_info(api, address, name)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the slot chosen before the restart."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is None:
+            return
+        try:
+            slot = int(float(last_state.state))
+        except (ValueError, TypeError):
+            return
+        if self._attr_native_min_value <= slot <= self._attr_native_max_value:
+            self._api.selected_slot = slot
+            self._attr_native_value = float(slot)
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Choose the slot."""
+        self._api.selected_slot = int(value)
+        self._attr_native_value = float(int(value))
+        self.async_write_ha_state()
 
 
 class BleLedPixelFontSize(NumberEntity, RestoreEntity):
@@ -306,11 +345,17 @@ class BleLedPixelTextSpeed(NumberEntity, RestoreEntity):
         try:
             from .common import update_panel_display
 
-            mode_entity_id = f"select.{self._name.lower().replace(' ', '_')}_mode"
+            # By unique id: entity ids follow the names a panel was first
+            # added with (and its area), so building them from the name fails.
+            mode_entity_id = get_entity_id_by_unique_id(
+                self.hass, self._address, "mode_select", "select"
+            )
             mode_state = self.hass.states.get(mode_entity_id) if mode_entity_id else None
 
             if mode_state and mode_state.state == "text":
-                auto_update_entity_id = f"switch.{self._name.lower().replace(' ', '_')}_auto_update"
+                auto_update_entity_id = get_entity_id_by_unique_id(
+                    self.hass, self._address, "auto_update", "switch"
+                )
                 auto_update_state = self.hass.states.get(auto_update_entity_id) if auto_update_entity_id else None
 
                 if auto_update_state and auto_update_state.state == "on":

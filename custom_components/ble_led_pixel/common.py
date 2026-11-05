@@ -14,7 +14,9 @@ from .const import (
     MODE_TEXT,
     MODE_TEXT_IMAGE,
     TEXT_EFFECTS,
+    text_effects,
     TEXT_GRADIENTS,
+    text_size_from_font_size,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -115,7 +117,33 @@ async def resolve_template_variables(hass: HomeAssistant, text: str) -> str:
         return text
 
 
-async def update_panel_display(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
+async def restore_panel_display(hass: HomeAssistant, device_name: str, api) -> bool:
+    """Send Home Assistant's restored settings to the panel.
+
+    The panel keeps showing whatever it last stored -- a message from the
+    phone app, say -- until something is sent, so after a restart Home
+    Assistant's entities and the panel disagree. Runs only when Auto Update
+    is on (with it off, nothing reaches the panel until Update Display is
+    pressed) and the power switch is not off.
+    """
+    auto_id = get_entity_id_by_unique_id(hass, api._address, "auto_update", "switch")
+    auto_state = hass.states.get(auto_id) if auto_id else None
+    if not auto_state or auto_state.state != "on":
+        _LOGGER.debug("Auto Update off; not restoring the panel display")
+        return False
+    power_id = get_entity_id_by_unique_id(hass, api._address, "power", "switch")
+    power_state = hass.states.get(power_id) if power_id else None
+    if power_state is not None and power_state.state == "off":
+        _LOGGER.debug("Panel switched off; not restoring the panel display")
+        return False
+    _LOGGER.info("Restoring the panel display from Home Assistant's saved settings")
+    # Anything sent meanwhile -- a start-up automation, a send_text action --
+    # is newer than the saved settings and must stay on the panel.
+    with api.restoring():
+        return await update_panel_display(hass, device_name, api)
+
+
+async def update_panel_display(hass: HomeAssistant, device_name: str, api, text: str = None, save_slot: int = 0) -> bool:
     """Update LED panel with current settings - can be called from anywhere.
     
     Args:
@@ -123,13 +151,20 @@ async def update_panel_display(hass: HomeAssistant, device_name: str, api, text:
         device_name: Device name for entity ID lookups
         api: LED panel API instance
         text: Text to display, or None to get from text entity
+        save_slot: If >= 1, also store what is shown in that panel slot.
+            Clock mode is drawn by the panel itself and cannot be stored.
 
     Returns:
         True if update was successful
     """
     try:
         # Get current mode
-        mode = await _get_entity_setting(hass, device_name, "select", "mode_select", str, api._address)
+        # The API holds the mode the Mode select just chose. Its state in
+        # hass.states is only written after the select's handler returns,
+        # which is after this update when Auto Update triggered it.
+        mode = getattr(api, "current_mode", None) or await _get_entity_setting(
+            hass, device_name, "select", "mode_select", str, api._address
+        )
         if not mode:
             mode = MODE_TEXT_IMAGE  # Default to textimage mode
 
@@ -137,14 +172,17 @@ async def update_panel_display(hass: HomeAssistant, device_name: str, api, text:
 
         # Route to appropriate mode handler
         if mode == MODE_TEXT_IMAGE:
-            return await _update_textimage_mode(hass, device_name, api, text)
+            return await _update_textimage_mode(hass, device_name, api, text, save_slot)
         elif mode == MODE_TEXT:
-            return await _update_text_mode(hass, device_name, api, text)
+            return await _update_text_mode(hass, device_name, api, text, save_slot)
         elif mode == MODE_CLOCK:
+            if save_slot >= 1:
+                _LOGGER.error("Clock mode cannot be saved to a slot")
+                return False
             return await _update_clock_mode(hass, device_name, api)
         else:
             _LOGGER.warning("Unknown mode: %s, falling back to textimage", mode)
-            return await _update_textimage_mode(hass, device_name, api, text)
+            return await _update_textimage_mode(hass, device_name, api, text, save_slot)
 
     except Exception as err:
         _LOGGER.error("Error during display update: %s", err)
@@ -179,7 +217,7 @@ def strip_inline_color_tags(text: str, where: str) -> str:
     return stripped
 
 
-async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
+async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, text: str = None, save_slot: int = 0) -> bool:
     """Update display in text/image mode.
 
     Args:
@@ -231,7 +269,7 @@ async def _update_textimage_mode(hass: HomeAssistant, device_name: str, api, tex
         processed_text = strip_inline_color_tags(processed_text, where="textimage mode")
 
         # Send text to display with current settings
-        success = await api.display_text(processed_text, antialias, font_size, font_name, line_spacing, text_color, bg_color)
+        success = await api.display_text(processed_text, antialias, font_size, font_name, line_spacing, text_color, bg_color, save_slot=save_slot)
         
         if success:
             _LOGGER.info("Display update successful: %s (font: %s, size: %s, antialias: %s, spacing: %spx, text: #%s, bg: #%s)",
@@ -298,7 +336,7 @@ async def _update_clock_mode(hass: HomeAssistant, device_name: str, api) -> bool
         return False
 
 
-async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: str = None) -> bool:
+async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: str = None, save_slot: int = 0) -> bool:
     """Update display in text mode using pypixelcolor.
 
     Args:
@@ -356,21 +394,30 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
         effect_name = await _get_entity_setting(
             hass, device_name, "select", "text_effect_select", str, api._address
         )
-        animation = TEXT_EFFECTS.get(effect_name, TEXT_EFFECTS[DEFAULT_TEXT_EFFECT])
+        animation = text_effects(await api.async_vertical_scroll_allowed()).get(
+            effect_name, TEXT_EFFECTS[DEFAULT_TEXT_EFFECT]
+        )
 
         # Speed - need new number entity
         speed = await _get_entity_setting(hass, device_name, "number", "text_speed", int, api._address)
         if speed is None:
             speed = 80  # Default speed
 
-        # Font size. Missing when the entity has not been created yet or is
-        # unavailable, which is the normal state of a panel that is offline --
-        # so this has to survive None. 16 matches both the API's own default
-        # and the smallest size it will accept.
-        font_size = await _get_entity_setting(hass, device_name, "number", "font_size", float, api._address)
-        if font_size is None:
-            font_size = 16
-        font_size = int(font_size)
+        # Character height, from the Text Size select. Missing when the entity
+        # has not been created yet or is unavailable (a panel that is offline),
+        # and then the Image Font Size number decides, as it did before the
+        # select existed. The API rounds whatever it gets to what text mode
+        # can draw.
+        text_size = await _get_entity_setting(
+            hass, device_name, "select", "text_size_select", int, api._address
+        )
+        if text_size:
+            font_size = text_size
+        else:
+            font_size = await _get_entity_setting(
+                hass, device_name, "number", "font_size", float, api._address
+            )
+            font_size = text_size_from_font_size(font_size)
 
         # Line spacing is a property of the picture this integration renders
         # itself, and text mode does not render one: the panel receives a
@@ -418,7 +465,8 @@ async def _update_text_mode(hass: HomeAssistant, device_name: str, api, text: st
             animation=animation,
             speed=speed,
             rainbow_mode=rainbow_mode,
-            font_size=font_size
+            font_size=font_size,
+            save_slot=save_slot,
         )
 
         if success:

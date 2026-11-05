@@ -18,6 +18,10 @@ from .common import update_panel_display
 
 _LOGGER = logging.getLogger(__name__)
 
+# Marks a power state that was set through Home Assistant, as opposed to the
+# starting assumption. Only such a state is restored after a restart.
+ATTR_COMMANDED = "commanded"
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -39,7 +43,7 @@ async def async_setup_entry(
     ])
 
 
-class BleLedPixelSwitch(SwitchEntity):
+class BleLedPixelSwitch(SwitchEntity, RestoreEntity):
     """Representation of an BLE LED Pixel Display switch."""
 
     def __init__(
@@ -56,11 +60,38 @@ class BleLedPixelSwitch(SwitchEntity):
         self._name = name
         self._attr_name = name
         self._attr_unique_id = f"{address}_power"
-        self._is_on = False
+        self._is_on = api.power_state
+        # True once the state came from a command sent through Home Assistant.
+        # Saved as an attribute so a restart restores only states that were
+        # really set, not the old always-off default.
+        self._commanded = False
         self._available = True
 
         # Device info for grouping in device registry
         self._attr_device_info = panel_device_info(api, address, name)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the last power state set through Home Assistant.
+
+        The panel cannot report whether it is on, so after a restart the last
+        commanded state is the best guess. A fresh install, or a state saved
+        by a version that always started off, keeps the default: on.
+        """
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if (
+            last_state is not None
+            and last_state.state in ("on", "off")
+            and last_state.attributes.get(ATTR_COMMANDED)
+        ):
+            self._api.restore_power_state(last_state.state == "on")
+            self._commanded = True
+        self._is_on = self._api.power_state
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Record whether the state was set through Home Assistant."""
+        return {ATTR_COMMANDED: self._commanded}
 
     @property
     def is_on(self) -> bool:
@@ -84,6 +115,7 @@ class BleLedPixelSwitch(SwitchEntity):
             success = await self._api.set_power(True)
             if success:
                 self._is_on = True
+                self._commanded = True
                 _LOGGER.debug("Successfully turned on LED panel")
             else:
                 _LOGGER.error("Failed to turn on LED panel")
@@ -104,6 +136,7 @@ class BleLedPixelSwitch(SwitchEntity):
             success = await self._api.set_power(False)
             if success:
                 self._is_on = False
+                self._commanded = True
                 _LOGGER.debug("Successfully turned off LED panel")
             else:
                 _LOGGER.error("Failed to turn off LED panel")

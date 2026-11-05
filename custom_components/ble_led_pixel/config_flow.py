@@ -26,10 +26,14 @@ from .const import (
     OPT_PANEL_WIDTH,
     OPT_PANEL_HEIGHT,
     OPT_FORCE_FEATURES,
+    OPT_VERTICAL_SCROLL,
     OPT_PASSWORD,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+CHOICE_MANUAL = "manual"
+CHOICE_ALL = "all"
 
 
 class CannotConnect(HomeAssistantError):
@@ -107,74 +111,101 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return await self._handle_device_selection(user_input)
 
-    async def _show_discovery_form(self) -> FlowResult:
-        """Show the discovery form with found devices."""
-        errors = {}
-        
-        # Discover devices using HA's bluetooth API
+    def _scan(self) -> dict[str, str]:
+        """Refresh the discovered devices; return form errors."""
         try:
-            _LOGGER.debug("CONFIG_FLOW: Starting device discovery using HA bluetooth API")
             discovered = discover_panels(self.hass, return_all=True)
-            _LOGGER.debug("CONFIG_FLOW: Discovery returned %d devices", len(discovered))
-            self._discovered_devices = {
-                device["address"]: device for device in discovered
-            }
-            _LOGGER.debug("CONFIG_FLOW: Stored %d devices in _discovered_devices", len(self._discovered_devices))
-        except Exception as err:
-            _LOGGER.error("CONFIG_FLOW: Discovery failed: %s", err)
-            import traceback
-            _LOGGER.error("CONFIG_FLOW: Traceback: %s", traceback.format_exc())
-            errors["base"] = "discovery_failed"
+        except Exception:  # noqa: BLE001 - discovery must never break the flow
+            _LOGGER.exception("CONFIG_FLOW: Discovery failed")
+            self._discovered_devices = {}
+            return {"base": "discovery_failed"}
+        configured = self._async_current_ids(include_ignore=False)
+        self._discovered_devices = {
+            device["address"]: device
+            for device in discovered
+            if device["address"] not in configured
+        }
+        _LOGGER.debug(
+            "CONFIG_FLOW: %d unconfigured devices (%d panels)",
+            len(self._discovered_devices),
+            sum(1 for d in self._discovered_devices.values() if d.get("is_compatible")),
+        )
+        return {}
 
-        if not self._discovered_devices and not errors:
+    def _device_options(self, panels_only: bool) -> dict[str, str]:
+        """Selector options: panels first, then (optionally) everything else."""
+        devices = sorted(
+            self._discovered_devices.items(),
+            key=lambda item: (not item[1].get("is_compatible", False), item[1]["name"]),
+        )
+        options: dict[str, str] = {}
+        for address, device in devices:
+            compatible = device.get("is_compatible", False)
+            if panels_only and not compatible:
+                continue
+            label = f"{device['name']} ({address})"
+            options[address] = f"⭐ {label}" if compatible and not panels_only else label
+        if panels_only:
+            others = sum(
+                1 for d in self._discovered_devices.values() if not d.get("is_compatible")
+            )
+            if others:
+                options[CHOICE_ALL] = f"Show all Bluetooth devices ({others} more)"
+        options[CHOICE_MANUAL] = "Manual entry"
+        return options
+
+    async def _show_discovery_form(
+        self, connect_errors: dict[str, str] | None = None
+    ) -> FlowResult:
+        """List the panels found nearby that are not set up yet."""
+        errors = self._scan() or dict(connect_errors or {})
+        if not errors and not any(
+            d.get("is_compatible") for d in self._discovered_devices.values()
+        ):
             errors["base"] = "no_devices_found"
-
-        # Create device selection list with star indicators for compatible devices
-        # Sort devices: compatible (starred) devices first, then others
-        compatible_devices = []
-        other_devices = []
-        
-        for address, device in self._discovered_devices.items():
-            if device.get("is_compatible", False):
-                compatible_devices.append((address, device))
-            else:
-                other_devices.append((address, device))
-        
-        # Sort each group by name for consistent ordering
-        compatible_devices.sort(key=lambda x: x[1]['name'])
-        other_devices.sort(key=lambda x: x[1]['name'])
-        
-        device_options = {}
-        # Add compatible devices first with stars
-        for address, device in compatible_devices:
-            device_options[address] = f"⭐ {device['name']} ({address})"
-        
-        # Add other devices without stars
-        for address, device in other_devices:
-            device_options[address] = f"{device['name']} ({address})"
-        
-        # Add manual entry option
-        device_options["manual"] = "Manual entry"
-
-        data_schema = vol.Schema({
-            vol.Required("device"): vol.In(device_options)
-        })
 
         return self.async_show_form(
             step_id="user",
-            data_schema=data_schema,
+            data_schema=vol.Schema(
+                {vol.Required("device"): vol.In(self._device_options(panels_only=True))}
+            ),
             errors=errors,
             description_placeholders={
                 "device_count": str(len(self._discovered_devices))
             },
         )
 
-    async def _handle_device_selection(self, user_input: dict[str, Any]) -> FlowResult:
+    async def async_step_pick_any(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Pick from every connectable Bluetooth device, panels starred.
+
+        For a panel that advertises under another name and without the
+        vendor's manufacturer data, so it does not show up as a panel.
+        """
+        if user_input is not None:
+            return await self._handle_device_selection(user_input, step_id="pick_any")
+        return self._pick_any_form({})
+
+    def _pick_any_form(self, errors: dict[str, str]) -> FlowResult:
+        return self.async_show_form(
+            step_id="pick_any",
+            data_schema=vol.Schema(
+                {vol.Required("device"): vol.In(self._device_options(panels_only=False))}
+            ),
+            errors=errors,
+        )
+
+    async def _handle_device_selection(
+        self, user_input: dict[str, Any], step_id: str = "user"
+    ) -> FlowResult:
         """Handle device selection from discovery."""
         selected = user_input["device"]
-        
-        if selected == "manual":
+
+        if selected == CHOICE_MANUAL:
             return await self.async_step_manual()
+        if selected == CHOICE_ALL:
+            return await self.async_step_pick_any()
         
         # Use discovered device
         device_info = self._discovered_devices.get(selected)
@@ -200,7 +231,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "unknown"
         
         if errors:
-            return await self._show_discovery_form()
+            if step_id == "pick_any":
+                return self._pick_any_form(errors)
+            return await self._show_discovery_form(errors)
 
         # Check if already configured
         await self.async_set_unique_id(device_info["address"])
@@ -352,6 +385,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     OPT_FORCE_FEATURES,
                     default=current.get(OPT_FORCE_FEATURES, False),
+                ): bool,
+                vol.Optional(
+                    OPT_VERTICAL_SCROLL,
+                    default=current.get(OPT_VERTICAL_SCROLL, False),
                 ): bool,
                 # Only needed for a panel that was locked from the vendor app.
                 # Masked, because it is a secret even if a short one.

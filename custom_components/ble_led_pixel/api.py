@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import Any, TYPE_CHECKING
+from functools import partial
 from math import floor
 
 if TYPE_CHECKING:
@@ -65,19 +67,44 @@ from .exceptions import BleLedPixelConnectionError, BleLedPixelFeatureUnsupporte
 from .const import (
     OPT_FORCE_FEATURES,
     OPT_PASSWORD,
+    OPT_VERTICAL_SCROLL,
     OPT_OVERRIDE_DIMENSIONS,
     OPT_PANEL_HEIGHT,
     OPT_PANEL_WIDTH,
+    text_sizes_for_height,
 )
 
 try:
-    from pypixelcolor.commands.show_slot import show_slot as pypixelcolor_show_slot
     from pypixelcolor.commands.delete import delete as pypixelcolor_delete
 except ImportError:
-    pypixelcolor_show_slot = None
     pypixelcolor_delete = None
 
 _LOGGER = logging.getLogger(__name__)
+
+# Erase everything stored on the panel (opcode 0x8003, deleteAllData in the
+# vendor app). See docs/protocol.md, A.8.
+DELETE_ALL_COMMAND = bytes([0x04, 0x00, 0x03, 0x80])
+
+# DIY mode off (opcode 0x0104, setDiyFunMode 0). Any unsaved send halts the
+# stored play list and the panel then ignores 0x8008; this puts it back on
+# its stored content. Probed on the 64x20 panel, see docs/protocol.md, A.8.
+DIY_OFF_COMMAND = bytes([0x05, 0x00, 0x04, 0x01, 0x00])
+
+# How long the panel is given between DIY off and the select, as probed.
+SHOW_SLOT_SETTLE = 1.0
+
+
+def show_slot_command(slot: int) -> bytes:
+    """Frame that selects stored slots to play (opcode 0x8008).
+
+    ``07 00 08 80 01 00 nn`` is a one-entry play list, as pypixelcolor sends
+    it. The panel only obeys it while it is playing stored content; after an
+    unsaved send it acknowledges and ignores it until DIY mode is turned off
+    (DIY_OFF_COMMAND). The vendor app's
+    ``05 00 08 80 nn`` is ignored outright by the 64x20 panel. See
+    docs/protocol.md, A.8.
+    """
+    return bytes([0x07, 0x00, 0x08, 0x80, 0x01, 0x00, slot & 0xFF])
 
 
 class BleLedPixelAPI:
@@ -109,13 +136,39 @@ class BleLedPixelAPI:
         self._watcher_started = False
         self._unsubscribe_bluetooth = None
         self._unsubscribe_identity = None
-        self._power_state = False
+        # The panel cannot report whether it is on. It powers up on, so that is
+        # the starting assumption; the power switch restores the last state set
+        # through Home Assistant over this.
+        self._power_state = True
+        # One-shot callbacks waiting for the link to come up; see
+        # call_when_connected().
+        self._on_connected: list[Callable[[], Awaitable[Any]]] = []
+        # Called once the panel has told us its size, for entities whose
+        # options depend on it and were set up before it was known.
+        self._device_info_listeners: list[Callable[[], None]] = []
         # Options this instance was set up with; __init__ compares against it
         # so an entry.data change does not trigger a reload.
         self.setup_options: dict[str, Any] = {}
         # Last (requested, effective) font size reported, so the note is
         # logged when the value changes rather than on every refresh.
         self._font_size_note: tuple[int, int] | None = None
+        # Bumped by every request that changes what the panel shows. Text and
+        # images render in the executor, so a later request can finish first;
+        # an older plan that comes back after newer content was asked for is
+        # dropped instead of sent over it. See _claim_content.
+        self._content_generation = 0
+        # Bumped by delete_all_slots, so a slot save that was requested before
+        # the erase but reaches the send lock after it is dropped instead of
+        # leaving the panel non-empty.
+        self._slot_epoch = 0
+        # The same per slot, bumped by delete_slot.
+        self._slot_epochs: dict[int, int] = {}
+        # Slot the device page's Save/Show/Clear Slot buttons act on, set by
+        # the Slot number entity.
+        self.selected_slot = 1
+        # Display mode, set by the Mode select, which writes its state to
+        # Home Assistant only after the update it triggers has already read it.
+        self.current_mode: str | None = None
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
 
@@ -135,6 +188,7 @@ class BleLedPixelAPI:
         connected = await self._bluetooth.connect(self._notification_handler)
         if connected:
             await self._unlock_if_needed()
+            await self._run_on_connected()
         return connected
     
     async def disconnect(self) -> None:
@@ -155,7 +209,39 @@ class BleLedPixelAPI:
                     "Link to LED panel %s restored while sending", self._address
                 )
             await self._unlock_if_needed()
+            if not was_connected:
+                await self._run_on_connected()
         return connected
+
+    def restoring(self):
+        """Context manager: sends inside it give way to newer content."""
+        return self._bluetooth.restoring()
+
+    def call_when_connected(self, job: Callable[[], Awaitable[Any]]) -> None:
+        """Run `job` once: now if the link is up, else when it next comes up.
+
+        On a connect, waiting jobs run before connect() returns, so whatever
+        command opened the link is sent after them and stays on the panel.
+        """
+        self._on_connected.append(job)
+        if self.is_connected:
+            self._hass.async_create_background_task(
+                self._run_on_connected(),
+                name=f"ble_led_pixel on connect {self._address}",
+            )
+
+    async def _run_on_connected(self) -> None:
+        """Run the jobs waiting for a connection, each exactly once."""
+        if not self.is_connected:
+            # The link dropped before this ran: keep the jobs for the next
+            # connect rather than spending them on a send that cannot work.
+            return
+        jobs, self._on_connected = self._on_connected, []
+        for job in jobs:
+            try:
+                await job()
+            except Exception as err:  # noqa: BLE001 - a hook must not break connect
+                _LOGGER.warning("On-connect job for %s failed: %s", self._address, err)
 
     @property
     def password(self) -> str | None:
@@ -396,7 +482,43 @@ class BleLedPixelAPI:
                 _LOGGER.debug("Reconnect task ended with: %s", err)
             self._reconnect_task = None
 
-    async def _send_with_reconnect(self, command: bytes) -> bool:
+    def set_current_mode(self, mode: str | None) -> None:
+        """Record the display mode the Mode select just chose."""
+        self.current_mode = mode
+
+    def _slot_save_check(self, slot: int) -> Callable[[], bool]:
+        """A check that neither this slot nor all slots were erased since."""
+        epoch = self._slot_epoch
+        slot_epoch = self._slot_epochs.get(slot, 0)
+        return lambda: (
+            epoch == self._slot_epoch
+            and slot_epoch == self._slot_epochs.get(slot, 0)
+        )
+
+    def _claim_content(self) -> Callable[[], bool]:
+        """Mark a new display request and return a check that it is still the latest.
+
+        Every method that changes what the panel shows calls this first, so a
+        slow render (text, an image, a layout) can tell when anything newer
+        -- of any kind -- was requested while it worked, and drop itself.
+
+        A restore of saved settings only watches: it never advances the
+        generation, so it cannot invalidate a live request that started
+        before it, and it is itself dropped once a live request starts.
+        """
+        if BluetoothClient.in_restore():
+            generation = self._content_generation
+            return lambda: generation == self._content_generation
+        self._content_generation += 1
+        generation = self._content_generation
+        return lambda: generation == self._content_generation
+
+    async def _send_with_reconnect(
+        self,
+        command: bytes,
+        content: bool = False,
+        still_current: Callable[[], bool] | None = None,
+    ) -> bool:
         """Send a command, reconnecting once when the link turns out to be dead.
 
         A connection can die between the availability check and the write. In
@@ -404,12 +526,12 @@ class BleLedPixelAPI:
         leaving the panel stale until someone reloads the integration.
         """
         try:
-            if await self._bluetooth.send_command(command):
+            if await self._bluetooth.send_command(command, content=content, still_current=still_current):
                 return True
         except BleLedPixelConnectionError:
             pass
         if await self.ensure_connected():
-            return await self._bluetooth.send_command(command)
+            return await self._bluetooth.send_command(command, content=content, still_current=still_current)
         return False
 
     async def set_power(self, on: bool) -> bool:
@@ -489,10 +611,11 @@ class BleLedPixelAPI:
         Returns:
             True if command was sent successfully
         """
+        still_current = self._claim_content()
         try:
             # Set clock mode
             command = make_clock_mode_command(style, date, show_date, format_24)
-            success = await self._send_with_reconnect(command)
+            success = await self._send_with_reconnect(command, content=True, still_current=still_current)
 
             if not success:
                 _LOGGER.error("Failed to set clock mode")
@@ -578,6 +701,66 @@ class BleLedPixelAPI:
         self._hass.async_create_task(
             async_report_unknown_panel(self._hass, self._address, self._device_info)
         )
+
+    def _known_dimensions(self) -> tuple[int | None, int | None]:
+        """(width, height) as far as known, either one None when unknown.
+
+        From the panel's own answer with the options-flow override applied,
+        or -- before the panel has been queried, e.g. it was offline at setup
+        -- from the override alone.
+        """
+        if self._device_info is not None:
+            try:
+                return self._resolved_dimensions(self._device_info)
+            except (KeyError, TypeError):
+                return None, None
+        options = self._entry.options if self._entry is not None else {}
+        if not options.get(OPT_OVERRIDE_DIMENSIONS):
+            return None, None
+        return options.get(OPT_PANEL_WIDTH) or None, options.get(OPT_PANEL_HEIGHT) or None
+
+    @property
+    def vertical_scroll_allowed(self) -> bool:
+        """Whether the Scroll up/down text effects may be used on this panel.
+
+        Always on a 32x32 panel, which pypixelcolor itself allows; elsewhere
+        only when turned on in the options.
+        """
+        if self._entry is not None and self._entry.options.get(OPT_VERTICAL_SCROLL):
+            return True
+        return self._known_dimensions() == (32, 32)
+
+    def add_device_info_listener(self, listener: Callable[[], None]) -> Callable[[], None]:
+        """Call listener when the panel reports its info; returns a remover."""
+        self._device_info_listeners.append(listener)
+
+        def remove() -> None:
+            if listener in self._device_info_listeners:
+                self._device_info_listeners.remove(listener)
+
+        return remove
+
+    async def async_vertical_scroll_allowed(self) -> bool:
+        """Like vertical_scroll_allowed, but asks the panel its size first.
+
+        A panel that was out of reach at setup has no size yet, and a 32x32
+        one would be refused scroll up/down until something else happened to
+        query it.
+        """
+        if self.vertical_scroll_allowed or self._device_info is not None:
+            return self.vertical_scroll_allowed
+        try:
+            if await self.ensure_connected():
+                await self.get_device_info()
+        except Exception as err:  # noqa: BLE001 - unknown size just means "not allowed"
+            _LOGGER.debug("Could not read the panel size: %s", err)
+        return self.vertical_scroll_allowed
+
+    @property
+    def text_sizes(self) -> list[int]:
+        """Text-mode character heights this panel can show."""
+        _, height = self._known_dimensions()
+        return text_sizes_for_height(height)
 
     @property
     def device_info(self) -> dict[str, Any] | None:
@@ -729,6 +912,7 @@ class BleLedPixelAPI:
                     self._device_info["brand"] = identity.brand
                     await self._read_firmware()
                     _LOGGER.info("Device info retrieved on attempt %d: %s", attempt + 1, self._device_info)
+                    self._notify_device_info()
                     return self._device_info
 
                 raise Exception("No response received")
@@ -759,9 +943,18 @@ class BleLedPixelAPI:
             "cidpid": None,
             "brand": None,
         }
+        # Cached like a real answer, so this is the size from now on too.
+        self._notify_device_info()
         return self._device_info
+
+    def _notify_device_info(self) -> None:
+        for listener in list(self._device_info_listeners):
+            try:
+                listener()
+            except Exception:  # noqa: BLE001 - one entity must not break the query
+                _LOGGER.exception("Device info listener failed")
     
-    async def display_text(self, text: str, antialias: bool = True, font_size: float | None = None, font: str | None = None, line_spacing: int = 0, text_color: str = "ffffff", bg_color: str = "000000") -> bool:
+    async def display_text(self, text: str, antialias: bool = True, font_size: float | None = None, font: str | None = None, line_spacing: int = 0, text_color: str = "ffffff", bg_color: str = "000000", save_slot: int = 0) -> bool:
         """Display text as image using PIL and pypixelcolor with color gradient mapping.
 
         Args:
@@ -772,7 +965,13 @@ class BleLedPixelAPI:
             line_spacing: Additional spacing between lines in pixels
             text_color: Foreground/text color in hex format (e.g., 'ffffff')
             bg_color: Background color in hex format (e.g., '000000')
+            save_slot: If >= 1, also store the rendered picture in that slot.
         """
+        still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             # Get device dimensions (honors options-flow override if set)
             base_info = await self.get_device_info()
@@ -787,14 +986,15 @@ class BleLedPixelAPI:
                 image_bytes=png_data,
                 file_extension=".png",
                 resize_method="crop",
-                device_info_dict=device_info
+                device_info_dict=device_info,
+                save_slot=save_slot,
             )
 
             # A SendPlan, not a list of frames: an image is larger than one
             # BLE packet, and send_plan chunks each window and waits for the
             # panel's per-window acknowledgement. Iterating it here treated it
             # as frames and raised on every single update.
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send the rendered text to the panel")
                 return False
@@ -835,6 +1035,11 @@ class BleLedPixelAPI:
                 dimension (1-100). 100 fills edge to edge on the short side.
             save_slot: If >= 1, saves the image to that device memory slot.
         """
+        still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             device_info = await self.get_device_info()
             width = device_info["width"]
@@ -859,7 +1064,7 @@ class BleLedPixelAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send MDI icon '%s'", icon)
                 return False
@@ -986,6 +1191,11 @@ class BleLedPixelAPI:
             bg_color: Canvas background color in hex (with or without '#').
             save_slot: If >= 1, saves the image to that device memory slot.
         """
+        still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             device_info = await self.get_device_info()
             width = device_info["width"]
@@ -1037,7 +1247,7 @@ class BleLedPixelAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send layout (icons=%s, texts=%s)", icons, texts)
                 return False
@@ -1071,6 +1281,11 @@ class BleLedPixelAPI:
                 excess) or 'fit' (fits the whole image with black padding).
             save_slot: If >= 1, saves the image to that device memory slot.
         """
+        still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             path = Path(file_path)
             file_bytes = await self._hass.async_add_executor_job(path.read_bytes)
@@ -1085,7 +1300,7 @@ class BleLedPixelAPI:
                 save_slot=save_slot,
             )
 
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send image file '%s'", file_path)
                 return False
@@ -1188,6 +1403,7 @@ class BleLedPixelAPI:
         Quadrants (in logical buffer space, left/right = width split,
         top/bottom = height split): TL=red, TR=green, BL=blue, BR=yellow.
         """
+        still_current = self._claim_content()
         try:
             device_info = await self.get_device_info()
             width = device_info["width"]
@@ -1221,17 +1437,17 @@ class BleLedPixelAPI:
                 device_info_dict=device_info,
                 save_slot=0,
             )
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send test pattern")
                 return False
 
-            if pypixelcolor_show_slot is not None:
-                show_plan = pypixelcolor_show_slot(0)
-                shown = await self._bluetooth.send_plan(show_plan)
-                if not shown:
-                    _LOGGER.error("Failed to show_slot(0) after sending test pattern")
-                    return False
+            shown = await self._bluetooth.send_command(
+                show_slot_command(0), content=True, still_current=still_current
+            )
+            if not shown:
+                _LOGGER.error("Failed to show_slot(0) after sending test pattern")
+                return False
 
             _LOGGER.info("Test pattern sent (%dx%d), save_slot=0, shown via slot 0", width, height)
             return True
@@ -1240,32 +1456,39 @@ class BleLedPixelAPI:
             return False
 
     async def show_slot(self, slot: int) -> bool:
-        """Display a picture already stored on the panel.
+        """Display content already stored on the panel.
 
-        Sends seven bytes instead of re-transmitting the image, which on a
-        32x32 panel means 7 bytes rather than 12288. Store pictures first with
-        the save_slot argument of send_image_file or send_mdi_icon.
+        Any unsaved send halts the panel's stored play list, and while it is
+        halted the select frame is acknowledged and ignored. DIY mode off
+        restarts the play list, so it goes first; the select then picks the
+        slot. The panel briefly shows the stored slot it played last.
 
         Args:
             slot: Slot number. An empty slot makes the panel cycle through the
                 slots that do hold something, rather than showing nothing.
 
         Returns:
-            True when the command was sent.
+            True when both writes were sent.
         """
-        if pypixelcolor_show_slot is None:
-            _LOGGER.error("pypixelcolor is not available")
-            return False
+        still_current = self._claim_content()
         try:
-            success = await self._bluetooth.send_plan(pypixelcolor_show_slot(slot))
-            if success:
-                _LOGGER.debug("Showing slot %d", slot)
-            else:
-                _LOGGER.error("Failed to show slot %d", slot)
-            return success
-        except Exception as err:
+            if not await self._send_with_reconnect(
+                DIY_OFF_COMMAND, content=True, still_current=still_current
+            ):
+                _LOGGER.error("Failed to prepare the panel to show slot %d", slot)
+                return False
+            await asyncio.sleep(SHOW_SLOT_SETTLE)
+            success = await self._send_with_reconnect(
+                show_slot_command(slot), content=True, still_current=still_current
+            )
+        except Exception as err:  # noqa: BLE001 - reported as a failed action
             _LOGGER.error("Error showing slot %d: %s", slot, err)
             return False
+        if success:
+            _LOGGER.debug("Showing slot %d", slot)
+        else:
+            _LOGGER.error("Failed to show slot %d", slot)
+        return success
 
     async def delete_slot(self, slot: int) -> bool:
         """Erase one stored picture from the panel.
@@ -1279,6 +1502,8 @@ class BleLedPixelAPI:
         if pypixelcolor_delete is None:
             _LOGGER.error("pypixelcolor is not available")
             return False
+        # A save to this slot still rendering would otherwise land after it.
+        self._slot_epochs[slot] = self._slot_epochs.get(slot, 0) + 1
         try:
             success = await self._bluetooth.send_plan(pypixelcolor_delete(slot))
             if success:
@@ -1289,6 +1514,26 @@ class BleLedPixelAPI:
         except Exception as err:
             _LOGGER.error("Error deleting slot %d: %s", slot, err)
             return False
+
+    async def delete_all_slots(self) -> bool:
+        """Erase everything stored on the panel (opcode 0x8003).
+
+        The vendor app calls this deleteAllData. The panel cannot report which
+        slots hold something, so this is the only way to a known-clean state.
+        """
+        # Earlier slot saves still rendering or waiting for the link would
+        # otherwise land after the erase.
+        self._slot_epoch += 1
+        try:
+            success = await self._send_with_reconnect(DELETE_ALL_COMMAND)
+        except Exception as err:  # noqa: BLE001 - reported as a failed action
+            _LOGGER.error("Error erasing stored content: %s", err)
+            return False
+        if success:
+            _LOGGER.info("Erased all stored content on %s", self._address)
+        else:
+            _LOGGER.error("Failed to erase stored content on %s", self._address)
+        return success
 
     @property
     def features(self) -> frozenset[str]:
@@ -1327,7 +1572,8 @@ class BleLedPixelAPI:
                 f"not offer it for this model either. If yours does have it, "
                 f"turn on the feature override in the integration options."
             )
-        success = await self._send_with_reconnect(command)
+        still_current = self._claim_content()
+        success = await self._send_with_reconnect(command, content=True, still_current=still_current)
         if success:
             _LOGGER.debug("%s", description)
         else:
@@ -1397,7 +1643,8 @@ class BleLedPixelAPI:
         animation: int = 0,
         speed: int = 80,
         rainbow_mode: int = 0,
-        font_size: int = 16
+        font_size: int = 16,
+        save_slot: int = 0,
     ) -> bool:
         """Display text using pypixelcolor.
 
@@ -1413,10 +1660,16 @@ class BleLedPixelAPI:
             speed: Animation speed (0-100)
             rainbow_mode: Rainbow mode (0-9)
             font_size: Font size (16, 32, 48, 64) defaults to 16
+            save_slot: If >= 1, also store the text in that slot.
 
         Returns:
             True if text was sent successfully
         """
+        still_current = self._claim_content()
+        if save_slot >= 1:
+            # Saving to a slot is storage, not just display: newer content
+            # does not drop it, only an erase of that slot (or all) since.
+            still_current = self._slot_save_check(save_slot)
         try:
             # Get device info for height (honors options-flow override if set)
             base_info = await self.get_device_info()
@@ -1451,17 +1704,26 @@ class BleLedPixelAPI:
                 self._font_size_note = None
 
             # Generate text commands using pypixelcolor
-            commands = make_text_command(
-                text=text,
-                color=color,
-                bg_color=bg_color,
-                font=resolve_font_for_library(font),
-                animation=animation,
-                speed=speed,
-                rainbow_mode=rainbow_mode,
-                save_slot=0,
-                char_height=char_height
+            # Off the event loop: reads the font file and its metrics, and
+            # renders every glyph.
+            commands = await self._hass.async_add_executor_job(
+                partial(
+                    make_text_command,
+                    text=text,
+                    color=color,
+                    bg_color=bg_color,
+                    font=resolve_font_for_library(font),
+                    animation=animation,
+                    speed=speed,
+                    rainbow_mode=rainbow_mode,
+                    save_slot=save_slot,
+                    char_height=char_height,
+                )
             )
+
+            if still_current is not None and not still_current():
+                _LOGGER.debug("Dropping text '%s': newer content superseded it", text)
+                return True
 
             # A SendPlan, not a list of frames: longer texts exceed one BLE
             # packet, so send_plan chunks each window and awaits its ACK.
@@ -1469,7 +1731,14 @@ class BleLedPixelAPI:
                 _LOGGER.error("Cannot connect to send text plan")
                 return False
 
-            success = await self._bluetooth.send_plan(commands, ack_timeout=25.0)
+            # Checked again under the send lock: reconnecting (which runs any
+            # queued restore) and waiting for the lock are both awaits a newer
+            # request can overtake this one in.
+            success = await self._bluetooth.send_plan(
+                commands,
+                ack_timeout=25.0,
+                still_current=still_current,
+            )
             if not success:
                 _LOGGER.error("Failed to send pypixelcolor text plan")
                 return False
@@ -1516,6 +1785,7 @@ class BleLedPixelAPI:
         Returns:
             True if the emoji was rendered and sent successfully.
         """
+        still_current = self._claim_content()
         try:
             base_info = await self.get_device_info()
             width = width_override or base_info["width"]
@@ -1538,7 +1808,7 @@ class BleLedPixelAPI:
                 await self.connect()
 
             # As in display_text: a SendPlan is not a sequence of frames.
-            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0)
+            success = await self._bluetooth.send_plan(plan, ack_timeout=25.0, still_current=still_current)
             if not success:
                 _LOGGER.error("Failed to send emoji %r to the panel", emoji)
                 return False
@@ -1563,7 +1833,11 @@ class BleLedPixelAPI:
     def power_state(self) -> bool:
         """Return current power state."""
         return self._power_state
-    
+
+    def restore_power_state(self, on: bool) -> None:
+        """Seed the cached power state from Home Assistant's last known state."""
+        self._power_state = on
+
     @property
     def address(self) -> str:
         """Return device address."""

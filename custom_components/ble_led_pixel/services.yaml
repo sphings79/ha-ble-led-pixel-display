@@ -1,11 +1,14 @@
 show_slot:
   name: Show stored picture
   description: >
-    Display a picture already stored on the panel. Sends seven bytes instead of
-    the whole image - on a 32x32 panel that is 7 bytes rather than 12288. Store
-    pictures first using the "save slot" field of send_image_file or
-    send_mdi_icon. Showing an empty slot makes the panel cycle through the slots
-    that do hold something.
+    Display content already stored on the panel, without sending it again.
+    Store it first using the "save slot" field of send_text, send_image_file
+    or send_mdi_icon. Works after unsaved content too: the integration first
+    switches the panel back to its stored content. Showing an empty slot makes
+    the panel cycle through the slots that do hold something. Coming from
+    unsaved content (such as text sent from Home Assistant) the slot appears
+    at once; when the panel is already showing stored slots it can take about
+    5 seconds, while the panel restarts its play list.
   target:
     entity:
       integration: ble_led_pixel
@@ -40,6 +43,18 @@ delete_slot:
           min: 0
           max: 255
           mode: box
+
+delete_all_slots:
+  name: Delete all stored content
+  description: >-
+    Erase everything stored on the panel: every saved picture and text,
+    including the content it shows when it powers up. The panel cannot report
+    which slots are in use, so this is the way to start from a clean state.
+    It cannot be undone.
+  target:
+    entity:
+      integration: ble_led_pixel
+      domain: text
 
 show_emoji:
   name: Show Emoji
@@ -202,9 +217,9 @@ send_text:
     animation:
       name: Animation
       description: >-
-        Effect the panel applies to the text. Values 3 and 4 are rejected by
-        the library on panels that are not 32x32, to avoid a device bootloop,
-        so they are not offered here.
+        Effect the panel applies to the text. Scroll up and scroll down work
+        on 32x32 panels; on others they must first be turned on in the
+        integration options, and the action fails otherwise.
       required: false
       default: 0
       selector:
@@ -216,6 +231,10 @@ send_text:
               value: "1"
             - label: "Scroll right"
               value: "2"
+            - label: "Scroll up"
+              value: "3"
+            - label: "Scroll down"
+              value: "4"
             - label: "Blinking"
               value: "5"
             - label: "Breathing"
@@ -243,6 +262,17 @@ send_text:
         number:
           min: 0
           max: 9
+    save_slot:
+      name: Save Slot
+      description: >-
+        Also store the text in this memory slot (1-10) on the panel, so it can
+        be shown again with show_slot without resending it. 0 = don't save.
+      required: false
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 10
 
 send_test_pattern:
   name: "[DIAGNOSTIC] Send Test Pattern"

@@ -11,14 +11,15 @@ from homeassistant.components import bluetooth as ha_bluetooth
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
-from .fonts import build_font_index
+from .fonts import build_font_index, set_config_fonts_dir
 from .services import async_setup_services
-from .unknown_panel import async_report_unknown_panel
+from .unknown_panel import async_report_unknown_panel, report_info_for
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,6 +30,9 @@ PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.TEXT, Platform.SENSOR, Pl
 # waits for every integration, so an unresponsive panel must not stall it;
 # the reconnect watcher carries on in the background after this.
 SETUP_CONNECT_TIMEOUT = 15.0
+
+# Set up from the UI only; async_setup exists to register the actions.
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 
 
@@ -46,6 +50,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # Build the font index once, off the event loop. Every later lookup -
     # the font selector, text rendering, the send_text action - reads from
     # that cache instead of scanning the filesystem.
+    set_config_fonts_dir(hass.config.path("fonts"))
     await hass.async_add_executor_job(build_font_index)
 
     async_setup_services(hass)
@@ -85,6 +90,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug("Setting up BLE LED Pixel Display for %s (%s)", name, address)
     
     _remove_retired_entities(hass, address)
+
+    # Rescan the fonts, so fonts dropped into <config>/fonts show up after
+    # reloading the integration instead of only after a restart.
+    await hass.async_add_executor_job(build_font_index)
 
     # Create API instance with hass for Bluetooth proxy support
     api = BleLedPixelAPI(hass, address, entry=entry)
@@ -140,7 +149,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # An unrecognised panel gets a repair notice with a prefilled bug report.
     # Everything technical is already known at this point; only the name on the
     # box is not, and that is what the notice asks for.
-    await async_report_unknown_panel(hass, address, api.device_info)
+    await async_report_unknown_panel(hass, address, report_info_for(api))
 
     # Watch for the panel dropping its link and bring it back automatically.
     # Without this a lost connection stays lost until someone reloads the
@@ -158,6 +167,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Once Home Assistant has started (entities restored, templates ready),
+    # send the restored settings so the panel matches what Home Assistant
+    # shows. A panel not connected by then gets them when its link comes up.
+    async def _restore_display() -> None:
+        from .common import restore_panel_display
+
+        try:
+            await restore_panel_display(hass, name, api)
+        except Exception as err:  # noqa: BLE001 - never fail over this
+            _LOGGER.warning("Could not restore the panel display: %s", err)
+
+    @callback
+    def _at_started(_hass: HomeAssistant) -> None:
+        api.call_when_connected(_restore_display)
+
+    entry.async_on_unload(async_at_started(hass, _at_started))
 
     return True
 

@@ -13,7 +13,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError
 from .fonts import resolve_font_for_library
-from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, VERTICAL_TEXT_EFFECTS
 from .entity import panel_device_info
 from .common import get_entity_id_by_unique_id
 from .common import resolve_template_variables, update_panel_display
@@ -182,6 +182,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         animation: int = 0,
         speed: int = 80,
         rainbow_mode: int = 0,
+        save_slot: int = 0,
     ) -> None:
         """Send text using pypixelcolor's native renderer (service: send_text).
 
@@ -196,11 +197,22 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
             font: Font name or filename. Resolved against the integration's
                 fonts/ folder, the pypixelcolor package and system font
                 paths, and handed to the library as an absolute path.
-            animation: Effect code, 0-8. Note: pypixelcolor itself rejects
-                3 and 4 on panels that aren't 32x32, to avoid a device bootloop.
+            animation: Effect code, 0-8. 3 and 4 (scroll up/down) only on
+                32x32 panels or when turned on in the options.
             speed: Animation speed (0-100).
             rainbow_mode: Rainbow color-cycling mode (0-9).
+            save_slot: If 1-10, also store the text in that slot on the panel.
         """
+        if (
+            animation in VERTICAL_TEXT_EFFECTS.values()
+            and not await self._api.async_vertical_scroll_allowed()
+        ):
+            raise HomeAssistantError(
+                "Scroll up and scroll down are off for this panel. Turn on "
+                "'Offer scroll up and scroll down' in the integration options "
+                "to use them."
+            )
+
         color_hex = "".join(f"{c:02x}" for c in color)
         bg_color_hex = "".join(f"{c:02x}" for c in bg_color) if bg_color is not None else None
 
@@ -212,6 +224,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
             animation=animation,
             speed=speed,
             rainbow_mode=rainbow_mode,
+            save_slot=save_slot,
         )
         if not success:
             _LOGGER.error("Failed to send text '%s'", text)
@@ -486,6 +499,11 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         if not await self._api.delete_slot(slot):
             _LOGGER.error("Failed to delete slot %d", slot)
             raise HomeAssistantError(f"Failed to delete slot {slot} - check the logs for details")
+
+    async def async_delete_all_slots(self) -> None:
+        """Erase everything stored on the panel (action: delete_all_slots)."""
+        if not await self._api.delete_all_slots():
+            raise HomeAssistantError("Failed to erase the panel's stored content - check the logs for details")
 
     async def async_update(self) -> None:
         """Update the entity state."""

@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+PANEL_SERVICE_UUID = "0000fa01-0000-1000-8000-00805f9b34fb"
+
 
 def discover_panels(hass: HomeAssistant, return_all: bool = False) -> list[dict[str, Any]]:
     """Discover LED panels using Home Assistant's Bluetooth integration.
@@ -49,6 +51,11 @@ def discover_panels(hass: HomeAssistant, return_all: bool = False) -> list[dict[
             is_compatible = DEVICE_NAME_MARKER in name
             if not is_compatible:
                 is_compatible = parse_identity(service_info.manufacturer_data).cid is not None
+            if not is_compatible:
+                # Same service UUID the manifest matches for discovery.
+                is_compatible = PANEL_SERVICE_UUID in (
+                    uuid.lower() for uuid in (service_info.service_uuids or [])
+                )
 
             device_info = {
                 "address": service_info.address,
