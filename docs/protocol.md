@@ -1302,10 +1302,35 @@ commands are in `pypixelcolor` but no integration exposed them:
 Writing is already covered: `send_image_file` and `send_mdi_icon` take a
 `save_slot` argument that stores the picture as it is sent.
 
-Showing a stored picture costs **seven bytes**. Sending the same picture costs
-a full frame buffer -- 12288 bytes on a 32×32 panel. For anything that cycles
-through a fixed set of pictures, storing them once and switching by slot number
-is dramatically cheaper over Bluetooth.
+Showing a stored picture costs **seven bytes**. Sending the same picture
+costs a full frame buffer -- 12288 bytes on a 32×32 panel. For anything that
+cycles through a fixed set of pictures, storing them once and switching by slot
+number is dramatically cheaper over Bluetooth.
+
+`0x8008` is a play list: `LL 00 08 80 <count lo> <count hi> <slot>…`, so the
+seven-byte frame is a list of one. The vendor app's five-byte `05 00 08 80 <n>`
+is ignored by the unbranded 64x20 panel (product 000105).
+
+**The panel obeys the list only while it plays stored content.** Probed on the
+64x20 panel on 2026-11-05 by sending raw frames:
+
+- After any unsaved send (`save_slot` 0) the play list is halted and the panel
+  holds that content. It acknowledges `0x8008` with `05 00 08 80 01` (`01` is
+  OK) and ignores it. So do `04 00 01 01` (exit), display off and on
+  (`0x0107`), `05 00 12 80 01` / `05 00 12 80 07`, and deleting slot 0 or an
+  empty slot first.
+- **DIY mode off, `05 00 04 01 00` (`0x0104`), restarts the play list.** The
+  panel answers `05 00 04 01 01` and shows the stored slot it played last;
+  `07 00 08 80 01 00 <n>` sent a second later then holds slot `n`.
+  Confirmed twice, for slots 3 and 1.
+- A send saved to a slot (`save_slot` ≥ 1) also restarts the play list,
+  starting at the first stored slot.
+
+The integration shows a slot by sending DIY off, waiting a second, then the
+select. The community
+[ESPHome component](https://github.com/DonKracho/ESPHome-component-iPixel-ble)
+documents the halt: slot 0 and slots above 100 are applied immediately and stop
+the play list.
 
 Showing an empty slot does not blank the panel: it cycles through the slots
 that do hold something. The number of slots is not documented anywhere and the

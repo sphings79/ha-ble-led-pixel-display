@@ -594,84 +594,27 @@ out is easy and undoing it needs physical access to the power supply.
 
 ### Added
 
-- **Fonts are resolved to file paths** instead of relying on pypixelcolor's
-  built-in font names, which change between library versions. Any font in the
-  integration's `fonts/` folder, the pypixelcolor package or a system font path
-  works, in every mode and in `send_text`, with `VCR_OSD_MONO` as the fallback.
-- **`show_emoji`** action, rendering any emoji via Twemoji (PR #37 by bastooky)
-- **Options flow to override the panel size** when the firmware reports it wrong
-  (PR #38 by bastooky), plus a French translation
-- Font metric JSON sidecars for the bundled pixel fonts (PR #24 by scyto)
-
-### Fixed
-
-- **Device info is now retried three times** with a 10 second timeout instead of
-  being queried once with 5 seconds, falling back to 64x16 defaults and an error
-  in the log when all attempts fail (PR #30 by casef007). Adapted: the PR drove
-  the GATT characteristics directly and cycled notifications per attempt; kept
-  the persistent-subscription helper and took only the retry behaviour.
-- **The clock used the host's naive local time**, which is UTC on most Home
-  Assistant installations, so the panel clock was off by the timezone offset
-  (PR #32 by MobilGame06)
-- **The font size setting was ignored** in native text mode (PR #35 by BAERnado)
-- Removed the `display_text` declaration from `services.yaml`. It described an
-  action that was never registered anywhere; `send_text` is the working
-  equivalent.
-
-### Not merged
-
-- **PR #31** (buffer-safe chunked writes) chunks at 20 bytes with fixed delays,
-  while the client inherited from tigers75 already chunks at 244 bytes with
-  per-window ACKs. Merging it would have been a regression.
-
-### Changed
-
-- **Forked** from [cagcoach/ha-ipixel-color](https://github.com/cagcoach/ha-ipixel-color)
-  (upstream inactive since 2025-12-16) and renamed: domain `ipixel_color` -> `ble_led_pixel`,
-  integration name "iPIXEL Color" -> "BLE LED Pixel Display". The new domain allows running
-  this integration alongside the original one, so devices can be migrated one at a time.
-  All actions are now called `ble_led_pixel.*`.
-- Merged the image, MDI icon and layout work from
-  [tigers75/ha-ipixel-color](https://github.com/tigers75/ha-ipixel-color).
-
-### Fixed
-
-- **Selected font was silently ignored in text mode.** `_update_text_mode` resolves fonts
-  only against the integration's own `fonts/` folder, while the font selector is populated
-  from that folder *plus* the pypixelcolor package *plus* system font paths. Picking a font
-  that lives outside the integration therefore fell back to `CUSONG` without any notice.
-  `VCR_OSD_MONO` is now shipped with the integration, so selecting it actually applies it.
-- **Pinned `pypixelcolor` to `>=0.4.0,<0.5`.** The requirement was open-ended, and
-  pypixelcolor has since removed the `CUSONG`, `SIMSUN` and `VCR_OSD_MONO` fonts from the
-  package (only `unifont.otf` remains). The first release above 0.4.0 would have pulled
-  those fonts out from under any existing installation.
-
-### Fixed
-
-- All `ble_led_pixel.*` actions (`send_mdi_icon`, `send_text`, `send_layout`, `send_test_pattern`,
-  `send_image_file`) are now registered once at integration setup (`async_setup` in
-  `__init__.py`, via the new `services.py`) instead of per-config-entry inside `text.py`'s
-  `async_setup_entry`, per Home Assistant's own guidance
-  (https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/).
-  Previously, an action only existed in Home Assistant's service registry once a specific
-  device's config entry had finished loading - automations validated before that (typically
-  during Home Assistant startup) could be briefly flagged with "unknown action", even though
-  the action worked correctly moments later once setup completed. The entity methods
-  themselves (`async_send_mdi_icon`, etc.) are unchanged; only where and how they're
-  registered changed, using `homeassistant.helpers.service.async_register_platform_entity_service`.
-- `send_layout`'s word-wrap now falls back to splitting character-by-character when a single
-  space-free "word" (e.g. a long digit string or ID with no natural spaces) is wider than the
-  available width on its own. Previously such text was kept whole and allowed to overflow
-  past the panel edge instead of wrapping to a new line.
-- `send_layout`'s text `align` ('right'/'center') now actually anchors the corresponding edge
-  or center of the text block at `x` (e.g. `align: right` makes the text's right edge land at
-  `x`, extending leftward). Previously `align` only affected how multiple `\n`-separated lines
-  aligned relative to each other within the block, leaving single-line text always anchored by
-  its left edge regardless of `align` - so e.g. a right-aligned single line at `x=32` could run
-  off the panel's edge instead of ending at `x=32` as expected.
-
-### Added
-
+- **The panel is restored after a Home Assistant restart.** Once Home Assistant
+  has started, the saved settings are sent to the panel, so it no longer keeps
+  showing old stored content. Only when Auto Update is on and the panel is not
+  switched off. Anything sent in the meantime wins over the restore.
+- **The power switch starts on and remembers the last state commanded through
+  Home Assistant.** The panel cannot report power, so the switch used to show
+  off for a lit panel after every restart.
+- **Slots:** `send_text` takes `save_slot`, `delete_all_slots` erases the panel's
+  stored content, and the device page has a Slot number with Save Slot, Show
+  Slot and Clear Slot buttons.
+- **Text Size select** for `text` mode (16/32/48/64px, only sizes that fit the
+  panel), migrated from the old Font Size on first start.
+- **Scroll up and Scroll down** text effects on 32x32 panels, or on others when
+  turned on in the options.
+- **User fonts in `<config>/fonts`**, which survive HACS updates, and the
+  fonts' sidecar metrics are applied in `text` mode again (pypixelcolor 0.5
+  stopped reading them).
+- **The setup picker lists only panels**, with *Show all Bluetooth devices* and
+  manual entry as fallbacks. Panels already set up are left out.
+- Unbranded 64x20 panels (product 000105) are listed as Generic.
+- Unit tests and CI: HACS and hassfest validation, byte-compilation and pytest.
 - Bundled a new font, `Lepidos` (3x7 pixel font, CC0/public domain, by SurrealEmber -
   https://surrealember.itch.io/lepidos), designed to be rendered at multiples of 16px for
   crisp, correctly-proportioned glyphs.
@@ -749,6 +692,42 @@ out is easy and undoing it needs physical access to the power supply.
   `SendPlan` object so callers can use the new chunked+ACK transport correctly for
   multi-byte image payloads.
 
+### Fixed
+
+- **Show Slot did nothing after unsaved content.** The panel ignores the select
+  frame until DIY mode is turned off; the integration now does that first.
+- **Writes to the panel are serialised.** Two sends at once could interleave
+  chunks or take each other's ACKs.
+- **An older text or image that finished rendering late no longer replaces
+  newer content.**
+- The chosen font is used in `text` mode instead of falling back to
+  `VCR_OSD_MONO`.
+- The Text Speed refresh finds its Mode and Auto Update entities by unique id
+  instead of building ids from the panel name.
+- `pillow` is no longer a requirement (Home Assistant ships it, and hassfest
+  refuses it).
+- All `ble_led_pixel.*` actions (`send_mdi_icon`, `send_text`, `send_layout`, `send_test_pattern`,
+  `send_image_file`) are now registered once at integration setup (`async_setup` in
+  `__init__.py`, via the new `services.py`) instead of per-config-entry inside `text.py`'s
+  `async_setup_entry`, per Home Assistant's own guidance
+  (https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/).
+  Previously, an action only existed in Home Assistant's service registry once a specific
+  device's config entry had finished loading - automations validated before that (typically
+  during Home Assistant startup) could be briefly flagged with "unknown action", even though
+  the action worked correctly moments later once setup completed. The entity methods
+  themselves (`async_send_mdi_icon`, etc.) are unchanged; only where and how they're
+  registered changed, using `homeassistant.helpers.service.async_register_platform_entity_service`.
+- `send_layout`'s word-wrap now falls back to splitting character-by-character when a single
+  space-free "word" (e.g. a long digit string or ID with no natural spaces) is wider than the
+  available width on its own. Previously such text was kept whole and allowed to overflow
+  past the panel edge instead of wrapping to a new line.
+- `send_layout`'s text `align` ('right'/'center') now actually anchors the corresponding edge
+  or center of the text block at `x` (e.g. `align: right` makes the text's right edge land at
+  `x`, extending leftward). Previously `align` only affected how multiple `\n`-separated lines
+  aligned relative to each other within the block, leaving single-line text always anchored by
+  its left edge regardless of `align` - so e.g. a right-aligned single line at `x=32` could run
+  off the panel's edge instead of ending at `x=32` as expected.
+
 ### Dependencies
 
 - Added `resvg_py` for SVG-to-PNG rasterization of MDI icons (self-contained wheel, no
@@ -761,6 +740,11 @@ out is easy and undoing it needs physical access to the power supply.
   `send_test_pattern` all confirmed working, including automatic text wrapping and forced
   line breaks. Large/complex GIFs may need a longer device-side processing time; see the
   README's troubleshooting section for `cur12k_no_answer` errors.
+
+Based on the work of scyto in
+[scyto/ha-ble-led-pixel-display](https://github.com/scyto/ha-ble-led-pixel-display),
+taken over selectively; the mode-dependent greying out and renaming of entities
+and the `send_raw_command` debug action were left out.
 
 ## [0.1.0] - 2024-11-19
 
