@@ -28,7 +28,7 @@ def test_pypixelcolor_unifont_file_uses_builtin_tuning():
 
 
 def test_sidecar_json_metrics_are_applied():
-    cfg = resolve_text_font(str(FONTS / "7x5.ttf"), 32)
+    cfg = resolve_text_font(str(FONTS / "3x5-de.ttf"), 32)
     assert isinstance(cfg, FontConfig)
     assert cfg.font_size == 25
     assert cfg.offset == (0, 2)
@@ -37,13 +37,13 @@ def test_sidecar_json_metrics_are_applied():
 
 
 def test_closest_height_metrics_are_used():
-    cfg = resolve_text_font(str(FONTS / "7x5.ttf"), 20)
-    assert cfg.font_size == 16  # 16 is closer to 20 than 24
+    cfg = resolve_text_font(str(FONTS / "3x5-de.ttf"), 20)
+    assert cfg.font_size == 12  # the 16 entry is closer to 20 than 24
 
 
 def test_font_without_json_gets_defaults(tmp_path):
     font = tmp_path / "Plain.ttf"
-    font.write_bytes((FONTS / "5x5.ttf").read_bytes())
+    font.write_bytes((FONTS / "3x5-de.ttf").read_bytes())
     cfg = resolve_text_font(str(font), 16)
     assert cfg.font_size == 16
     assert cfg.offset == (0, 0)
@@ -70,7 +70,7 @@ def test_font_without_json_gets_defaults(tmp_path):
 )
 def test_bad_json_falls_back_to_defaults(tmp_path, metrics):
     font = tmp_path / "Odd.ttf"
-    font.write_bytes((FONTS / "5x5.ttf").read_bytes())
+    font.write_bytes((FONTS / "3x5-de.ttf").read_bytes())
     (tmp_path / "Odd.json").write_text(json.dumps({"metrics": metrics}))
     cfg = resolve_text_font(str(font), 16)
     assert isinstance(cfg, FontConfig)  # the user's font, not the fallback
@@ -80,7 +80,7 @@ def test_bad_json_falls_back_to_defaults(tmp_path, metrics):
 
 
 @pytest.mark.parametrize(
-    "font", [None, str(FONTS / "7x5.ttf"), str(FONTS / "OpenSans-Light.ttf")]
+    "font", [None, str(FONTS / "3x5-de.ttf"), str(FONTS / "OpenSans-Light.ttf")]
 )
 def test_text_command_builds(font):
     plan = make_text_command(

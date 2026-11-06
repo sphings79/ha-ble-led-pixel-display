@@ -208,8 +208,6 @@ send_text:
           custom_value: true
           options:
             - "3x5-de"
-            - "5x5"
-            - "7x5"
             - "Lepidos"
             - "OpenSans-Light"
             - "VCR_OSD_MONO"
@@ -507,8 +505,6 @@ send_layout:
         select:
           options:
             - "3x5-de"
-            - "5x5"
-            - "7x5"
             - "Lepidos"
             - "OpenSans-Light"
             - "WP7xn"

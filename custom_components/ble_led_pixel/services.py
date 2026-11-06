@@ -51,7 +51,7 @@ TEXT_ITEM_SCHEMA = vol.Schema({
     vol.Optional("y", default=0): vol.Coerce(int),
     vol.Optional("size", default=6): vol.Coerce(float),
     vol.Optional("font"): vol.In(
-        ["3x5-de", "5x5", "7x5", "Lepidos", "OpenSans-Light", "WP7xn"]
+        ["3x5-de", "Lepidos", "OpenSans-Light", "WP7xn"]
     ),
     vol.Optional("color_hex", default="ffffff"): cv.string,
     vol.Optional("wrap", default=True): cv.boolean,
@@ -289,7 +289,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             vol.Optional("text_y", default=0): vol.Coerce(int),
             vol.Optional("text_size", default=6): vol.Coerce(float),
             vol.Optional("text_font"): vol.In(
-                ["3x5-de", "5x5", "7x5", "Lepidos", "OpenSans-Light", "WP7xn"]
+                ["3x5-de", "Lepidos", "OpenSans-Light", "WP7xn"]
             ),
             vol.Optional("text_color", default=[255, 255, 255]): vol.All(
                 vol.ExactSequence([cv.byte, cv.byte, cv.byte]), vol.Coerce(tuple)

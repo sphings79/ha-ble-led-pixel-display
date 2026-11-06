@@ -30,13 +30,13 @@ def test_missing_config_dir_is_skipped(tmp_path):
 
 
 def test_user_font_is_offered_and_overrides_bundled(tmp_path):
-    (tmp_path / "Mine.ttf").write_bytes((BUNDLED / "5x5.ttf").read_bytes())
-    (tmp_path / "7x5.ttf").write_bytes((BUNDLED / "5x5.ttf").read_bytes())
+    (tmp_path / "Mine.ttf").write_bytes((BUNDLED / "3x5-de.ttf").read_bytes())
+    (tmp_path / "3x5-de.ttf").write_bytes((BUNDLED / "3x5-de.ttf").read_bytes())
     fonts.set_config_fonts_dir(tmp_path)
     fonts.build_font_index()
     assert "Mine.ttf" in fonts.get_available_fonts()
     assert fonts.get_font_path("Mine") == tmp_path / "Mine.ttf"
-    assert fonts.get_font_path("7x5.ttf") == tmp_path / "7x5.ttf"
+    assert fonts.get_font_path("3x5-de.ttf") == tmp_path / "3x5-de.ttf"
 
 
 def test_an_already_resolved_path_resolves_to_itself():

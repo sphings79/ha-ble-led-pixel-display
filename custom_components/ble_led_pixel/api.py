@@ -1164,7 +1164,7 @@ class BleLedPixelAPI:
             text_y: Text top-left Y position in pixels.
             text_size: Font size in pixels (can be fractional) - scales the
                 text dynamically.
-            text_font: Bundled font name ('3x5-de', '5x5', '7x5',
+            text_font: Bundled font name ('3x5-de', 'Lepidos',
                 'OpenSans-Light', 'WP7xn'), or None for the smallest bundled font.
             text_color: Text color in hex (with or without '#').
             text_wrap: If True (default), automatically word-wrap text that

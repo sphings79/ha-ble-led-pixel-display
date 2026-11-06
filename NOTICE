@@ -33,9 +33,27 @@ Third-party components
   https://github.com/lucagoc/pypixelcolor
   Licensed under the MIT License
 
-Bundled fonts retain the licences of their respective authors. UNIFONT_LICENSE
-and other licence files, where present, ship alongside the font files in
-custom_components/ble_led_pixel/fonts/.
+Bundled fonts (custom_components/ble_led_pixel/fonts/) and where they come from.
+The font files carry no licence of their own except where noted, so the terms
+below are those stated by the author's page or by the font's embedded metadata.
+
+  3x5-de          Based on "Another tiny pixel font mono 3x5" by Alass Erfalas
+                  (CC0 1.0). https://alasseearfalas.itch.io/another-tiny-pixel-font-mono-3x5
+  Lepidos         By SurrealEmber (CC0 1.0), as stated upstream.
+                  https://surrealember.itch.io/lepidos
+  OpenSans-Light  Copyright 2020 The Open Sans Project Authors. SIL Open Font
+                  License 1.1, see OpenSans-OFL.txt next to the font.
+                  https://github.com/googlefonts/opensans
+  VCR_OSD_MONO    By Riciery Leal (MrManet). Widely distributed as freeware,
+                  but no licence text was found. Kept as the fallback font;
+                  the licence is NOT confirmed.
+  WP7xn           Derived by cagcoach (2025) from a pixel font of unknown
+                  origin. The licence is NOT confirmed.
+
+The fonts 5x5 (unknown origin and licence) and 7x5 (FontStruct Non-Commercial
+Licence, incompatible with redistribution here) were removed in 2.4.0-beta.9.
+If you are the author of a bundled font and object to its inclusion, please open
+an issue and it will be removed. Own fonts can be placed in <config>/fonts/.
 
 --------------------------------------------------------------------------------
 Trademarks

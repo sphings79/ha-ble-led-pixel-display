@@ -600,6 +600,22 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.4.0-beta.9] - 2026-11-06
+
+### Removed
+
+- **The fonts `5x5` and `7x5` are no longer bundled.** `7x5` was published under
+  the FontStruct Non-Commercial Licence, which does not allow redistribution in
+  a GPL project; for `5x5` neither the author nor a licence could be found. A
+  saved selection of either font falls back to `VCR_OSD_MONO`. They still work
+  from `<config>/fonts/` if you add the files yourself.
+
+### Added
+
+- **Font sources and licences are listed in `NOTICE`**, and the Open Sans licence
+  text ships next to the font. `VCR_OSD_MONO` and `WP7xn` are marked as not
+  confirmed; they stay until a licence question is settled.
+
 ## [2.4.0-beta.8] - 2026-11-05
 
 ### Fixed

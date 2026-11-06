@@ -541,7 +541,7 @@ Fonts are picked in the **Font** select entity and looked up in this order:
 
 Whatever you pick is resolved to an absolute path and handed to the renderer that way, so the same font works in every mode and in the `send_text` action. To add your own, drop a `.ttf` or `.otf` into `<config>/fonts/` and reload the integration. A `<font>.json` next to it with per-height metrics is honoured in `text` mode. If a font cannot be found anywhere, `VCR_OSD_MONO` is used and a warning is logged.
 
-Bundled: `3x5-de`, `5x5`, `7x5`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`.
+Bundled: `3x5-de`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`.
 
 > **Why the paths matter:** pypixelcolor also has built-in font names, but they are not stable — 0.4 shipped `CUSONG`, `SIMSUN` and `VCR_OSD_MONO`, later versions replaced all three with a single `UNIFONT`. Upstream passed those names straight through, so a library update would have changed or broken the font. This fork resolves everything to a file path instead, and ships `VCR_OSD_MONO` so it is always available.
 

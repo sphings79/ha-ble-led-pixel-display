@@ -142,7 +142,7 @@ def render_text_element(
     Args:
         text: Text to render. '\\n' forces a line break.
         font_size: Font size in pixels (can be fractional).
-        font_name: Bundled font name (e.g. '3x5-de', '5x5', '7x5',
+        font_name: Bundled font name (e.g. '3x5-de',
             'Lepidos', 'OpenSans-Light', 'WP7xn'), or None for the
             smallest bundled font.
         color_hex: Text color in hex, with or without '#'.
