@@ -208,9 +208,16 @@ send_text:
           custom_value: true
           options:
             - "3x5-de"
+            - "Jersey10"
             - "Lepidos"
+            - "Micro5"
             - "OpenSans-Light"
+            - "PixelifySans"
+            - "PressStart2P"
+            - "Silkscreen"
+            - "Tiny5"
             - "VCR_OSD_MONO"
+            - "VT323"
             - "WP7xn"
     animation:
       name: Animation
@@ -505,8 +512,15 @@ send_layout:
         select:
           options:
             - "3x5-de"
+            - "Jersey10"
             - "Lepidos"
+            - "Micro5"
             - "OpenSans-Light"
+            - "PixelifySans"
+            - "PressStart2P"
+            - "Silkscreen"
+            - "Tiny5"
+            - "VT323"
             - "WP7xn"
     text_color:
       name: Text Color

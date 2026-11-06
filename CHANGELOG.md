@@ -600,6 +600,18 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.4.0-beta.10] - 2026-11-06
+
+### Added
+
+- **Seven pixel fonts under the SIL Open Font License:** `Silkscreen` (capitals
+  only), `Tiny5`, `Micro5`, `Jersey10`, `PixelifySans`, `VT323` and
+  `PressStart2P`, with their licence texts and size settings for 16, 24 and 32
+  pixel panels. They are offered in the `send_text` and layout actions. The
+  settings were derived from a rendering check, not tuned on a panel, so a font
+  may need a nudge on your panel size; put an adjusted `<font>.json` into
+  `<config>/fonts/`.
+
 ## [2.4.0-beta.9] - 2026-11-06
 
 ### Removed

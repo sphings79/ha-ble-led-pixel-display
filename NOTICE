@@ -50,6 +50,16 @@ below are those stated by the author's page or by the font's embedded metadata.
   WP7xn           Derived by cagcoach (2025) from a pixel font of unknown
                   origin. The licence is NOT confirmed.
 
+  Silkscreen      Copyright 2001 The Silkscreen Project Authors. SIL OFL 1.1.
+  Tiny5           Copyright 2022-2024 The Tiny5 Project Authors. SIL OFL 1.1.
+  Micro5          Copyright 2023 The Soft Type Project Authors. SIL OFL 1.1.
+  Jersey10        Copyright 2023 The Soft Type Project Authors. SIL OFL 1.1.
+  PixelifySans    Copyright 2021 The Pixelify Sans Project Authors. SIL OFL 1.1.
+  VT323           Copyright 2011 The VT323 Project Authors. SIL OFL 1.1.
+  PressStart2P    Copyright 2012 The Press Start 2P Project Authors. SIL OFL 1.1.
+                  All seven come from https://github.com/google/fonts (ofl/);
+                  each licence text is OFL-<name>.txt next to the font.
+
 The fonts 5x5 (unknown origin and licence) and 7x5 (FontStruct Non-Commercial
 Licence, incompatible with redistribution here) were removed in 2.4.0-beta.9.
 If you are the author of a bundled font and object to its inclusion, please open

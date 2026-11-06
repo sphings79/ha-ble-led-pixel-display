@@ -1,0 +1,32 @@
+{
+  "name": "Micro5",
+  "metrics": {
+    "16": {
+      "font_size": 23,
+      "offset": [
+        0,
+        -3
+      ],
+      "pixel_threshold": 128,
+      "var_width": true
+    },
+    "24": {
+      "font_size": 34,
+      "offset": [
+        0,
+        -4
+      ],
+      "pixel_threshold": 128,
+      "var_width": true
+    },
+    "32": {
+      "font_size": 45,
+      "offset": [
+        0,
+        -5
+      ],
+      "pixel_threshold": 128,
+      "var_width": true
+    }
+  }
+}

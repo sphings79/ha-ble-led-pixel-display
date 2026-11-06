@@ -1,0 +1,32 @@
+{
+  "name": "VT323",
+  "metrics": {
+    "16": {
+      "font_size": 18,
+      "offset": [
+        0,
+        -3
+      ],
+      "pixel_threshold": 128,
+      "var_width": false
+    },
+    "24": {
+      "font_size": 28,
+      "offset": [
+        0,
+        -3
+      ],
+      "pixel_threshold": 128,
+      "var_width": false
+    },
+    "32": {
+      "font_size": 35,
+      "offset": [
+        0,
+        -3
+      ],
+      "pixel_threshold": 128,
+      "var_width": false
+    }
+  }
+}

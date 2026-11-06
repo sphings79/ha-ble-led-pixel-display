@@ -87,3 +87,12 @@ def test_text_command_builds(font):
         "HomeAssistant!", font=font, animation=1, rainbow_mode=1, char_height=16
     )
     assert plan.windows
+
+
+@pytest.mark.parametrize("font", sorted(FONTS.glob("*.ttf")), ids=lambda p: p.stem)
+@pytest.mark.parametrize("height", [16, 24, 32])
+def test_every_bundled_font_builds_and_has_a_licence(font, height):
+    plan = make_text_command("Hello 12:34", font=str(font), char_height=height)
+    assert plan.windows
+    if font.stem not in {"3x5-de", "Lepidos", "VCR_OSD_MONO", "WP7xn", "OpenSans-Light"}:
+        assert (FONTS / f"OFL-{font.stem}.txt").is_file()

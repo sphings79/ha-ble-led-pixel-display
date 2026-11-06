@@ -545,7 +545,7 @@ Die Schrift wird in der Select-Entität **Font** gewählt und in dieser Reihenfo
 
 Die gewählte Schrift wird zu einem absoluten Pfad aufgelöst und so an den Renderer übergeben — dieselbe Schrift funktioniert also in jedem Modus und in der Aktion `send_text`. Für eigene Schriften eine `.ttf` oder `.otf` nach `<config>/fonts/` legen und die Integration neu laden. Eine `<Schrift>.json` daneben mit Maßen je Höhe wird im Modus `text` berücksichtigt. Lässt sich eine Schrift nirgends finden, wird `VCR_OSD_MONO` verwendet und eine Warnung protokolliert.
 
-Mitgeliefert: `3x5-de`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`.
+Mitgeliefert: `3x5-de`, `WP7xn`, `OpenSans-Light`, `Lepidos`, `VCR_OSD_MONO`, `Silkscreen`, `Tiny5`, `Micro5`, `Jersey10`, `PixelifySans`, `VT323` und `PressStart2P`. `Silkscreen` kennt nur Großbuchstaben. Die letzten sieben sind für Panels mit 16, 24 und 32 Pixel Höhe eingerichtet, aber nicht auf jeder Panelgröße abgestimmt.
 
 > **Warum über Pfade:** pypixelcolor kennt auch eigene Schriftnamen, die sind aber nicht stabil — 0.4 lieferte `CUSONG`, `SIMSUN` und `VCR_OSD_MONO` mit, spätere Versionen ersetzten alle drei durch ein einzelnes `UNIFONT`. Upstream reichte diese Namen unverändert weiter, ein Bibliotheks-Update hätte die Schrift also verändert oder unbrauchbar gemacht. Dieser Fork löst stattdessen alles zu einem Dateipfad auf und liefert `VCR_OSD_MONO` mit, damit sie immer vorhanden ist.
 

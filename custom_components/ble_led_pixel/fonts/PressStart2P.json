@@ -1,0 +1,32 @@
+{
+  "name": "PressStart2P",
+  "metrics": {
+    "16": {
+      "font_size": 16,
+      "offset": [
+        0,
+        0
+      ],
+      "pixel_threshold": 128,
+      "var_width": false
+    },
+    "24": {
+      "font_size": 24,
+      "offset": [
+        0,
+        0
+      ],
+      "pixel_threshold": 128,
+      "var_width": false
+    },
+    "32": {
+      "font_size": 32,
+      "offset": [
+        0,
+        0
+      ],
+      "pixel_threshold": 128,
+      "var_width": false
+    }
+  }
+}
