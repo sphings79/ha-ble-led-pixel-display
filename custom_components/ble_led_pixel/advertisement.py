@@ -48,6 +48,9 @@ BRANDS: dict[str, str] = {
     "000702": "B.K. Light",
     # Reported in issue #2: B.K. Light B.V. 3226274, sold by Action (Italy), 64x16
     "000704": "B.K. Light",
+    # Reported in issue #4: B.K. Light B.V. "Led Fun Screen", sold by Action
+    # (Germany), 64x16, device type 131
+    "000701": "B.K. Light",
 
     # Confirmed: 64x20, device type 133, sold unbranded on eBay
     "000105": "Generic",

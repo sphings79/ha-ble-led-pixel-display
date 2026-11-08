@@ -600,6 +600,18 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.4.0] - 2026-11-08
+
+First stable release of the 2.4 line. It contains everything from the
+2.4.0 betas below (restore after a restart, slots, text size, user fonts,
+pixel fonts, the new setup picker and more).
+
+### Added
+
+- **B.K. Light panels `000701` ("Led Fun Screen") and `000704` are recognised
+  as B.K. Light**, so they no longer raise an "Unknown panel" notice. Both are
+  64x16 panels sold by Action.
+
 ## [2.4.0-beta.10] - 2026-11-06
 
 ### Added
