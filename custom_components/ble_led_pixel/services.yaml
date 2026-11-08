@@ -246,8 +246,6 @@ send_text:
               value: "6"
             - label: "Snowflake"
               value: "7"
-            - label: "Laser"
-              value: "8"
     speed:
       name: Speed
       description: Animation speed (0-100)

@@ -602,6 +602,13 @@ out is easy and undoing it needs physical access to the power supply.
 
 ## [2.4.1] - 2026-11-08
 
+### Fixed
+
+- **The Laser text effect is no longer offered.** pypixelcolor 0.5 rejects
+  effect code 8, so choosing Laser failed instead of showing the effect. It
+  returns once the library accepts it (lucagoc/pypixelcolor#81). A saved
+  selection of Laser falls back to Fixed.
+
 ### Added
 
 - **New panel models are recognised without waiting for a release.** The

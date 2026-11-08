@@ -234,9 +234,9 @@ und vergibt keine Namen, deshalb bleiben sie hier nummeriert.
 
 ### Texteffekt auswählen
 
-Das Panel animiert Text auf sieben Arten. Ausgewählt wird der Effekt über die
+Das Panel animiert Text auf sechs Arten. Ausgewählt wird der Effekt über die
 Entität **Text Effect** — Fixed, Scroll left, Scroll right, Blinking, Breathing,
-Snowflake oder Laser — und er greift bei der nächsten Aktualisierung.
+Snowflake — und er greift bei der nächsten Aktualisierung.
 
 **Scroll up** und **Scroll down** (Codes 3 und 4) werden auf 32×32-Panels
 angeboten. Auf anderen Panels sind sie aus, bis in den Optionen der Integration

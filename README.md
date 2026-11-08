@@ -231,8 +231,8 @@ names, so they stay numbered here.
 
 ### Choosing the text effect
 
-The panel animates text seven ways. Pick one with the **Text Effect** entity —
-Fixed, Scroll left, Scroll right, Blinking, Breathing, Snowflake or Laser — and
+The panel animates text six ways. Pick one with the **Text Effect** entity —
+Fixed, Scroll left, Scroll right, Blinking, Breathing or Snowflake — and
 it applies the next time the display refreshes.
 
 **Scroll up** and **Scroll down** (codes 3 and 4) are offered on 32×32 panels.

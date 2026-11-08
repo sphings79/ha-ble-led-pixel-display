@@ -73,9 +73,11 @@ RECONNECT_BACKOFF_MAX = 30    # seconds; the backoff doubles up to this cap
 # Codes 3 and 4 (scroll up/down) are kept apart in VERTICAL_TEXT_EFFECTS below
 # and only offered where they are known or chosen to be safe.
 #
-# The range runs to 8, not 7: every table reconstructed from captured traffic
-# stopped one short, so the Laser effect was unreachable until it turned up in
-# Bk-Light-AppBypass and was confirmed against the vendor app.
+# The panel itself knows an eighth effect, Laser (code 8), confirmed against
+# the vendor app. It is not offered because pypixelcolor 0.5 rejects any code
+# above 7 before anything is sent. Add "Laser": 8 below, and raise the limit in
+# services.py and the choices in services.yaml, once the library accepts it
+# (lucagoc/pypixelcolor#81).
 TEXT_EFFECTS: dict[str, int] = {
     "Fixed": 0,
     "Scroll left": 1,
@@ -83,7 +85,6 @@ TEXT_EFFECTS: dict[str, int] = {
     "Blinking": 5,
     "Breathing": 6,
     "Snowflake": 7,
-    "Laser": 8,
 }
 
 # Codes 3 and 4 scroll the text up and down. pypixelcolor refuses them on
