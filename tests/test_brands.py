@@ -130,5 +130,5 @@ def test_published_file_agrees_with_the_built_in_table():
 
 def test_published_file_passes_its_own_validation():
     published = sync_brands.load_published()
-    data = json.loads((ROOT / "brands.json").read_text(encoding="utf-8"))
+    data = json.loads((ROOT / "data" / "brands.json").read_text(encoding="utf-8"))
     assert brands.parse_brands(data) == published

@@ -2,7 +2,7 @@
 
 The table in advertisement.py ships with each release. A panel that is newer
 than the installed release would stay "unknown" until the next one, so a small
-JSON file in the repository (brands.json) is fetched as well and fills the
+JSON file in the repository (data/brands.json) is fetched as well and fills the
 gaps. The built-in table always wins; this only adds to it.
 
 The brand is cosmetic -- geometry comes from the device type -- so every
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 BRANDS_URL = (
-    "https://raw.githubusercontent.com/sphings79/ha-ble-led-pixel-display/main/brands.json"
+    "https://raw.githubusercontent.com/sphings79/ha-ble-led-pixel-display/main/data/brands.json"
 )
 SCHEMA_VERSION = 1
 

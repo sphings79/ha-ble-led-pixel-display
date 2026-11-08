@@ -105,7 +105,7 @@ You do not have to look them up, though. An unrecognised panel raises a notice u
 
 Once the id is added to the table, the notice disappears by itself.
 
-**New models do not have to wait for a release.** Besides the table built into each release, the integration fetches [`brands.json`](brands.json) from this repository once a day and uses it for panels the built-in table does not know. The built-in table always wins; the file only adds to it. The last good copy is kept in `.storage`, so a missing connection or a broken file changes nothing. This is the only request the integration makes on its own, to `raw.githubusercontent.com`, and it carries no data about your panel or your setup. To turn it off, untick **Look up brand names for new panels online** in the panel's options.
+**New models do not have to wait for a release.** Besides the table built into each release, the integration fetches [`brands.json`](data/brands.json) from this repository once a day and uses it for panels the built-in table does not know. The built-in table always wins; the file only adds to it. The last good copy is kept in `.storage`, so a missing connection or a broken file changes nothing. This is the only request the integration makes on its own, to `raw.githubusercontent.com`, and it carries no data about your panel or your setup. To turn it off, untick **Look up brand names for new panels online** in the panel's options.
 
 The brand table has two sources of differing quality: the `0025` range comes from the vendor's own configuration, while `000702` was identified from actual hardware. Everything else is genuinely unknown rather than deliberately omitted.
 

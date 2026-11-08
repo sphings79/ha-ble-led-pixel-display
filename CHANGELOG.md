@@ -605,7 +605,7 @@ out is easy and undoing it needs physical access to the power supply.
 ### Added
 
 - **New panel models are recognised without waiting for a release.** The
-  integration fetches `brands.json` from the project repository once a day and
+  integration fetches `data/brands.json` from the project repository once a day and
   uses it for product ids the built-in table does not know. The built-in table
   always wins, the last good copy is cached in `.storage`, and every failure
   (no connection, a broken or oversized file) is silent. Entries are validated

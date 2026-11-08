@@ -38,7 +38,7 @@ def load_builtin() -> dict[str, str]:
 
 
 def load_published() -> dict[str, str]:
-    data = json.loads((ROOT / "brands.json").read_text(encoding="utf-8"))
+    data = json.loads((ROOT / "data" / "brands.json").read_text(encoding="utf-8"))
     return data["brands"]
 
 
