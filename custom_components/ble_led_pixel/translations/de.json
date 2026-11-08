@@ -56,6 +56,7 @@
           "panel_height": "Höhe in Pixeln (0 = Angabe der Firmware verwenden)",
           "force_features": "Presets, Anzeigetafel, Countdown und Stoppuhr trotzdem anbieten",
           "vertical_scroll": "Texteffekte „Nach oben scrollen“ und „Nach unten scrollen“ anbieten (bei 32x32-Panels immer an)",
+          "remote_brands": "Markennamen für neue Panels online nachschlagen (einmal täglich, aus dem Projekt-Repository)",
           "password": "Passwort (nur für ein in der Hersteller-App gesperrtes Panel)"
         }
       }

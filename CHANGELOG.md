@@ -600,6 +600,23 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.4.1] - 2026-11-08
+
+### Added
+
+- **New panel models are recognised without waiting for a release.** The
+  integration fetches `brands.json` from the project repository once a day and
+  uses it for product ids the built-in table does not know. The built-in table
+  always wins, the last good copy is cached in `.storage`, and every failure
+  (no connection, a broken or oversized file) is silent. Entries are validated
+  before use, because the brand ends up in the device registry. When a brand
+  becomes known this way, the manufacturer of the device is updated and the
+  "Unknown panel" notice goes away without a restart. Can be turned off with
+  *Look up brand names for new panels online* in the panel's options.
+- `tools/sync_brands.py` lists models that are only in `brands.json`, to be
+  added to the built-in table at the next release; a test fails when the two
+  disagree about an entry.
+
 ## [2.4.0] - 2026-11-08
 
 First stable release of the 2.4 line. It contains everything from the

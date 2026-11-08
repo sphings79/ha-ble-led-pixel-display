@@ -56,6 +56,7 @@
           "panel_height": "Panel height (pixels, 0 = use firmware-reported)",
           "force_features": "Offer presets, scoreboard, countdown and stopwatch anyway",
           "vertical_scroll": "Offer scroll up and scroll down text effects (always on for 32x32 panels)",
+          "remote_brands": "Look up brand names for new panels online (once a day, from the project repository)",
           "password": "Password (only for a panel locked from the vendor app)"
         }
       }

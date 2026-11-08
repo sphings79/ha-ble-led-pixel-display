@@ -106,6 +106,8 @@ Nachschlagen musst du sie aber nicht. Ein unbekanntes Panel erzeugt einen Hinwei
 
 Sobald die Kennung in der Tabelle steht, verschwindet der Hinweis von selbst.
 
+**Neue Modelle müssen nicht auf ein Release warten.** Neben der Tabelle, die in jedem Release steckt, holt die Integration einmal täglich die Datei [`brands.json`](brands.json) aus diesem Repository und nutzt sie für Panels, die die eingebaute Tabelle nicht kennt. Die eingebaute Tabelle gewinnt immer, die Datei ergänzt nur. Die letzte gültige Kopie liegt in `.storage`; fehlt die Verbindung oder ist die Datei defekt, ändert sich nichts. Das ist die einzige Anfrage, die die Integration von sich aus stellt (an `raw.githubusercontent.com`), und sie enthält keine Daten über dein Panel oder dein System. Abschalten: in den Optionen des Panels **Markennamen für neue Panels online nachschlagen** abwählen.
+
 Die Markentabelle hat zwei unterschiedlich belastbare Quellen: Der Bereich `0025` stammt aus der Konfiguration des Herstellers, `000702` wurde dagegen an echter Hardware ermittelt. Alles andere ist wirklich unbekannt und nicht etwa bewusst weggelassen.
 
 ## Die mitgelieferte Bildergalerie

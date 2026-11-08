@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import timedelta
 
 # Aliased on purpose: this package has its own ``bluetooth`` subpackage, and
 # importing that sets the name ``bluetooth`` on this module, which would
@@ -11,12 +12,18 @@ from homeassistant.components import bluetooth as ha_bluetooth
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
-from .const import DOMAIN, CONF_ADDRESS, CONF_NAME
+from . import brands
+from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, OPT_REMOTE_BRANDS
 from .fonts import build_font_index, set_config_fonts_dir
 from .services import async_setup_services
 from .unknown_panel import async_report_unknown_panel, report_info_for
@@ -80,6 +87,49 @@ def _remove_retired_entities(hass: HomeAssistant, address: str) -> None:
             continue
         registry.async_remove(entity_id)
         _LOGGER.info("Removed %s, which this version no longer provides", entity_id)
+
+
+def _start_brand_updates(
+    hass: HomeAssistant, entry: ConfigEntry, api: BleLedPixelAPI, name: str
+) -> None:
+    """Fetch the brand table now and then daily, for as long as the entry lives."""
+    address = entry.data[CONF_ADDRESS]
+
+    async def _apply() -> None:
+        # The brand may be known now where it was not before: patch it into
+        # the cached device info and the device registry, and let the repair
+        # notice go away without a restart.
+        brand = api.refresh_brand()
+        if brand:
+            registry = dr.async_get(hass)
+            device = registry.async_get_device(identifiers={(DOMAIN, address)})
+            if device is not None and device.manufacturer != brand:
+                registry.async_update_device(device.id, manufacturer=brand)
+        await async_report_unknown_panel(hass, address, report_info_for(api))
+
+    async def _refresh(_now=None) -> None:
+        try:
+            if await brands.async_refresh(hass):
+                await _apply()
+        except Exception as err:  # noqa: BLE001 - cosmetic, never a failure
+            _LOGGER.debug("Brand table refresh failed: %s", err)
+
+    async def _first() -> None:
+        try:
+            if await brands.async_load_cache(hass):
+                await _apply()
+        except Exception as err:  # noqa: BLE001 - cosmetic, never a failure
+            _LOGGER.debug("Brand table cache failed: %s", err)
+        await _refresh()
+
+    entry.async_create_background_task(
+        hass, _first(), name=f"ble_led_pixel brands {address}"
+    )
+    entry.async_on_unload(
+        async_track_time_interval(
+            hass, _refresh, timedelta(hours=brands.REFRESH_INTERVAL_HOURS)
+        )
+    )
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -150,6 +200,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Everything technical is already known at this point; only the name on the
     # box is not, and that is what the notice asks for.
     await async_report_unknown_panel(hass, address, report_info_for(api))
+
+    # Pick up brand names for models newer than this release. Not awaited:
+    # the brand is cosmetic and must never hold up the setup.
+    if entry.options.get(OPT_REMOTE_BRANDS, True):
+        _start_brand_updates(hass, entry, api, name)
 
     # Watch for the panel dropping its link and bring it back automatically.
     # Without this a lost connection stays lost until someone reloads the

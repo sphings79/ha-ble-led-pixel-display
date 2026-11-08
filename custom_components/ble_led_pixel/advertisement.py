@@ -27,6 +27,8 @@ from __future__ import annotations
 import logging
 from typing import NamedTuple
 
+from .brands import remote_brand
+
 _LOGGER = logging.getLogger(__name__)
 
 # "TR\0r" -- marks the vendor's payload inside the advertisement.
@@ -74,8 +76,14 @@ class PanelIdentity(NamedTuple):
 
     @property
     def brand(self) -> str | None:
-        """Brand name, where the model is known to belong to one."""
-        return BRANDS.get(self.cidpid) if self.cidpid else None
+        """Brand name, where the model is known to belong to one.
+
+        The table shipped with the release wins; the fetched one (brands.py)
+        only fills in models newer than this release.
+        """
+        if not self.cidpid:
+            return None
+        return BRANDS.get(self.cidpid) or remote_brand(self.cidpid)
 
 
 def _decode(payload: bytes, offset: int) -> PanelIdentity | None:

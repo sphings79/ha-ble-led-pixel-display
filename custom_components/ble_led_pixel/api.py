@@ -776,6 +776,17 @@ class BleLedPixelAPI:
         live = self._read_identity()
         return live if live.cid is not None else self._cached_identity()
 
+    def refresh_brand(self) -> str | None:
+        """Re-read the brand after the brand table changed.
+
+        Device info is cached when it is queried, so a brand that becomes
+        known later has to be patched in. Returns the current brand.
+        """
+        brand = self.identity.brand
+        if self._device_info is not None:
+            self._device_info["brand"] = brand
+        return brand
+
     def start_identity_watch(self) -> None:
         """Cache the product identity whenever the panel advertises.
 

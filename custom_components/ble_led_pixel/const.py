@@ -33,6 +33,9 @@ OPT_FORCE_FEATURES = "force_features"
 # Offer the vertical scroll effects (codes 3 and 4) on panels that are not
 # 32x32. Off by default -- see VERTICAL_TEXT_EFFECTS.
 OPT_VERTICAL_SCROLL = "vertical_scroll"
+# Fetch brand names for newly seen panels from the project repository, so a
+# new model is recognised before the next release. See brands.py.
+OPT_REMOTE_BRANDS = "remote_brands"
 # Password for a panel that was locked from the vendor app. Sent after
 # every connect, because the panel forgets it when the link drops.
 OPT_PASSWORD = "password"

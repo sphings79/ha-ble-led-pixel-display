@@ -55,6 +55,7 @@
           "panel_width": "Largeur du panneau (pixels, 0 = valeur du firmware)",
           "panel_height": "Hauteur du panneau (pixels, 0 = valeur du firmware)",
           "vertical_scroll": "Proposer les effets de texte défilement vers le haut et vers le bas (toujours actifs sur les panneaux 32x32)",
+          "remote_brands": "Rechercher en ligne les marques des nouveaux panneaux (une fois par jour, depuis le dépôt du projet)",
           "force_features": "Proposer quand même les préréglages, le tableau de score, le compte à rebours et le chronomètre",
           "password": "Mot de passe (uniquement pour un panneau verrouillé depuis l'application du fabricant)"
         }
