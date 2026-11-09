@@ -604,6 +604,21 @@ out is easy and undoing it needs physical access to the power supply.
 
 ### Fixed
 
+- **Rendering no longer blocks Home Assistant.** Rendering text, composing
+  layouts, rasterizing icons, building image commands and the emoji cache
+  check ran on the event loop, so every display update stalled Home Assistant
+  for as long as the rendering took. They now run in worker threads.
+- **`send_image_file` and `send_layout` (with `image_path`) only read allowed
+  paths.** The path has to be in the configuration directory or in
+  `allowlist_external_dirs`; anything else is refused. Before, any user who
+  could call the action could make Home Assistant read any file it could reach.
+- **`set_password` is administrators only**, like `send_raw_command`. It writes
+  the password into the stored configuration and can lock the panel. It still
+  takes the panel as its target; it is now registered as an administrator
+  action and no longer as an entity action.
+- **The panel password no longer appears in the debug log.** The frames that
+  verify or set a password carry the digits, and every sent frame was logged
+  in full. Those frames are now logged with the header only.
 - **The Laser text effect is no longer offered.** pypixelcolor 0.5 rejects
   effect code 8, so choosing Laser failed instead of showing the effect. It
   returns once the library accepts it (lucagoc/pypixelcolor#81). A saved

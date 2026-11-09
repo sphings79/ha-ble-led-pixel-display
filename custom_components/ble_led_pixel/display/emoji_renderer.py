@@ -35,6 +35,14 @@ def _emoji_to_codepoint(emoji: str) -> str:
     return "-".join(parts)
 
 
+def _read_cached(path: Path) -> bytes | None:
+    """The cached file's bytes, or None when it is not there. Blocking."""
+    try:
+        return path.read_bytes()
+    except FileNotFoundError:
+        return None
+
+
 async def _fetch_emoji_png(hass: HomeAssistant, codepoint: str) -> bytes | None:
     """Fetch the Twemoji PNG for a codepoint, with on-disk caching."""
     cache_dir = Path(hass.config.path(".storage", CACHE_DIRNAME))
@@ -43,8 +51,9 @@ async def _fetch_emoji_png(hass: HomeAssistant, codepoint: str) -> bytes | None:
     )
 
     cached_path = cache_dir / f"{codepoint}.png"
-    if cached_path.exists():
-        return await hass.async_add_executor_job(cached_path.read_bytes)
+    cached = await hass.async_add_executor_job(_read_cached, cached_path)
+    if cached is not None:
+        return cached
 
     url = TWEMOJI_CDN.format(cp=codepoint)
     session = async_get_clientsession(hass)

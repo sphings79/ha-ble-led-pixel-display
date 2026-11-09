@@ -965,6 +965,16 @@ class BleLedPixelAPI:
             except Exception:  # noqa: BLE001 - one entity must not break the query
                 _LOGGER.exception("Device info listener failed")
     
+    async def _make_image_plan(self, **kwargs):
+        """Build an image SendPlan off the event loop.
+
+        pypixelcolor decodes, resizes and encodes the picture, which takes
+        long enough to stall Home Assistant if done on the loop.
+        """
+        return await self._hass.async_add_executor_job(
+            partial(make_image_command, **kwargs)
+        )
+
     async def display_text(self, text: str, antialias: bool = True, font_size: float | None = None, font: str | None = None, line_spacing: int = 0, text_color: str = "ffffff", bg_color: str = "000000", save_slot: int = 0) -> bool:
         """Display text as image using PIL and pypixelcolor with color gradient mapping.
 
@@ -990,10 +1000,16 @@ class BleLedPixelAPI:
             device_info = {**base_info, "width": width, "height": height}
 
             # Render text to PNG with color gradient
-            png_data = render_text_to_png(text, width, height, antialias, font_size, font, line_spacing, text_color, bg_color)
+            # Opens the font and walks every pixel: off the event loop.
+            png_data = await self._hass.async_add_executor_job(
+                partial(
+                    render_text_to_png, text, width, height, antialias,
+                    font_size, font, line_spacing, text_color, bg_color,
+                )
+            )
 
             # Generate image commands using pypixelcolor
-            plan = make_image_command(
+            plan = await self._make_image_plan(
                 image_bytes=png_data,
                 file_extension=".png",
                 resize_method="crop",
@@ -1067,7 +1083,7 @@ class BleLedPixelAPI:
                 scale_percent=scale,
             )
 
-            plan = make_image_command(
+            plan = await self._make_image_plan(
                 image_bytes=png_data,
                 file_extension=".png",
                 resize_method="crop",
@@ -1250,7 +1266,7 @@ class BleLedPixelAPI:
                 scroll_gap=scroll_gap,
             )
 
-            plan = make_image_command(
+            plan = await self._make_image_plan(
                 image_bytes=png_data,
                 file_extension=file_ext,
                 resize_method="crop",
@@ -1303,7 +1319,7 @@ class BleLedPixelAPI:
 
             device_info = await self.get_device_info()
 
-            plan = make_image_command(
+            plan = await self._make_image_plan(
                 image_bytes=file_bytes,
                 file_extension=path.suffix or ".png",
                 resize_method=resize_method,
@@ -1441,7 +1457,7 @@ class BleLedPixelAPI:
             buf = io.BytesIO()
             img.save(buf, format="PNG")
 
-            plan = make_image_command(
+            plan = await self._make_image_plan(
                 image_bytes=buf.getvalue(),
                 file_extension=".png",
                 resize_method="crop",
@@ -1828,7 +1844,7 @@ class BleLedPixelAPI:
                 _LOGGER.error("Could not render emoji %r (download or cache miss)", emoji)
                 return False
 
-            plan = make_image_command(
+            plan = await self._make_image_plan(
                 image_bytes=png_data,
                 file_extension=".png",
                 resize_method="crop",

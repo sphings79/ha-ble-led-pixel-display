@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -38,6 +38,23 @@ async def async_setup_entry(
     # Actions (send_mdi_icon, send_text, send_layout, etc.) are registered
     # once at integration setup in services.py, not here - see
     # https://developers.home-assistant.io/docs/core/integration-quality-scale/rules/action-setup/
+
+
+async def _require_allowed_path(hass: HomeAssistant, path: str) -> None:
+    """Refuse a file Home Assistant is not configured to read.
+
+    The actions that take a path are ordinary entity actions, so any user can
+    call them; without this check they could make Home Assistant read any file
+    it can reach. ``allowlist_external_dirs`` (plus the config directory) is
+    Home Assistant's own list for this. The check resolves symlinks, which
+    touches the disk, hence the executor.
+    """
+    if not await hass.async_add_executor_job(hass.config.is_allowed_path, path):
+        raise ServiceValidationError(
+            f"Reading '{path}' is not allowed. Put the file in the Home "
+            "Assistant configuration directory or add its folder to "
+            "allowlist_external_dirs."
+        )
 
 
 class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
@@ -299,6 +316,9 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         makes text too wide to fit scroll continuously instead (multiple
         scrolling and/or blinking elements stay in sync with each other).
         """
+        if image_path:
+            await _require_allowed_path(self.hass, image_path)
+
         icon_color_hex = "".join(f"{c:02x}" for c in icon_color)
         text_color_hex = "".join(f"{c:02x}" for c in text_color)
         bg_color_hex = "".join(f"{c:02x}" for c in bg_color)
@@ -350,6 +370,7 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
 
         The file must be readable by Home Assistant (e.g. under /config/www/).
         """
+        await _require_allowed_path(self.hass, file_path)
         success = await self._api.send_image_file(
             file_path=file_path,
             resize_method=resize_method,
@@ -422,23 +443,6 @@ class BleLedPixelTextDisplay(TextEntity, RestoreEntity):
         if not await self._api.show_slot(slot):
             _LOGGER.error("Failed to show slot %d", slot)
             raise HomeAssistantError(f"Failed to show slot {slot} - check the logs for details")
-
-    async def async_set_password(self, password: str, enabled: bool = True) -> None:
-        """Set or clear the panel's password (action: set_password).
-
-        The password is stored in the integration options as part of this, so
-        the integration can still reach the panel afterwards.
-
-        Args:
-            password: Digits only. When enabling, the new password; when
-                clearing, the current one.
-            enabled: True to set a password, False to remove it.
-        """
-        if not await self._api.set_password(password, enabled):
-            raise HomeAssistantError(
-                "The panel did not accept the password change - check the "
-                "logs for details"
-            )
 
     async def async_show_preset(self, preset: int, language: int = 0) -> None:
         """Show a preset stored in the panel's firmware (action: show_preset).

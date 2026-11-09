@@ -203,7 +203,7 @@ use six digits; two known models use four, and the integration picks the right
 length from the product id.
 
 Setting and removing a password is possible too, through the
-`set_password` action. It is an action rather than a switch on purpose: a
+`set_password` action (administrators only). It is an action rather than a switch on purpose: a
 locked panel connects normally and then silently discards everything, and the
 way back without the password is a power-cycle reset at the panel itself. The
 action stores the password in the options as part of the same step, so the
@@ -460,7 +460,7 @@ The screen list is built as data, so screens without meaning drop out of the cyc
     resize_method: fit          # or "crop"
 ```
 
-The path must be readable by Home Assistant and listed under `allowlist_external_dirs` if it is outside `/config`.
+The path must be readable by Home Assistant and listed under `allowlist_external_dirs` if it is outside `/config`. Any other path is refused.
 
 ### A Material Design Icon
 

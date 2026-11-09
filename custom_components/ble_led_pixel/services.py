@@ -104,6 +104,65 @@ SEND_RAW_COMMAND_SCHEMA = cv.make_entity_service_schema({
 })
 
 
+async def _async_target_panels(
+    hass: HomeAssistant, call: ServiceCall, action: str, method: str
+) -> dict[str, tuple[str, Any]]:
+    """The panels an administrator action is aimed at, one entry per panel.
+
+    Refuses 'all' and a target with no panel in it: these actions change
+    what a panel does or knows, so they must be aimed on purpose.
+
+    Returns:
+        Config entry id -> (the first targeted entity id of that panel, its API).
+    """
+    if call.data.get(ATTR_ENTITY_ID) in (ENTITY_MATCH_ALL, [ENTITY_MATCH_ALL]):
+        raise ServiceValidationError(
+            f"{DOMAIN}.{action} needs an explicit target, not 'all'."
+        )
+    registry = er.async_get(hass)
+    apis: dict[str, tuple[str, Any]] = {}
+    for entity_id in sorted(await service.async_extract_entity_ids(call)):
+        entry = registry.async_get(entity_id)
+        if entry is None or entry.platform != DOMAIN or entry.config_entry_id is None:
+            continue
+        api = hass.data.get(DOMAIN, {}).get(entry.config_entry_id)
+        if api is not None and hasattr(api, method):
+            # One call per panel, however many of its entities were targeted.
+            apis.setdefault(entry.config_entry_id, (entity_id, api))
+    if not apis:
+        raise ServiceValidationError(
+            f"{DOMAIN}.{action} needs a BLE LED Pixel panel as its "
+            "target: pick the panel's device or one of its entities."
+        )
+    return apis
+
+
+SET_PASSWORD_SCHEMA = cv.make_entity_service_schema({
+    # Digits only; the length is checked against the model, because two known
+    # models use four digits and everything else six.
+    vol.Required("password"): vol.All(cv.string, vol.Match(r"^\d{4}$|^\d{6}$")),
+    vol.Optional("enabled", default=True): cv.boolean,
+})
+
+
+async def _async_set_password(hass: HomeAssistant, call: ServiceCall) -> None:
+    """Set or clear the password of the targeted panels (administrators only).
+
+    Registered as an admin service, so Home Assistant refuses any other caller
+    before this runs. The password is written into the integration's options,
+    and a wrong one locks the panel out, which is why this is not an ordinary
+    entity action.
+    """
+    data = service.remove_entity_service_fields(call)
+    apis = await _async_target_panels(hass, call, "set_password", "set_password")
+    for _entity_id, api in apis.values():
+        if not await api.set_password(data["password"], data["enabled"]):
+            raise HomeAssistantError(
+                "The panel did not accept the password change - check the "
+                "logs for details"
+            )
+
+
 async def _async_send_raw_command(
     hass: HomeAssistant, call: ServiceCall
 ) -> dict[str, Any] | None:
@@ -114,26 +173,8 @@ async def _async_send_raw_command(
     the panel -- the frames can set or clear its password or erase its storage
     -- which is why this is not an ordinary entity action.
     """
-    if call.data.get(ATTR_ENTITY_ID) in (ENTITY_MATCH_ALL, [ENTITY_MATCH_ALL]):
-        raise ServiceValidationError(
-            f"{DOMAIN}.send_raw_command needs an explicit target, not 'all'."
-        )
     data = service.remove_entity_service_fields(call)
-    registry = er.async_get(hass)
-    apis: dict[str, tuple[str, Any]] = {}
-    for entity_id in sorted(await service.async_extract_entity_ids(call)):
-        entry = registry.async_get(entity_id)
-        if entry is None or entry.platform != DOMAIN or entry.config_entry_id is None:
-            continue
-        api = hass.data.get(DOMAIN, {}).get(entry.config_entry_id)
-        if api is not None and hasattr(api, "send_raw_frames"):
-            # One send per panel, however many of its entities were targeted.
-            apis.setdefault(entry.config_entry_id, (entity_id, api))
-    if not apis:
-        raise ServiceValidationError(
-            f"{DOMAIN}.send_raw_command needs a BLE LED Pixel panel as its "
-            "target: pick the panel's device or one of its entities."
-        )
+    apis = await _async_target_panels(hass, call, "send_raw_command", "send_raw_frames")
     results: dict[str, Any] = {}
     for entity_id, api in apis.values():
         try:
@@ -447,18 +488,18 @@ def async_setup_services(hass: HomeAssistant) -> None:
         func="async_set_stopwatch",
     )
 
-    service.async_register_platform_entity_service(
+    async def set_password(call: ServiceCall) -> None:
+        await _async_set_password(hass, call)
+
+    # Administrators only: it writes the password into the stored
+    # configuration and can lock the panel, so an ordinary entity action
+    # (callable by any user) is the wrong place for it.
+    service.async_register_admin_service(
         hass,
         DOMAIN,
         "set_password",
-        entity_domain=Platform.TEXT,
-        schema={
-            # Digits only; the length is checked against the model, because
-            # two known models use four digits and everything else six.
-            vol.Required("password"): vol.All(cv.string, vol.Match(r"^\d{4}$|^\d{6}$")),
-            vol.Optional("enabled", default=True): cv.boolean,
-        },
-        func="async_set_password",
+        set_password,
+        schema=SET_PASSWORD_SCHEMA,
     )
 
     async def send_raw_command(call: ServiceCall) -> dict[str, Any] | None:

@@ -35,6 +35,22 @@ except ImportError:
 _LOGGER = logging.getLogger(__name__)
 
 
+# Password frames: [7, 0, 5, 2, ...] verifies, [8, 0, 4, 2, ...] sets or clears.
+# Both carry the PIN in the payload, one decimal pair per byte.
+_PASSWORD_OPCODES = (bytes([0x05, 0x02]), bytes([0x04, 0x02]))
+
+
+def loggable_command(command: bytes) -> str:
+    """Hex for the log, with the payload of a password frame left out.
+
+    Debug logs end up pasted into bug reports, and a password frame holds the
+    PIN in plain digits. Only the frame header is shown for those.
+    """
+    if len(command) >= 4 and bytes(command[2:4]) in _PASSWORD_OPCODES:
+        return f"{bytes(command[:4]).hex()}... (password frame, payload hidden)"
+    return command.hex()
+
+
 class BluetoothClient:
     """Manages Bluetooth connection and communication.
 
@@ -261,7 +277,7 @@ class BluetoothClient:
 
         self._extra_listeners.append(response_handler)
         try:
-            _LOGGER.debug("Sending command: %s", command.hex())
+            _LOGGER.debug("Sending command: %s", loggable_command(command))
             await self._client.write_gatt_char(WRITE_UUID, command)
 
             try:

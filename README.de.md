@@ -204,7 +204,7 @@ Verbindungsaufbau gesendet, denn das Panel vergisst es, sobald die Verbindung
 abreißt. Die meisten Modelle nutzen sechs Ziffern, zwei bekannte vier — die
 richtige Länge wird anhand der Produkt-ID gewählt.
 
-Setzen und Löschen geht ebenfalls, über die Aktion `set_password`. Bewusst als
+Setzen und Löschen geht ebenfalls, über die Aktion `set_password` (nur für Administratoren). Bewusst als
 Aktion und nicht als Schalter: Ein gesperrtes Panel verbindet sich normal und
 verwirft danach kommentarlos alles, und der Weg zurück ohne Passwort ist der
 Reset über die Stromversorgung am Panel selbst. Die Aktion legt das Passwort im
@@ -464,7 +464,7 @@ Die Anzeigenliste wird als Daten aufgebaut, dadurch fallen Anzeigen ohne Aussage
     resize_method: fit          # oder "crop"
 ```
 
-Der Pfad muss für Home Assistant lesbar sein und in `allowlist_external_dirs` stehen, wenn er außerhalb von `/config` liegt.
+Der Pfad muss für Home Assistant lesbar sein und in `allowlist_external_dirs` stehen, wenn er außerhalb von `/config` liegt. Jeder andere Pfad wird abgelehnt.
 
 ### Ein Material Design Icon
 

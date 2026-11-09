@@ -22,8 +22,12 @@ class Hass:
     def __init__(self):
         self.pending = {}
 
-    async def async_add_executor_job(self, job):
-        text = job.keywords["text"]
+    async def async_add_executor_job(self, job, *args):
+        keywords = getattr(job, "keywords", {})
+        if "text" not in keywords:
+            # Rendering and image-building jobs: not what this test orders.
+            return job(*args)
+        text = keywords["text"]
         gate = asyncio.Event()
         self.pending[text] = gate
         await gate.wait()

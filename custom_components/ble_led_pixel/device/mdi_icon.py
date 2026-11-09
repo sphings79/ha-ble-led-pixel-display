@@ -10,6 +10,7 @@ level - often unavailable/painful on Home Assistant OS or containers).
 """
 from __future__ import annotations
 
+import asyncio
 import io
 import logging
 
@@ -176,5 +177,10 @@ async def build_mdi_icon_png(
     icon_size_px = max(1, round(min(canvas_width, canvas_height) * scale_percent / 100))
 
     svg_markup = await fetch_mdi_svg(icon, session)
-    icon_img = render_mdi_icon(svg_markup, icon_size_px, color_hex)
-    return compose_icon_canvas(icon_img, canvas_width, canvas_height, bg_color_hex)
+
+    def _render() -> bytes:
+        icon_img = render_mdi_icon(svg_markup, icon_size_px, color_hex)
+        return compose_icon_canvas(icon_img, canvas_width, canvas_height, bg_color_hex)
+
+    # Rasterizing is CPU work; keep it off the event loop.
+    return await asyncio.to_thread(_render)

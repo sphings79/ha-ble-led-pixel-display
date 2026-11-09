@@ -17,6 +17,7 @@ is scroll_step (fewer, bigger jumps = far fewer frames).
 """
 from __future__ import annotations
 
+import asyncio
 import io
 import logging
 import math
@@ -223,10 +224,10 @@ def render_text_element(
     return img
 
 
-async def _build_base_canvas(
+def _build_base_canvas(
     canvas_width: int,
     canvas_height: int,
-    session: aiohttp.ClientSession,
+    svgs: dict[str, str],
     bg_color_hex: str,
     icons: list[dict] | None = None,
     image_bytes: bytes | None = None,
@@ -241,7 +242,10 @@ async def _build_base_canvas(
     (so they're only fetched/rasterized once) but not pasted onto the
     canvas, since they need to be drawn per-frame in the animation loop.
 
+    Blocking (rasterizes and pastes); call it off the event loop.
+
     Args:
+        svgs: MDI icon markup by icon name, fetched beforehand.
         icons: List of up to MAX_ICON_ELEMENTS dicts, each with: icon
             (required, MDI name), x, y, size, color_hex, blink,
             blink_interval_ms (all optional besides icon). Extra items
@@ -263,7 +267,7 @@ async def _build_base_canvas(
         y = int(item.get("y", 0))
         size_px = item.get("size") or min(canvas_width, canvas_height)
         color_hex = item.get("color_hex", "ffffff")
-        svg_markup = await fetch_mdi_svg(item["icon"], session)
+        svg_markup = svgs[item["icon"]]
         icon_img = render_mdi_icon(svg_markup, size_px, color_hex)
 
         if item.get("blink"):
@@ -404,6 +408,46 @@ async def build_layout_media(
     scroll_frame_ms: int = 80,
     scroll_gap: int = 16,
 ) -> tuple[bytes, str]:
+    """Compose the layout picture; arguments as for _render_layout_media.
+
+    Only the icon download happens on the event loop. Everything else --
+    opening fonts, rendering text, rasterizing icons, building the frames --
+    is blocking work and runs in a worker thread.
+
+    Args:
+        session: aiohttp session for fetching MDI icons (if any).
+    """
+    wanted = [i for i in (icons or []) if i.get("icon")][:MAX_ICON_ELEMENTS]
+    svgs: dict[str, str] = {}
+    for item in wanted:
+        name = item["icon"]
+        if name not in svgs:
+            svgs[name] = await fetch_mdi_svg(name, session)
+
+    return await asyncio.to_thread(
+        _render_layout_media,
+        canvas_width, canvas_height, svgs, bg_color_hex,
+        icons, image_bytes, image_x, image_y, image_width, image_height,
+        texts, scroll_step, scroll_frame_ms, scroll_gap,
+    )
+
+
+def _render_layout_media(
+    canvas_width: int,
+    canvas_height: int,
+    svgs: dict[str, str],
+    bg_color_hex: str = "000000",
+    icons: list[dict] | None = None,
+    image_bytes: bytes | None = None,
+    image_x: int = 0,
+    image_y: int = 0,
+    image_width: int | None = None,
+    image_height: int | None = None,
+    texts: list[dict] | None = None,
+    scroll_step: int = 2,
+    scroll_frame_ms: int = 80,
+    scroll_gap: int = 16,
+) -> tuple[bytes, str]:
     """Compose up to 4 MDI icons, a static image/GIF-first-frame, and up to 4 texts.
 
     Returns a static PNG unless at least one element scrolls (text only)
@@ -417,7 +461,7 @@ async def build_layout_media(
     Args:
         canvas_width: Device width in pixels.
         canvas_height: Device height in pixels.
-        session: aiohttp session for fetching MDI icons (if any).
+        svgs: MDI icon markup by icon name, fetched beforehand.
         bg_color_hex: Canvas background color, hex without '#'.
         icons: List of up to MAX_ICON_ELEMENTS dicts, each with: icon
             (required, MDI name with or without 'mdi:'), x, y, size,
@@ -449,8 +493,8 @@ async def build_layout_media(
     Returns:
         Tuple of (encoded bytes, ".png" or ".gif").
     """
-    base_canvas, blinking_icons = await _build_base_canvas(
-        canvas_width, canvas_height, session, bg_color_hex,
+    base_canvas, blinking_icons = _build_base_canvas(
+        canvas_width, canvas_height, svgs, bg_color_hex,
         icons, image_bytes, image_x, image_y, image_width, image_height,
     )
 
