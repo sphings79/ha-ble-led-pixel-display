@@ -20,6 +20,7 @@ from .bluetooth.client import BluetoothClient
 from .device.commands import (
     make_power_command,
     make_brightness_command,
+    make_orientation_command,
 )
 from .device.clock import make_clock_mode_command, make_time_command
 from .device.commands import (
@@ -755,6 +756,33 @@ class BleLedPixelAPI:
         except Exception as err:  # noqa: BLE001 - unknown size just means "not allowed"
             _LOGGER.debug("Could not read the panel size: %s", err)
         return self.vertical_scroll_allowed
+
+    @property
+    def orientations(self) -> list[int]:
+        """Rotations in degrees this panel can turn its picture by.
+
+        The vendor app offers 90 and 270 only on square panels; any other
+        shape just turns upside down (checked on a 64x16 panel, where every
+        value but 0 gave the same result).
+        """
+        width, height = self._known_dimensions()
+        if width is not None and width == height:
+            return [0, 90, 180, 270]
+        return [0, 180]
+
+    async def set_orientation(self, degrees: int) -> bool:
+        """Turn the panel's picture, text, clock and effects included."""
+        try:
+            command = make_orientation_command(degrees)
+        except ValueError as err:
+            _LOGGER.error("Invalid orientation: %s", err)
+            return False
+        success = await self._send_with_reconnect(command)
+        if success:
+            _LOGGER.debug("Orientation set to %d degrees", degrees)
+        else:
+            _LOGGER.error("Failed to set the orientation to %d degrees", degrees)
+        return success
 
     @property
     def text_sizes(self) -> list[int]:

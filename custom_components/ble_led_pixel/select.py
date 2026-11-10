@@ -59,6 +59,7 @@ async def async_setup_entry(
         BleLedPixelTextEffectSelect(hass, api, entry, address, name),
         BleLedPixelTextGradientSelect(hass, api, entry, address, name),
         BleLedPixelTextSizeSelect(hass, api, entry, address, name),
+        BleLedPixelOrientationSelect(hass, api, entry, address, name),
     ]
 
     # A select with no options is not something Home Assistant can render, so
@@ -654,6 +655,88 @@ class BleLedPixelTextSizeSelect(SelectEntity, RestoreEntity):
             await _refresh_if_showing_text(self.hass, self._address, self._name, self._api)
         except Exception as err:  # noqa: BLE001 - a refresh must not break the select
             _LOGGER.debug("Could not refresh after the text size change: %s", err)
+
+
+class BleLedPixelOrientationSelect(SelectEntity, RestoreEntity):
+    """Turn the panel's picture by 0, 90, 180 or 270 degrees.
+
+    The panel does the turning itself, so everything it shows follows, its
+    own clock faces and effects included. Panels that are not square only
+    offer 0 and 180 degrees.
+
+    Nothing is sent until a rotation has been chosen, so a panel that was
+    turned in the vendor app is left alone. After a restart the last choice
+    is sent again once the panel is reachable.
+    """
+
+    _attr_has_entity_name = True
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_icon = "mdi:screen-rotation"
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api: BleLedPixelAPI,
+        entry: ConfigEntry,
+        address: str,
+        name: str,
+    ) -> None:
+        """Initialize the orientation select."""
+        self.hass = hass
+        self._api = api
+        self._entry = entry
+        self._address = address
+        self._name = name
+        self._attr_name = "Orientation"
+        self._attr_unique_id = f"{address}_orientation_select"
+        self._chosen: int | None = None
+        self._attr_device_info = panel_device_info(api, address, name)
+
+    @property
+    def options(self) -> list[str]:
+        """Rotations the panel can show."""
+        return [str(degrees) for degrees in self._api.orientations]
+
+    @property
+    def current_option(self) -> str | None:
+        """The rotation last chosen, None while there has been none."""
+        if self._chosen is None or str(self._chosen) not in self.options:
+            return None
+        return str(self._chosen)
+
+    async def async_added_to_hass(self) -> None:
+        """Restore the last choice and send it once the panel is reachable."""
+        await super().async_added_to_hass()
+        self.async_on_remove(self._api.add_device_info_listener(self._panel_info_known))
+        last_state = await self.async_get_last_state()
+        if last_state is None:
+            return
+        try:
+            self._chosen = int(last_state.state)
+        except (TypeError, ValueError):
+            return
+        self._api.call_when_connected(self._apply)
+
+    @callback
+    def _panel_info_known(self) -> None:
+        """Publish the rotations that fit, now that the panel shape is known."""
+        if self.hass is not None:
+            self.async_write_ha_state()
+
+    async def _apply(self) -> None:
+        """Send the restored rotation if it fits this panel."""
+        if self._chosen is not None and str(self._chosen) in self.options:
+            await self._api.set_orientation(self._chosen)
+
+    async def async_select_option(self, option: str) -> None:
+        """Turn the panel."""
+        if option not in self.options:
+            _LOGGER.error("Orientation %s does not fit this panel", option)
+            return
+        if await self._api.set_orientation(int(option)):
+            self._chosen = int(option)
+            self.async_write_ha_state()
+            _LOGGER.info("Orientation changed to: %s degrees", option)
 
 
 class BleLedPixelGallerySelect(SelectEntity, RestoreEntity):

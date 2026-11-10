@@ -32,6 +32,23 @@ def make_brightness_command(brightness: int) -> bytes:
     return make_command_payload(0x8004, bytes([brightness]))
 
 
+# Orientation, opcode 0x8006 (the vendor app calls it setUpsideDown). The app's
+# four buttons send these values for 0, 90, 180 and 270 degrees. Panels that
+# are not square only turn upside down, see ORIENTATIONS_BY_SHAPE in the API.
+ORIENTATION_VALUES = {0: 0, 90: 1, 180: 2, 270: 3}
+
+
+def make_orientation_command(degrees: int) -> bytes:
+    """Build the command that turns the panel's picture.
+
+    Raises:
+        ValueError: If degrees is not 0, 90, 180 or 270
+    """
+    if degrees not in ORIENTATION_VALUES:
+        raise ValueError("Orientation must be 0, 90, 180 or 270 degrees")
+    return make_command_payload(0x8006, bytes([ORIENTATION_VALUES[degrees]]))
+
+
 def make_command_payload(opcode: int, payload: bytes) -> bytes:
     """Create command with header (following ipixel-ctrl/common.py format)."""
     total_length = len(payload) + 4  # +4 for length and opcode

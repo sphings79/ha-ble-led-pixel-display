@@ -252,6 +252,18 @@ nur 16, 32, 48 und 64, und angeboten werden nur die Größen, die aufs Panel
 passen. **Font Size** gilt für den Modus `textimage`; beim ersten Start nach dem
 Update wird Text Size daraus übernommen, damit der Text wie zuvor aussieht.
 
+### Ausrichtung
+
+Die Auswahl **Orientation** dreht alles, was das Panel zeigt, auch die eigenen
+Uhr-Stile und Effekte, sodass ein Panel andersherum hängen kann. Quadratische
+Panels bieten 0, 90, 180 und 270 Grad, alle anderen Formen nur 0 und 180 (die
+Hersteller-App blendet 90 und 270 dort ebenfalls aus, und ein 64x16-Panel drehte
+bei jedem Wert außer 0 auf den Kopf). An dem einen quadratischen Panel, an dem es
+probiert wurde, drehte sich das Bild mit steigendem Wert gegen den Uhrzeigersinn.
+Gesendet wird erst, wenn du eine Drehung wählst, ein in der Hersteller-App
+gedrehtes Panel bleibt also unangetastet; die letzte Wahl wird nach einem Neustart
+erneut gesendet.
+
 ### Farbverläufe für Text
 
 **Text Gradient** färbt den Text mit einem von acht Verläufen, die das Panel

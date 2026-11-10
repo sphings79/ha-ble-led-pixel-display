@@ -600,6 +600,17 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [Unreleased]
+
+### Added
+
+- **Orientation select** to turn the picture by 0, 90, 180 or 270 degrees. The
+  panel does the turning, so its own clock faces and effects follow. It uses the
+  same command as the vendor app's rotate buttons (`0x8006`, values 0 to 3).
+  Square panels offer all four, other shapes 0 and 180, as the vendor app does.
+  Checked on a 64x16 panel (values 1 to 3 all turned it upside down) and on a
+  square one (four distinct turns); the direction was judged by eye.
+
 ## [2.4.1] - 2026-11-09
 
 ### Fixed

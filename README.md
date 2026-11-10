@@ -248,6 +248,17 @@ only the sizes that fit the panel are offered. **Font Size** is for `textimage`
 mode; on the first start after upgrading, Text Size is taken from it so text
 looks the same as before.
 
+### Orientation
+
+The **Orientation** select turns everything the panel shows, its own clock faces
+and effects included, so a panel can hang the other way round. Square panels
+offer 0, 90, 180 and 270 degrees; any other shape only 0 and 180 (the vendor app
+hides 90 and 270 there too, and on a 64x16 panel every value but 0 turned it
+upside down). On the one square panel it was tried on, the picture turned
+counter-clockwise with rising values. Nothing is sent until you choose a
+rotation, so a panel turned in the vendor app is left alone; the last choice is
+sent again after a restart.
+
 ### Text gradients
 
 **Text Gradient** paints the text with one of eight colour ramps the panel
