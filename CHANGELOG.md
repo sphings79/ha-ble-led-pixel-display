@@ -600,7 +600,7 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
-## [Unreleased]
+## [2.4.2-beta.1] - 2026-11-10
 
 ### Added
 
