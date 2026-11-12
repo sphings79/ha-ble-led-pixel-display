@@ -458,6 +458,15 @@ class BleLedPixelAPI:
             {"address": self._address},
             bluetooth.BluetoothScanningMode.ACTIVE,
         )
+        # A dropped link starts the reconnect loop at once. Waiting for the
+        # next advertisement that reaches Home Assistant could, from a panel at
+        # the edge of range, take minutes or never happen.
+        def _link_lost() -> None:
+            if self._watcher_started and not self.is_connected:
+                self._schedule_reconnect()
+
+        self._bluetooth.on_disconnect = _link_lost
+
         # The panel may already be advertising, and no callback fires for what
         # happened before we subscribed - so make one attempt right away.
         if not self.is_connected:
@@ -466,6 +475,7 @@ class BleLedPixelAPI:
     async def stop_watcher(self) -> None:
         """Stop watching and cancel a pending reconnect."""
         self._watcher_started = False
+        self._bluetooth.on_disconnect = None
         if self._unsubscribe_bluetooth is not None:
             try:
                 self._unsubscribe_bluetooth()
