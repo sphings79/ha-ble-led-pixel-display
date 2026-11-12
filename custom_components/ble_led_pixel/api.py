@@ -198,7 +198,9 @@ class BleLedPixelAPI:
     async def ensure_connected(self) -> bool:
         """Reconnect if the link dropped. Never raises."""
         was_connected = self.is_connected
-        connected = await self._bluetooth.ensure_connected()
+        # Pass the handler, so a panel not connected since setup is connected
+        # here too (see BluetoothClient.ensure_connected).
+        connected = await self._bluetooth.ensure_connected(self._notification_handler)
         if connected:
             if not was_connected:
                 # Every other path that restores the link says so. This one is
