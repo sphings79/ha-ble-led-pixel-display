@@ -190,8 +190,21 @@ class BleLedPixelAPI:
         if connected:
             await self._unlock_if_needed()
             await self._run_on_connected()
+            self._fire_connected()
         return connected
-    
+
+    def _fire_connected(self) -> None:
+        """Announce a link that just came up.
+
+        Fires `ble_led_pixel_connected` with the panel's address, so an
+        automation can re-send its frame the moment a panel is back instead of
+        polling or waiting out its own backoff. Fired after the unlock and the
+        waiting jobs, so whatever the automation sends lands on top of them.
+        """
+        self._hass.bus.async_fire(
+            "ble_led_pixel_connected", {"address": self._address}
+        )
+
     async def disconnect(self) -> None:
         """Disconnect from the device."""
         await self._bluetooth.disconnect()
@@ -199,7 +212,9 @@ class BleLedPixelAPI:
     async def ensure_connected(self) -> bool:
         """Reconnect if the link dropped. Never raises."""
         was_connected = self.is_connected
-        connected = await self._bluetooth.ensure_connected()
+        # Pass the handler, so a panel not connected since setup is connected
+        # here too (see BluetoothClient.ensure_connected).
+        connected = await self._bluetooth.ensure_connected(self._notification_handler)
         if connected:
             if not was_connected:
                 # Every other path that restores the link says so. This one is
@@ -212,6 +227,7 @@ class BleLedPixelAPI:
             await self._unlock_if_needed()
             if not was_connected:
                 await self._run_on_connected()
+                self._fire_connected()
         return connected
 
     def restoring(self):
@@ -459,6 +475,15 @@ class BleLedPixelAPI:
             {"address": self._address},
             bluetooth.BluetoothScanningMode.ACTIVE,
         )
+        # A dropped link starts the reconnect loop at once. Waiting for the
+        # next advertisement that reaches Home Assistant could, from a panel at
+        # the edge of range, take minutes or never happen.
+        def _link_lost() -> None:
+            if self._watcher_started and not self.is_connected:
+                self._schedule_reconnect()
+
+        self._bluetooth.on_disconnect = _link_lost
+
         # The panel may already be advertising, and no callback fires for what
         # happened before we subscribed - so make one attempt right away.
         if not self.is_connected:
@@ -467,6 +492,7 @@ class BleLedPixelAPI:
     async def stop_watcher(self) -> None:
         """Stop watching and cancel a pending reconnect."""
         self._watcher_started = False
+        self._bluetooth.on_disconnect = None
         if self._unsubscribe_bluetooth is not None:
             try:
                 self._unsubscribe_bluetooth()
@@ -926,7 +952,16 @@ class BleLedPixelAPI:
         """Query device information and store it (with retry logic)."""
         if self._device_info is not None:
             return self._device_info
-            
+
+        # There is no fallback size: until a panel has said what it is,
+        # nothing is drawn for it, and the send fails (and is retried). The
+        # sends read the size before their own reconnect, so connect here
+        # first; the send would have tried anyway.
+        if not self.is_connected and not await self.ensure_connected():
+            raise BleLedPixelConnectionError(
+                f"Panel {self._address} not connected; its size is not known yet"
+            )
+
         max_retries = 3
 
         for attempt in range(max_retries):
@@ -965,26 +1000,12 @@ class BleLedPixelAPI:
             if attempt < max_retries - 1:
                 await asyncio.sleep(1.0)
                 
-        # If we reach here, all retries failed. Return default values.
-        _LOGGER.error("All %d attempts failed to get device info. Using defaults.", max_retries)
-        self._device_info = {
-            "width": 64,
-            "height": 16,
-            "device_type": 0,
-            "device_type_str": "Unknown",
-            "led_type": 0,
-            "mcu_version": "Unknown",
-            "wifi_version": "Unknown",
-            "has_wifi": False,
-            "password_flag": 255,
-            "cid": None,
-            "pid": None,
-            "cidpid": None,
-            "brand": None,
-        }
-        # Cached like a real answer, so this is the size from now on too.
-        self._notify_device_info()
-        return self._device_info
+        # No defaults: a panel that did not answer (yet) would be stuck with a
+        # guessed 64x16 size until a restart. Not cached, so the next call
+        # asks the panel again.
+        raise BleLedPixelConnectionError(
+            f"Panel {self._address} did not report its size after {max_retries} attempts"
+        )
 
     def _notify_device_info(self) -> None:
         for listener in list(self._device_info_listeners):
