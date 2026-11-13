@@ -924,7 +924,16 @@ class BleLedPixelAPI:
         """Query device information and store it (with retry logic)."""
         if self._device_info is not None:
             return self._device_info
-            
+
+        # There is no fallback size: until a panel has said what it is,
+        # nothing is drawn for it, and the send fails (and is retried). The
+        # sends read the size before their own reconnect, so connect here
+        # first; the send would have tried anyway.
+        if not self.is_connected and not await self.ensure_connected():
+            raise BleLedPixelConnectionError(
+                f"Panel {self._address} not connected; its size is not known yet"
+            )
+
         max_retries = 3
 
         for attempt in range(max_retries):
@@ -963,26 +972,12 @@ class BleLedPixelAPI:
             if attempt < max_retries - 1:
                 await asyncio.sleep(1.0)
                 
-        # If we reach here, all retries failed. Return default values.
-        _LOGGER.error("All %d attempts failed to get device info. Using defaults.", max_retries)
-        self._device_info = {
-            "width": 64,
-            "height": 16,
-            "device_type": 0,
-            "device_type_str": "Unknown",
-            "led_type": 0,
-            "mcu_version": "Unknown",
-            "wifi_version": "Unknown",
-            "has_wifi": False,
-            "password_flag": 255,
-            "cid": None,
-            "pid": None,
-            "cidpid": None,
-            "brand": None,
-        }
-        # Cached like a real answer, so this is the size from now on too.
-        self._notify_device_info()
-        return self._device_info
+        # No defaults: a panel that did not answer (yet) would be stuck with a
+        # guessed 64x16 size until a restart. Not cached, so the next call
+        # asks the panel again.
+        raise BleLedPixelConnectionError(
+            f"Panel {self._address} did not report its size after {max_retries} attempts"
+        )
 
     def _notify_device_info(self) -> None:
         for listener in list(self._device_info_listeners):
