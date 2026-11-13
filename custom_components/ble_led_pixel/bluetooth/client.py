@@ -167,17 +167,25 @@ class BluetoothClient:
         async with self._connect_lock:
             return await self._connect_locked(notification_handler)
 
-    async def ensure_connected(self) -> bool:
+    async def ensure_connected(
+        self, notification_handler: Callable[[Any, bytearray], None] | None = None
+    ) -> bool:
         """Return True if connected, reconnecting when the link was lost.
 
         Unlike connect() this never raises - it is the entry point for command
-        paths that want to recover quietly. Returns False when no connection
-        was ever established (nothing to restore) or the attempt failed.
+        paths that want to recover quietly. Returns False when the attempt
+        failed, or when there is no handler to connect with.
+
+        `notification_handler` lets a panel that was never connected (e.g.
+        unreachable at setup) be connected here, so the reconnect watcher can
+        bring it up without a reload.
         """
         if self.is_connected:
             return True
         if self._notification_handler is None:
-            return False
+            if notification_handler is None:
+                return False
+            self._notification_handler = notification_handler
 
         async with self._connect_lock:
             # Another caller may have reconnected while we waited for the lock.
