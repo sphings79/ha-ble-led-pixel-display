@@ -189,8 +189,21 @@ class BleLedPixelAPI:
         if connected:
             await self._unlock_if_needed()
             await self._run_on_connected()
+            self._fire_connected()
         return connected
-    
+
+    def _fire_connected(self) -> None:
+        """Announce a link that just came up.
+
+        Fires `ble_led_pixel_connected` with the panel's address, so an
+        automation can re-send its frame the moment a panel is back instead of
+        polling or waiting out its own backoff. Fired after the unlock and the
+        waiting jobs, so whatever the automation sends lands on top of them.
+        """
+        self._hass.bus.async_fire(
+            "ble_led_pixel_connected", {"address": self._address}
+        )
+
     async def disconnect(self) -> None:
         """Disconnect from the device."""
         await self._bluetooth.disconnect()
@@ -213,6 +226,7 @@ class BleLedPixelAPI:
             await self._unlock_if_needed()
             if not was_connected:
                 await self._run_on_connected()
+                self._fire_connected()
         return connected
 
     def restoring(self):
