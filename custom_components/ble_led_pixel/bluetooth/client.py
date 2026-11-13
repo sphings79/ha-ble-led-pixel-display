@@ -91,11 +91,17 @@ class BluetoothClient:
         self._send_lock = asyncio.Lock()
         # Writes that changed what the panel shows, not counting restores.
         self._content_writes = 0
+        # Called (on the event loop) when the link drops.
+        self.on_disconnect: Callable[[], None] | None = None
 
     def _disconnected_callback(self, client: BleakClientWithServiceCache) -> None:
         """Called when device disconnects."""
         _LOGGER.warning("LED panel %s disconnected", self._address)
         self._connected = False
+        # Tell the API, so it starts reconnecting right away instead of on
+        # the next advertisement that gets through.
+        if self.on_disconnect is not None:
+            self._hass.loop.call_soon_threadsafe(self.on_disconnect)
 
     def _dispatch_notification(self, sender: Any, data: bytearray) -> None:
         """Single persistent notify callback: fan out to all consumers.
