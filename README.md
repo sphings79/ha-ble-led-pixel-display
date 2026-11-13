@@ -297,6 +297,18 @@ every refresh.
 > unavailable, and the panel works normally: its resolution comes from the
 > device type, not the brand.
 
+### Event when a panel connects
+
+Whenever the link to a panel comes up (also at start-up), Home Assistant fires the event `ble_led_pixel_connected` with the panel's Bluetooth address in `address`. Use it to send a frame the moment a panel is back instead of polling:
+
+```yaml
+triggers:
+  - trigger: event
+    event_type: ble_led_pixel_connected
+    event_data:
+      address: "AA:BB:CC:DD:EE:FF"
+```
+
 ## Installation
 
 ### Marketplace (Home Assistant 2026.11 and newer)

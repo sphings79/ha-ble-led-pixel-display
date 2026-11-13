@@ -948,6 +948,32 @@ class BleLedPixelAPI:
             versions["mcu_build"], versions["wifi_version"],
         )
 
+    def _override_only_info(self) -> dict[str, Any] | None:
+        """Size info built from the options-flow override alone, or None.
+
+        Used when the panel does not answer: a size the user entered by hand
+        (both width and height) is not a guess. Never cached, so the next call
+        asks the panel again.
+        """
+        width, height = self._known_dimensions()
+        if not width or not height:
+            return None
+        return {
+            "width": width,
+            "height": height,
+            "device_type": 0,
+            "device_type_str": "Unknown",
+            "led_type": 0,
+            "mcu_version": "Unknown",
+            "wifi_version": "Unknown",
+            "has_wifi": False,
+            "password_flag": 255,
+            "cid": None,
+            "pid": None,
+            "cidpid": None,
+            "brand": None,
+        }
+
     async def get_device_info(self) -> dict[str, Any] | None:
         """Query device information and store it (with retry logic)."""
         if self._device_info is not None:
@@ -958,6 +984,9 @@ class BleLedPixelAPI:
         # sends read the size before their own reconnect, so connect here
         # first; the send would have tried anyway.
         if not self.is_connected and not await self.ensure_connected():
+            fallback = self._override_only_info()
+            if fallback is not None:
+                return fallback
             raise BleLedPixelConnectionError(
                 f"Panel {self._address} not connected; its size is not known yet"
             )
@@ -1002,7 +1031,10 @@ class BleLedPixelAPI:
                 
         # No defaults: a panel that did not answer (yet) would be stuck with a
         # guessed 64x16 size until a restart. Not cached, so the next call
-        # asks the panel again.
+        # asks the panel again. The one exception is a size the user set by hand.
+        fallback = self._override_only_info()
+        if fallback is not None:
+            return fallback
         raise BleLedPixelConnectionError(
             f"Panel {self._address} did not report its size after {max_retries} attempts"
         )

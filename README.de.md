@@ -302,6 +302,18 @@ einmal pro Änderung, nicht bei jeder Aktualisierung.
 > „nicht verfügbar" zu fallen. Das Panel funktioniert normal: Die Auflösung
 > kommt vom Gerätetyp, nicht von der Marke.
 
+### Ereignis, wenn ein Panel verbindet
+
+Sobald die Verbindung zu einem Panel steht (auch beim Start), löst Home Assistant das Ereignis `ble_led_pixel_connected` aus; die Bluetooth-Adresse des Panels steht in `address`. Damit lässt sich ein Bild senden, sobald das Panel wieder da ist, statt zyklisch abzufragen:
+
+```yaml
+triggers:
+  - trigger: event
+    event_type: ble_led_pixel_connected
+    event_data:
+      address: "AA:BB:CC:DD:EE:FF"
+```
+
 ## Installation
 
 ### Marketplace (Home Assistant 2026.11 und neuer)

@@ -1,6 +1,8 @@
 """Scroll up/down: offered on 32x32 panels, elsewhere only when opted in."""
 from types import SimpleNamespace
 
+import pytest
+
 from tests import ha_stubs
 
 ha_stubs.install()
@@ -8,6 +10,9 @@ ha_stubs.install()
 from custom_components.ble_led_pixel import api as api_module  # noqa: E402
 from custom_components.ble_led_pixel.const import (  # noqa: E402
     ALL_TEXT_EFFECTS,
+    OPT_OVERRIDE_DIMENSIONS,
+    OPT_PANEL_HEIGHT,
+    OPT_PANEL_WIDTH,
     OPT_VERTICAL_SCROLL,
     TEXT_EFFECTS,
     text_effects,
@@ -176,14 +181,19 @@ def test_listener_is_removed_with_the_entity():
     assert entity._api._device_info_listeners == []
 
 
-def test_listeners_hear_about_the_fallback_size_too(monkeypatch):
+def test_silent_panel_gets_no_guessed_size(monkeypatch):
+    """No answer means an error and nothing cached, not a guessed 64x16."""
     api = api_module.BleLedPixelAPI.__new__(api_module.BleLedPixelAPI)
     api._device_info = None
     api._device_info_listeners = []
+    api._address = "AA:BB"
+    api._entry = SimpleNamespace(options={})
     heard = []
-    api.add_device_info_listener(lambda: heard.append(api._device_info["height"]))
+    api.add_device_info_listener(lambda: heard.append(True))
 
     class Silent:
+        is_connected = True
+
         async def send_command_wait_response(self, command, timeout=None):
             return None
 
@@ -193,5 +203,15 @@ def test_listeners_hear_about_the_fallback_size_too(monkeypatch):
         return None
 
     monkeypatch.setattr(api_module.asyncio, "sleep", no_sleep)
-    run(api.get_device_info())
-    assert heard == [16]
+    with pytest.raises(api_module.BleLedPixelConnectionError):
+        run(api.get_device_info())
+    assert api._device_info is None
+    assert heard == []
+
+    # A size the user set by hand is not a guess, but is still not cached.
+    api._entry = SimpleNamespace(
+        options={OPT_OVERRIDE_DIMENSIONS: True, OPT_PANEL_WIDTH: 32, OPT_PANEL_HEIGHT: 32}
+    )
+    info = run(api.get_device_info())
+    assert (info["width"], info["height"]) == (32, 32)
+    assert api._device_info is None

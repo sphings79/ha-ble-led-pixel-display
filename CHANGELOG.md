@@ -600,6 +600,30 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.4.2-beta.2] - 2026-11-13
+
+### Added
+
+- **`ble_led_pixel_connected` event.** Fired with the panel's `address` whenever
+  a link comes up (also at start-up), after the unlock and the waiting jobs, so
+  an automation can send its frame the moment a panel is back instead of
+  polling. By cmarqu.
+
+### Fixed
+
+- **A panel that was never connected is connected by the reconnect watcher.**
+  `ensure_connected()` gave up when no connection had been made since setup
+  (e.g. the panel was not in the Bluetooth cache at boot), so the watcher
+  logged a failed reconnect every few minutes until a reload. By cmarqu.
+- **Reconnecting starts as soon as the link drops**, not with the next
+  advertisement that reaches Home Assistant, which from the edge of range could
+  take minutes or never come. By cmarqu.
+- **No guessed 64x16 size any more.** A panel that did not report its size got
+  64x16 frames for good, so a 32x32 panel that was offline at first stayed on
+  its default screen until a restart. Now the send fails, is retried, and the
+  panel is asked again. A size entered under *Override panel dimensions* is
+  still used when the panel does not answer. By cmarqu.
+
 ## [2.4.2-beta.1] - 2026-11-10
 
 ### Added
