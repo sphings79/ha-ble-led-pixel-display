@@ -345,14 +345,13 @@ Restart Home Assistant if a repair asks you to.
 
 ### HACS (Home Assistant 2026.10 and older)
 
-HACS is what the Marketplace replaced. Add the repository by hand:
+BLE LED Pixel Display is in HACS' default list: open HACS in Home Assistant, search for **BLE LED Pixel Display** and install it.
 
-1. Open HACS in Home Assistant
-2. Three dots menu, top right → **Custom repositories**
-3. Repository URL: `https://github.com/sphings79/ha-ble-led-pixel-display`
-4. Category: **Integration** → **Add**
-5. Search for **BLE LED Pixel Display**, install it
-6. Restart Home Assistant
+You can also use this button:
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sphings79&repository=ha-ble-led-pixel-display&category=integration)
+
+Restart Home Assistant after installing.
 
 ### Manual
 
