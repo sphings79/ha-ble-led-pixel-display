@@ -322,7 +322,10 @@ Jedes Panel bekommt eine **Vorschau**-Bildentität, und die passende Karte bring
 type: custom:ble-led-pixel-card
 entity: image.wohnzimmer_panel_vorschau
 shape: round
+frame_width: 6
 ```
+
+Optionen: `shape` (`round` oder `square`), `pixel_size` (0 passt sich der Karte an), `gap` (Abstand der LEDs), `frame_width` (dunkler Rahmen um das Panel in px, 0 für keinen) und `name` (Titel über dem Panel).
 
 Gezeigt wird, was Home Assistant zuletzt erfolgreich an das Panel gesendet hat, auch was deine Automationen senden. Grenzen:
 

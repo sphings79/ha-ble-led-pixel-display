@@ -600,6 +600,21 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.5.0-beta.4] - 2026-11-16
+
+### Added
+
+- **The card's frame width is configurable** (`frame_width`, in px, 0 for no
+  frame; default 6). It replaces the on/off switch `frame`; a card that still
+  has `frame: false` keeps showing no frame.
+
+### Fixed
+
+- **The frame looked cut off with a name above it.** The dark frame was the
+  card's whole lower half, so it ran square into the title and round into the
+  card's corners. It is now a rounded bezel around the panel alone, with the
+  title above it.
+
 ## [2.5.0-beta.3] - 2026-11-16
 
 ### Added

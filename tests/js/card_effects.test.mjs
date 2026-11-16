@@ -12,7 +12,7 @@ globalThis.document = { createElement() { return {}; } };
 const file = path.resolve("custom_components/ble_led_pixel/www/ble-led-pixel-card.js");
 await import(pathToFileURL(file).href);
 const {
-  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, EFFECT,
+  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, frameWidth, EFFECT,
 } = globalThis.__bleLedPixelCard;
 
 // A picture of one solid colour, `width` x `height`.
@@ -132,4 +132,17 @@ test("speed is clamped and defaults sensibly", () => {
   assert.equal(scrollSpeed(100), 66);
   assert.equal(scrollSpeed(500), 66);
   assert.equal(scrollSpeed(undefined), scrollSpeed(80));
+});
+
+test("the frame width defaults, is clamped, and still honours the old frame switch", () => {
+  assert.equal(frameWidth({}), 6);
+  assert.equal(frameWidth({ frame_width: 3 }), 3);
+  assert.equal(frameWidth({ frame_width: 0 }), 0);
+  assert.equal(frameWidth({ frame_width: "8" }), 8);
+  assert.equal(frameWidth({ frame_width: -4 }), 0);
+  assert.equal(frameWidth({ frame_width: 99 }), 24);
+  assert.equal(frameWidth({ frame_width: "x" }), 6);
+  assert.equal(frameWidth({ frame: false }), 0);
+  assert.equal(frameWidth({ frame: false, frame_width: 5 }), 5);
+  assert.equal(frameWidth({ frame: true }), 6);
 });

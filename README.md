@@ -317,7 +317,10 @@ Every panel gets a **Preview** image entity, and the integration brings the matc
 type: custom:ble-led-pixel-card
 entity: image.living_room_panel_preview
 shape: round
+frame_width: 6
 ```
+
+The options are `shape` (`round` or `square`), `pixel_size` (0 fits the card), `gap` between the LEDs, `frame_width` (the dark frame around the panel in px, 0 for none) and `name` (a title above the panel).
 
 It shows what Home Assistant last sent to the panel successfully, including what your automations send. Limits:
 

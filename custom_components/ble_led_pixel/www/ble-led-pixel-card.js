@@ -30,7 +30,7 @@ const TEXTS = {
     square: "Square",
     pixel_size: "Pixel size (0 = fit the card)",
     gap: "Gap between LEDs",
-    frame: "Frame",
+    frame_width: "Frame width in px (0 = no frame)",
   },
   de: {
     offline: "offline",
@@ -49,7 +49,7 @@ const TEXTS = {
     square: "Eckig",
     pixel_size: "Pixelgröße (0 = an Karte anpassen)",
     gap: "Abstand zwischen den LEDs",
-    frame: "Rahmen",
+    frame_width: "Rahmenbreite in px (0 = kein Rahmen)",
   },
 };
 
@@ -174,6 +174,19 @@ function isAnimated(effect, hasStrip) {
   return hasStrip && effect >= EFFECT.LEFT && effect <= EFFECT.DOWN;
 }
 
+// Width of the dark bezel around the panel, in px. `frame: false` (the option
+// before there was a width) still means no frame.
+const DEFAULT_FRAME_WIDTH = 6;
+const MAX_FRAME_WIDTH = 24;
+function frameWidth(config) {
+  const wanted = config && config.frame_width;
+  if (wanted !== undefined && wanted !== null && wanted !== "" && Number.isFinite(Number(wanted))) {
+    return Math.max(0, Math.min(MAX_FRAME_WIDTH, Number(wanted)));
+  }
+  if (config && config.frame === false) return 0;
+  return DEFAULT_FRAME_WIDTH;
+}
+
 class BleLedPixelCard extends HTMLElement {
   constructor() {
     super();
@@ -199,7 +212,6 @@ class BleLedPixelCard extends HTMLElement {
       shape: "round",
       pixel_size: 0,
       gap: 1,
-      frame: true,
       ...config,
     };
     this._build();
@@ -250,27 +262,30 @@ class BleLedPixelCard extends HTMLElement {
         :host { display: block; }
         ha-card { overflow: hidden; }
         .title { padding: 12px 16px 0; font-weight: 500; color: var(--primary-text-color); }
-        .host { position: relative; padding: 12px; }
-        .framed .host { padding: 14px; background: #1c1c1c; }
-        .framed canvas { box-shadow: 0 0 0 4px #000; }
-        canvas { display: block; margin: 0 auto; background: #000; image-rendering: pixelated; }
-        .note { position: absolute; inset: 12px; display: flex; align-items: center;
+        .host { padding: 12px; text-align: center; }
+        .bezel { position: relative; display: inline-block; line-height: 0;
+                 background: #1c1c1c; border-radius: 10px; }
+        .bezel.bare { background: none; border-radius: 0; }
+        canvas { display: block; background: #000; border-radius: 4px; image-rendering: pixelated; }
+        .bare canvas { border-radius: 0; }
+        .note { position: absolute; inset: 0; display: flex; align-items: center;
                 justify-content: center; text-align: center; color: #cfcfcf;
                 font: 500 14px/1.3 var(--paper-font-body1_-_font-family, sans-serif);
-                text-shadow: 0 0 6px #000; pointer-events: none; padding: 8px; }
-        .badge { position: absolute; top: 18px; right: 20px; padding: 2px 8px; border-radius: 10px;
-                 background: #b71c1c; color: #fff; font: 600 11px sans-serif; text-transform: uppercase; }
+                text-shadow: 0 0 6px #000; pointer-events: none; padding: 8px; box-sizing: border-box; }
+        .badge { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 10px;
+                 background: #b71c1c; color: #fff; font: 600 11px/1.4 sans-serif; text-transform: uppercase; }
         .dim canvas { opacity: 0.35; }
         .hidden { display: none; }
       </style>
       <ha-card>
         <div class="title hidden"></div>
-        <div class="host"><canvas></canvas>
-          <div class="note hidden"></div><div class="badge hidden"></div></div>
+        <div class="host"><div class="bezel"><canvas></canvas>
+          <div class="note hidden"></div><div class="badge hidden"></div></div></div>
       </ha-card>`;
     this._card = this._root.querySelector("ha-card");
     this._title = this._root.querySelector(".title");
     this._canvasHost = this._root.querySelector(".host");
+    this._bezel = this._root.querySelector(".bezel");
     this._canvas = this._root.querySelector("canvas");
     this._note = this._root.querySelector(".note");
     this._badge = this._root.querySelector(".badge");
@@ -372,7 +387,6 @@ class BleLedPixelCard extends HTMLElement {
     const name = this._config.name;
     this._title.textContent = name || "";
     this._title.classList.toggle("hidden", !name);
-    this._card.classList.toggle("framed", this._config.frame !== false);
     this._draw();
   }
 
@@ -454,12 +468,15 @@ class BleLedPixelCard extends HTMLElement {
     const offline = attrs.connected === false;
     this._badge.textContent = t(hass, "offline");
     this._badge.classList.toggle("hidden", !offline);
-    this._canvasHost.classList.toggle("dim", offline);
+    this._bezel.classList.toggle("dim", offline);
   }
 
   _paint(canvas, frame, factor, cols, rows) {
     const gap = Math.max(0, Number(this._config.gap) || 0);
-    const available = Math.max(40, this._width - (this._config.frame !== false ? 28 : 24));
+    const fw = frameWidth(this._config);
+    this._bezel.style.padding = `${fw}px`;
+    this._bezel.classList.toggle("bare", fw === 0);
+    const available = Math.max(40, this._width - 2 * fw);
     let pixel = Number(this._config.pixel_size) || 0;
     if (!pixel) pixel = Math.max(2, Math.floor(available / cols));
     const dpr = window.devicePixelRatio || 1;
@@ -547,7 +564,7 @@ class BleLedPixelCardEditor extends HTMLElement {
       },
       { name: "pixel_size", selector: { number: { min: 0, max: 24, mode: "box" } } },
       { name: "gap", selector: { number: { min: 0, max: 8, step: 0.5, mode: "box" } } },
-      { name: "frame", selector: { boolean: {} } },
+      { name: "frame_width", selector: { number: { min: 0, max: MAX_FRAME_WIDTH, mode: "box" } } },
     ];
   }
 
@@ -572,7 +589,7 @@ class BleLedPixelCardEditor extends HTMLElement {
       shape: "round",
       pixel_size: 0,
       gap: 1,
-      frame: true,
+      frame_width: frameWidth(this._config),
       ...this._config,
     };
     this._form.schema = this._schema();
@@ -593,7 +610,7 @@ window.customCards.push({
 
 // Lets the effect maths be tested without a browser.
 globalThis.__bleLedPixelCard = {
-  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, EFFECT,
+  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, frameWidth, EFFECT,
 };
 
 console.info(`%c BLE-LED-PIXEL-CARD %c ${VERSION} `, "background:#222;color:#0f0", "");
