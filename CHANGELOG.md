@@ -600,6 +600,15 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.5.0-beta.2] - 2026-11-16
+
+### Fixed
+
+- **The dashboard card file was missing from beta.1.** A `.gitignore` rule for
+  Home Assistant's own `www/` folder also swallowed the card's folder inside the
+  integration, so the card never reached the release. It is included now; use
+  this beta rather than beta.1.
+
 ## [2.5.0-beta.1] - 2026-11-16
 
 ### Added

@@ -206,3 +206,6 @@ test_venv/
 # Vendor app graphics extracted for reverse-image research. Same copyright
 # reasoning as the APK itself: useful locally, must not ship in the repo.
 /research/
+
+# The dashboard card is shipped inside the integration.
+!custom_components/ble_led_pixel/www/
