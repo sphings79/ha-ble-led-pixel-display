@@ -6,7 +6,7 @@
   **Put live Home Assistant data on a cheap Bluetooth LED panel — text, images, animated GIFs, Material Design Icons and composed layouts.**
   A custom integration for LED pixel matrix displays that speak the iPIXEL Color protocol, sold as **BGLight** and as the **B.K. Light LED Pixel Board** at Action. Fully local over Bluetooth LE — no cloud, no vendor app, no account.
 
-  [![Marketplace](https://img.shields.io/badge/Marketplace-Custom-41BDF5?style=for-the-badge)](https://my.home-assistant.io/redirect/marketplace_browse/)
+  [![Marketplace](https://img.shields.io/badge/Marketplace-Default-41BDF5?style=for-the-badge)](https://my.home-assistant.io/redirect/marketplace_browse/)
   [![Release](https://img.shields.io/github/v/release/sphings79/ha-ble-led-pixel-display?style=for-the-badge&color=7C7CF5)](https://github.com/sphings79/ha-ble-led-pixel-display/releases)
   [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-41BDF5?style=for-the-badge)](https://www.home-assistant.io)
   [![License](https://img.shields.io/badge/License-GPL--3.0-3ddc97?style=for-the-badge)](LICENSE)
@@ -313,7 +313,7 @@ triggers:
 
 ### Marketplace (Home Assistant 2026.11 and newer)
 
-Home Assistant 2026.11 replaces HACS with the built-in **Marketplace**. BLE LED Pixel Display is not in the default catalog, so add it as a custom repository: in **Settings → Marketplace**, add `https://github.com/sphings79/ha-ble-led-pixel-display` (category **Integration**), then install it from there. Custom repositories need the Marketplace to be connected to GitHub, and it asks you to connect the first time.
+Home Assistant 2026.11 replaces HACS with the built-in **Marketplace**, and BLE LED Pixel Display is in its default catalog: open **Settings → Marketplace**, search for **BLE LED Pixel Display** and install it.
 
 You can also use this button:
 
@@ -322,6 +322,8 @@ You can also use this button:
 Restart Home Assistant if a repair asks you to.
 
 ### HACS (Home Assistant 2026.10 and older)
+
+HACS is what the Marketplace replaced. Add the repository by hand:
 
 1. Open HACS in Home Assistant
 2. Three dots menu, top right → **Custom repositories**
