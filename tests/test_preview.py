@@ -46,6 +46,7 @@ def make_preview(connected=True):
     prev.kind = "none"
     prev.meta = {}
     prev.updated = None
+    prev.scale = 1
     prev._listeners = []
     return prev
 
@@ -416,3 +417,101 @@ def test_the_card_effects_hold_up_in_node():
         cwd=root, capture_output=True, text=True, timeout=60,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+# --- the entity serves an enlarged picture -----------------------------------
+
+@pytest.mark.parametrize("size, factor", [((32, 32), 8), ((64, 16), 4), ((128, 32), 2), ((200, 50), 1), ((300, 100), 1), ((8, 8), 16), ((2, 2), 16)])
+def test_scale_factor_aims_for_a_readable_picture(size, factor):
+    assert preview_module.scale_factor(*size) == factor
+
+
+def test_upscale_keeps_pixels_square_and_unsmoothed():
+    img = Image.new("RGB", (2, 1), (255, 0, 0))
+    img.putpixel((1, 0), (0, 255, 0))
+    out = io.BytesIO()
+    img.save(out, format="PNG")
+    big = Image.open(io.BytesIO(preview_module.upscale(out.getvalue(), 4))).convert("RGB")
+    assert big.size == (8, 4)
+    assert {big.getpixel((x, y)) for x in range(4) for y in range(4)} == {(255, 0, 0)}
+    assert {big.getpixel((x, y)) for x in range(4, 8) for y in range(4)} == {(0, 255, 0)}
+
+
+def test_upscale_by_one_changes_nothing():
+    data = png(4, 4)
+    assert preview_module.upscale(data, 1) is data
+
+
+def test_upscale_keeps_a_gif_animated():
+    frames = [Image.new("RGB", (8, 8), c) for c in ((255, 0, 0), (0, 255, 0))]
+    out = io.BytesIO()
+    frames[0].save(out, format="GIF", save_all=True, append_images=frames[1:], duration=70, loop=0)
+    big = Image.open(io.BytesIO(preview_module.upscale(out.getvalue(), 3)))
+    assert big.size == (24, 24) and big.n_frames == 2
+
+
+def test_recording_a_picture_sets_the_scale():
+    prev = make_preview()
+    prev.set_image(png(32, 32))
+    assert prev.scale == 8
+    prev.set_image(b"not a picture")
+    assert prev.scale == 1
+
+
+def test_scale_is_recomputed_after_a_restart():
+    prev = make_preview()
+    prev.set_image(png(64, 16))
+    again = make_preview()
+    again._store.loaded = prev._store.saved
+    asyncio.run(again.async_load())
+    assert again.scale == 4
+
+
+class _EntityHass:
+    def __init__(self):
+        self.jobs = 0
+
+    async def async_add_executor_job(self, job, *args):
+        self.jobs += 1
+        return job(*args)
+
+
+def _entity(api):
+    entity = image_module.BleLedPixelPreviewImage.__new__(image_module.BleLedPixelPreviewImage)
+    entity._api = api
+    entity._preview = api.preview
+    entity._enlarged = None
+    entity.hass = _EntityHass()
+    return entity
+
+
+def test_the_entity_serves_the_enlarged_picture_and_caches_it():
+    api = FakeApi()
+    api.preview.set_image(png(32, 32), "image/png", kind="image")
+    entity = _entity(api)
+    first = asyncio.run(entity.async_image())
+    assert Image.open(io.BytesIO(first)).size == (256, 256)
+    again = asyncio.run(entity.async_image())
+    assert again is first and entity.hass.jobs == 1
+    assert entity.extra_state_attributes["scale"] == 8
+    api.preview.set_image(png(32, 32, (0, 255, 0)), "image/png", kind="image")
+    assert asyncio.run(entity.async_image()) is not first and entity.hass.jobs == 2
+
+
+def test_the_entity_falls_back_to_the_small_picture():
+    api = FakeApi()
+    api.preview.set_image(png(32, 32), "image/png", kind="image")
+    entity = _entity(api)
+
+    def boom(*args):
+        raise RuntimeError("no")
+
+    async def failing(job, *args):
+        return boom()
+
+    entity.hass.async_add_executor_job = failing
+    assert asyncio.run(entity.async_image()) == api.preview.image
+
+
+def test_scale_stays_out_of_the_recorder():
+    assert "scale" in image_module.BleLedPixelPreviewImage._unrecorded_attributes

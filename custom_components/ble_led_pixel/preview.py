@@ -46,6 +46,56 @@ SCROLL_EFFECTS = (1, 2, 3, 4)
 MAX_STRIP_BYTES = 150_000
 
 
+# The picture the entity serves is enlarged to about this many pixels on its
+# long side, so it is readable in an ordinary picture card. The raw panel
+# picture (32x32, say) is far too small to look at.
+DISPLAY_LONG_EDGE = 256
+MAX_DISPLAY_SCALE = 16
+
+
+def scale_factor(width: int, height: int) -> int:
+    """Whole-number enlargement that brings the picture to about 256 px."""
+    longest = max(int(width), int(height), 1)
+    return max(1, min(MAX_DISPLAY_SCALE, DISPLAY_LONG_EDGE // longest))
+
+
+def picture_size(data: bytes | None) -> tuple[int, int] | None:
+    """(width, height) of a picture, read from its header, or None."""
+    if not data:
+        return None
+    try:
+        from PIL import Image
+
+        with Image.open(io.BytesIO(data)) as img:
+            return img.size
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def upscale(data: bytes, factor: int) -> bytes:
+    """Enlarge a PNG or GIF by a whole factor without smoothing. Executor job."""
+    if factor <= 1:
+        return data
+    from PIL import Image, ImageSequence
+
+    with Image.open(io.BytesIO(data)) as img:
+        size = (img.width * factor, img.height * factor)
+        if getattr(img, "is_animated", False) and img.format == "GIF":
+            frames, durations = [], []
+            for frame in ImageSequence.Iterator(img):
+                durations.append(frame.info.get("duration", 100))
+                frames.append(frame.convert("RGB").resize(size, Image.NEAREST))
+            out = io.BytesIO()
+            frames[0].save(
+                out, format="GIF", save_all=True, append_images=frames[1:],
+                duration=durations, loop=0, disposal=2,
+            )
+            return out.getvalue()
+        out = io.BytesIO()
+        img.convert("RGB").resize(size, Image.NEAREST).save(out, format="PNG")
+        return out.getvalue()
+
+
 def fit_image(data: bytes, width: int, height: int, method: str) -> tuple[bytes, str]:
     """Scale a picture the way the panel would, returning (bytes, content type).
 
@@ -221,6 +271,7 @@ class PanelPreview:
         self.kind = KIND_NONE
         self.meta: dict[str, Any] = {}
         self.updated: datetime | None = None
+        self.scale = 1  # enlargement the entity applies, see scale_factor()
         self._listeners: list[Callable[[], None]] = []
 
     @property
@@ -262,6 +313,7 @@ class PanelPreview:
         self.content_type = content_type
         self.kind = kind
         self.meta = self._clean(meta)
+        self._set_scale()
         self._changed()
 
     @callback
@@ -270,6 +322,10 @@ class PanelPreview:
         self.kind = KIND_PLACEHOLDER
         self.meta = self._clean({**meta, "label": label})
         self._changed()
+
+    def _set_scale(self) -> None:
+        size = picture_size(self.image)
+        self.scale = scale_factor(*size) if size else 1
 
     def _changed(self) -> None:
         self.updated = datetime.now(timezone.utc)
@@ -297,6 +353,7 @@ class PanelPreview:
             self.kind = data.get("kind") or KIND_NONE
             self.meta = self._clean(data.get("meta") or {})
             self.updated = datetime.fromisoformat(data["updated"]) if data.get("updated") else None
+            self._set_scale()
         except Exception as err:  # noqa: BLE001 - cosmetic, never block setup
             _LOGGER.debug("Could not load the stored preview: %s", err)
 

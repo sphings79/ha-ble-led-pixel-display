@@ -12,7 +12,7 @@ globalThis.document = { createElement() { return {}; } };
 const file = path.resolve("custom_components/ble_led_pixel/www/ble-led-pixel-card.js");
 await import(pathToFileURL(file).href);
 const {
-  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, frameWidth, EFFECT,
+  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, frameWidth, shrink, EFFECT,
 } = globalThis.__bleLedPixelCard;
 
 // A picture of one solid colour, `width` x `height`.
@@ -145,4 +145,31 @@ test("the frame width defaults, is clamped, and still honours the old frame swit
   assert.equal(frameWidth({ frame: false }), 0);
   assert.equal(frameWidth({ frame: false, frame_width: 5 }), 5);
   assert.equal(frameWidth({ frame: true }), 6);
+});
+
+test("the enlarged preview picture is shrunk back to the panel's own pixels", () => {
+  // A 2x2 panel picture enlarged by 4: one colour per 4x4 block.
+  const colours = [[255, 0, 0], [0, 255, 0], [0, 0, 255], [9, 9, 9]];
+  const big = { width: 8, height: 8, data: new Uint8ClampedArray(8 * 8 * 4) };
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      const c = colours[(y >> 2) * 2 + (x >> 2)];
+      const i = (y * 8 + x) * 4;
+      big.data[i] = c[0]; big.data[i + 1] = c[1]; big.data[i + 2] = c[2]; big.data[i + 3] = 255;
+    }
+  }
+  const small = shrink(big, 4);
+  assert.equal(small.width, 2);
+  assert.equal(small.height, 2);
+  assert.deepEqual(Array.from(small.data.slice(0, 3)), [255, 0, 0]);
+  assert.deepEqual(Array.from(small.data.slice(4, 7)), [0, 255, 0]);
+  assert.deepEqual(Array.from(small.data.slice(8, 11)), [0, 0, 255]);
+  assert.deepEqual(Array.from(small.data.slice(12, 15)), [9, 9, 9]);
+});
+
+test("without a scale the picture is used as it is", () => {
+  const src = solid(3, 3, [1, 2, 3]);
+  assert.equal(shrink(src, undefined), src);
+  assert.equal(shrink(src, 1), src);
+  assert.equal(shrink(src, "x"), src);
 });

@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import CONF_ADDRESS, CONF_NAME, DOMAIN
 from .entity import panel_device_info
+from .preview import upscale
 
 
 async def async_setup_entry(
@@ -39,7 +40,7 @@ class BleLedPixelPreviewImage(ImageEntity):
         {
             "kind", "mode", "text", "effect", "effect_code", "speed",
             "rainbow_mode", "color", "bg_color", "label", "width", "height",
-            "connected",
+            "connected", "scale",
         }
     )
 
@@ -50,6 +51,8 @@ class BleLedPixelPreviewImage(ImageEntity):
         self._attr_unique_id = f"{address}_preview"
         self._attr_device_info = panel_device_info(api, address, name)
         self._remove_listener = None
+        # The enlarged picture, kept until the content changes.
+        self._enlarged: tuple[object, bytes] | None = None
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -73,7 +76,24 @@ class BleLedPixelPreviewImage(ImageEntity):
         return self._preview.updated
 
     async def async_image(self) -> bytes | None:
-        return self._preview.image
+        """The picture, enlarged so it is readable outside the card.
+
+        The panel's own picture is 32x32 or so. The card reads the exact
+        pixels back out of this one using the `scale` attribute.
+        """
+        image = self._preview.image
+        factor = self._preview.scale
+        if image is None or factor <= 1:
+            return image
+        key = (self._preview.updated, factor, len(image))
+        if self._enlarged is not None and self._enlarged[0] == key:
+            return self._enlarged[1]
+        try:
+            enlarged = await self.hass.async_add_executor_job(upscale, image, factor)
+        except Exception:  # noqa: BLE001 - the small picture is better than none
+            return image
+        self._enlarged = (key, enlarged)
+        return enlarged
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -84,6 +104,7 @@ class BleLedPixelPreviewImage(ImageEntity):
         attrs: dict[str, Any] = {
             "kind": self._preview.kind,
             "connected": self._preview.connected,
+            "scale": self._preview.scale,
             "width": width,
             "height": height,
         }

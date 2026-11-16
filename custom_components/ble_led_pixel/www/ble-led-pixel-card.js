@@ -88,6 +88,29 @@ function breatheFactor(t) {
   return 0.15 + 0.85 * (0.5 + 0.5 * Math.cos((2 * Math.PI * t) / BREATHE_PERIOD));
 }
 
+// The preview entity serves its picture enlarged by a whole factor (`scale`),
+// so it is readable in an ordinary picture card. Take the panel's own pixels
+// back out of it: the middle of every block.
+function shrink(src, scale) {
+  const factor = Math.max(1, Math.round(Number(scale) || 1));
+  if (factor === 1) return src;
+  const width = Math.floor(src.width / factor);
+  const height = Math.floor(src.height / factor);
+  const data = new Uint8ClampedArray(width * height * 4);
+  const half = factor >> 1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const from = ((y * factor + half) * src.width + (x * factor + half)) * 4;
+      const to = (y * width + x) * 4;
+      data[to] = src.data[from];
+      data[to + 1] = src.data[from + 1];
+      data[to + 2] = src.data[from + 2];
+      data[to + 3] = 255;
+    }
+  }
+  return { width, height, data };
+}
+
 function hexToRgb(hex) {
   const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
   if (!m) return [0, 0, 0];
@@ -315,11 +338,11 @@ class BleLedPixelCard extends HTMLElement {
       return;
     }
     const picture = state.attributes.entity_picture;
-    const key = picture ? `${picture}|${state.state}` : null;
+    const key = picture ? `${picture}|${state.state}|${state.attributes.scale || 1}` : null;
     if (key && key !== this._loadedKey) {
       this._loadedKey = key;
       this._t0 = performance.now(); // an effect starts over with new content
-      this._load(picture, state.state, key);
+      this._load(picture, state.state, key, state.attributes.scale);
     }
     this._loadStrip(state.attributes.strip);
     this._render();
@@ -355,7 +378,7 @@ class BleLedPixelCard extends HTMLElement {
     }
   }
 
-  async _load(picture, stamp, key) {
+  async _load(picture, stamp, key, scale) {
     try {
       const sep = picture.includes("?") ? "&" : "?";
       const response = await fetch(`${picture}${sep}t=${encodeURIComponent(stamp)}`);
@@ -369,11 +392,12 @@ class BleLedPixelCard extends HTMLElement {
       const ctx = scratch.getContext("2d", { willReadFrequently: true });
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(bitmap, 0, 0);
-      this._source = {
+      const full = {
         width: bitmap.width,
         height: bitmap.height,
         data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data,
       };
+      this._source = shrink(full, scale);
       this._draw();
     } catch (err) {
       this._source = null;
@@ -610,7 +634,7 @@ window.customCards.push({
 
 // Lets the effect maths be tested without a browser.
 globalThis.__bleLedPixelCard = {
-  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, frameWidth, EFFECT,
+  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, frameWidth, shrink, EFFECT,
 };
 
 console.info(`%c BLE-LED-PIXEL-CARD %c ${VERSION} `, "background:#222;color:#0f0", "");

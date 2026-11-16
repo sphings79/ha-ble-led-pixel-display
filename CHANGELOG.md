@@ -600,6 +600,18 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.5.0-beta.5] - 2026-11-16
+
+### Fixed
+
+- **The Preview picture was far too small outside the card.** The image entity
+  served the panel's own pixels (32x32 on a square panel), so an ordinary
+  picture card showed a thumbnail. It now serves the picture enlarged by a whole
+  factor to about 256 pixels on its long side, without smoothing, so the pixels
+  stay sharp (32x32 becomes 256x256, 64x16 becomes 256x64). The dashboard card
+  reads the exact panel pixels back out of it, so it looks the same as before.
+  Reported by cmarqu (#12).
+
 ## [2.5.0-beta.4] - 2026-11-16
 
 ### Added
