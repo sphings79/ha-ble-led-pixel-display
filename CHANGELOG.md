@@ -600,6 +600,32 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.5.0-beta.1] - 2026-11-16
+
+### Added
+
+- **Dashboard card that shows what the panel displays.** Every panel gets a
+  `Preview` image entity holding the last content Home Assistant sent to it
+  successfully, and the integration ships the matching `ble-led-pixel-card`
+  itself: nothing to install, no resource to add. Pick it in the card picker,
+  choose the panel's preview entity, and it draws the content as LEDs (round or
+  square, pixel size, gap and frame are options). Text, text rendered as a
+  picture, icons, emoji, layouts, bundled pictures and image files are all
+  covered, including whatever an automation sends.
+- The clock, stored slots, presets, scoreboard, countdown and stopwatch are drawn
+  by the panel itself and have no picture, so the card shows a label instead.
+- A panel that is offline is marked as such; the picture stays dimmed.
+- The last picture is kept across restarts.
+
+### Known limits
+
+- The card shows what Home Assistant sent. A change made with the vendor app
+  or a remote is not visible, because the panel does not report its content.
+- Text effects (scrolling and the like) are not animated yet; the card shows
+  the still picture. Animation follows in a later beta.
+- Text mode lays its text out in the panel firmware, so its preview is this
+  integration's own rendering of the same words: close, not identical.
+
 ## [2.4.2-beta.2] - 2026-11-13
 
 ### Added

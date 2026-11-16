@@ -314,6 +314,24 @@ triggers:
       address: "AA:BB:CC:DD:EE:FF"
 ```
 
+### Dashboard-Karte: sehen, was das Panel anzeigt
+
+Jedes Panel bekommt eine **Vorschau**-Bildentität, und die passende Karte bringt die Integration gleich mit: nichts zu installieren, keine Ressource einzutragen. Karte hinzufügen, nach **BLE LED Pixel Display** suchen und die Vorschau-Entität des Panels wählen. Der Inhalt wird als LEDs gezeichnet; Form, Pixelgröße, Abstand und Rahmen stellst du im Karten-Editor ein.
+
+```yaml
+type: custom:ble-led-pixel-card
+entity: image.wohnzimmer_panel_vorschau
+shape: round
+```
+
+Gezeigt wird, was Home Assistant zuletzt erfolgreich an das Panel gesendet hat, auch was deine Automationen senden. Grenzen:
+
+- Eine Änderung über die Hersteller-App oder eine Fernbedienung wird nicht angezeigt: Das Panel meldet seinen Inhalt nicht zurück.
+- Uhr, gespeicherte Slots, Voreinstellungen, Anzeigetafel, Countdown und Stoppuhr zeichnet das Panel selbst; die Karte zeigt dafür eine Beschriftung statt eines Bildes.
+- Ein Panel, das offline ist, wird markiert und abgedunkelt.
+- Text-Effekte (Laufschrift und Ähnliches) erscheinen vorerst als Standbild.
+- Im Text-Modus legt das Panel den Text selbst aus, die Vorschau ist daher nah dran, aber nicht identisch.
+
 ## Installation
 
 ### Marketplace (Home Assistant 2026.11 und neuer)
@@ -364,6 +382,7 @@ Normalerweise findet Home Assistant es von selbst und bietet es unter **Einstell
 | **Auto Update** | `switch` | **Vorher [Flackern vermeiden](#flackern-vermeiden-wie-updates-wirklich-funktionieren) lesen** |
 | **Update Display** | `button` | Überträgt den gespeicherten Zustand ans Panel |
 | **Sync Time** | `button` | Stellt die Geräteuhr |
+| **Vorschau** | `image` | Was das Panel zeigt, für die [Dashboard-Karte](#dashboard-karte-sehen-was-das-panel-anzeigt) |
 | Device Type, Display Width, Display Height, MCU-/WiFi-Version | `sensor` | Diagnose |
 
 ## Anzeigemodi

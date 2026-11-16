@@ -309,6 +309,24 @@ triggers:
       address: "AA:BB:CC:DD:EE:FF"
 ```
 
+### Dashboard card: see what the panel shows
+
+Every panel gets a **Preview** image entity, and the integration brings the matching card with it: nothing to install and no resource to add. Add a card, search for **BLE LED Pixel Display**, and pick the panel's Preview entity. The content is drawn as LEDs; the shape, pixel size, gap and frame are options in the card editor.
+
+```yaml
+type: custom:ble-led-pixel-card
+entity: image.living_room_panel_preview
+shape: round
+```
+
+It shows what Home Assistant last sent to the panel successfully, including what your automations send. Limits:
+
+- A change made with the vendor app or a remote is not shown: the panel does not report its content.
+- The clock, stored slots, presets, scoreboard, countdown and stopwatch are drawn by the panel itself, so the card shows a label instead of a picture.
+- A panel that is offline is marked and dimmed.
+- Text effects (scrolling and the like) are shown as a still picture for now.
+- In text mode the panel lays the text out itself, so the preview is close, not identical.
+
 ## Installation
 
 ### Marketplace (Home Assistant 2026.11 and newer)
@@ -359,6 +377,7 @@ Home Assistant usually discovers it by itself and offers it under **Settings →
 | **Auto Update** | `switch` | **Read [Avoiding flicker](#avoiding-flicker-how-updates-actually-work) before touching this** |
 | **Update Display** | `button` | Renders the stored state to the panel |
 | **Sync Time** | `button` | Sets the device clock |
+| **Preview** | `image` | What the panel shows, for the [dashboard card](#dashboard-card-see-what-the-panel-shows) |
 | Device Type, Display Width, Display Height, MCU/WiFi Version | `sensor` | Diagnostics |
 
 ## Display modes

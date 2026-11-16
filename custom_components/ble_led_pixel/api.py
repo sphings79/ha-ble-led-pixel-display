@@ -17,6 +17,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .bluetooth.client import BluetoothClient
+from .preview import PanelPreview, fit_image
 from .device.commands import (
     make_power_command,
     make_brightness_command,
@@ -72,6 +73,7 @@ from .const import (
     OPT_OVERRIDE_DIMENSIONS,
     OPT_PANEL_HEIGHT,
     OPT_PANEL_WIDTH,
+    TEXT_EFFECT_CODES,
     text_sizes_for_height,
 )
 
@@ -172,6 +174,8 @@ class BleLedPixelAPI:
         self.current_mode: str | None = None
         self._device_info: dict[str, Any] | None = None
         self._device_response: bytes | None = None
+        # What the panel was last sent, for the dashboard card.
+        self.preview = PanelPreview(hass, address, lambda: self.is_connected)
 
     def _resolved_dimensions(self, base_info: dict[str, Any]) -> tuple[int, int]:
         """Return (width, height) honoring options-flow overrides if set."""
@@ -204,10 +208,12 @@ class BleLedPixelAPI:
         self._hass.bus.async_fire(
             "ble_led_pixel_connected", {"address": self._address}
         )
+        self.preview.notify()
 
     async def disconnect(self) -> None:
         """Disconnect from the device."""
         await self._bluetooth.disconnect()
+        self.preview.notify()
     
     async def ensure_connected(self) -> bool:
         """Reconnect if the link dropped. Never raises."""
@@ -479,6 +485,7 @@ class BleLedPixelAPI:
         # next advertisement that reaches Home Assistant could, from a panel at
         # the edge of range, take minutes or never happen.
         def _link_lost() -> None:
+            self.preview.notify()
             if self._watcher_started and not self.is_connected:
                 self._schedule_reconnect()
 
@@ -650,6 +657,7 @@ class BleLedPixelAPI:
 
             _LOGGER.info("Clock mode set: style=%d, 24h=%s, show_date=%s",
                        style, format_24, show_date)
+            self._record_placeholder(still_current, "clock", mode="clock")
 
             # Sync current time to the device
             time_success = await self.sync_time()
@@ -1046,6 +1054,37 @@ class BleLedPixelAPI:
             except Exception:  # noqa: BLE001 - one entity must not break the query
                 _LOGGER.exception("Device info listener failed")
     
+    def _record_image(
+        self,
+        still_current: Callable[[], bool] | None,
+        data: bytes,
+        content_type: str = "image/png",
+        **meta: Any,
+    ) -> None:
+        """Remember a picture the panel now shows, for the dashboard card.
+
+        Skipped when newer content was requested meanwhile (the send was then
+        dropped, and the newer request records itself). Never raises: the
+        preview is cosmetic and must not fail a send that worked.
+        """
+        try:
+            if still_current is not None and not still_current():
+                return
+            self.preview.set_image(data, content_type, **meta)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not record the preview: %s", err)
+
+    def _record_placeholder(
+        self, still_current: Callable[[], bool] | None, label: str, **meta: Any
+    ) -> None:
+        """Remember content the panel draws itself, so the card says so."""
+        try:
+            if still_current is not None and not still_current():
+                return
+            self.preview.set_placeholder(label, **meta)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not record the preview: %s", err)
+
     async def _make_image_plan(self, **kwargs):
         """Build an image SendPlan off the event loop.
 
@@ -1107,6 +1146,10 @@ class BleLedPixelAPI:
                 _LOGGER.error("Failed to send the rendered text to the panel")
                 return False
 
+            self._record_image(
+                still_current, png_data, "image/png", kind="image",
+                mode="textimage", text=text, color=text_color, bg_color=bg_color,
+            )
             _LOGGER.info(
                 "Text rendered as image: '%s' (%dx%d, %d bytes PNG)",
                 text,
@@ -1176,6 +1219,11 @@ class BleLedPixelAPI:
             if not success:
                 _LOGGER.error("Failed to send MDI icon '%s'", icon)
                 return False
+
+            self._record_image(
+                still_current, png_data, "image/png", kind="image", mode="icon",
+                color=color, bg_color=bg_color,
+            )
 
             _LOGGER.info(
                 "MDI icon '%s' sent (%dx%d, %d bytes PNG)",
@@ -1360,6 +1408,12 @@ class BleLedPixelAPI:
                 _LOGGER.error("Failed to send layout (icons=%s, texts=%s)", icons, texts)
                 return False
 
+            self._record_image(
+                still_current, png_data,
+                "image/gif" if str(file_ext).lower().endswith("gif") else "image/png",
+                kind="image", mode="layout", bg_color=bg_color,
+            )
+
             _LOGGER.info(
                 "Layout sent (%dx%d, n_icons=%d, n_texts=%d)",
                 width, height, len(icons or []), len(texts or []),
@@ -1412,6 +1466,17 @@ class BleLedPixelAPI:
             if not success:
                 _LOGGER.error("Failed to send image file '%s'", file_path)
                 return False
+
+            try:
+                width, height = self._resolved_dimensions(device_info)
+                shown, shown_type = await self._hass.async_add_executor_job(
+                    fit_image, file_bytes, width, height, resize_method
+                )
+                self._record_image(
+                    still_current, shown, shown_type, kind="image", mode="image",
+                )
+            except Exception as err:  # noqa: BLE001 - the picture was sent fine
+                _LOGGER.debug("Could not build the preview of '%s': %s", file_path, err)
 
             _LOGGER.info("Image file '%s' sent (%d bytes)", file_path, len(file_bytes))
             return True
@@ -1613,6 +1678,7 @@ class BleLedPixelAPI:
             _LOGGER.error("Error showing slot %d: %s", slot, err)
             return False
         if success:
+            self._record_placeholder(still_current, "slot", mode="slot", text=str(slot))
             _LOGGER.debug("Showing slot %d", slot)
         else:
             _LOGGER.error("Failed to show slot %d", slot)
@@ -1703,6 +1769,7 @@ class BleLedPixelAPI:
         still_current = self._claim_content()
         success = await self._send_with_reconnect(command, content=True, still_current=still_current)
         if success:
+            self._record_placeholder(still_current, feature, mode=feature)
             _LOGGER.debug("%s", description)
         else:
             _LOGGER.error("Failed: %s", description)
@@ -1761,6 +1828,38 @@ class BleLedPixelAPI:
             make_stopwatch_command(running),
             f"Stopwatch {'started' if running else 'stopped'}",
         )
+
+    async def _record_text_mode(
+        self, still_current, text, color, bg_color, font, animation, speed,
+        rainbow_mode, char_height, base_info,
+    ) -> None:
+        """Preview of a text-mode send: a still picture plus the effect to apply.
+
+        The panel lays this text out itself, so the picture is this
+        integration's own rendering of the same words -- close, not identical.
+        """
+        try:
+            if still_current is not None and not still_current():
+                return
+            from .common import strip_inline_color_tags
+            from .display.text_renderer import render_text_to_png
+
+            width, height = self._resolved_dimensions(base_info)
+            shown = strip_inline_color_tags(text, where="the preview")
+            png = await self._hass.async_add_executor_job(
+                partial(
+                    render_text_to_png, shown, width, height, False,
+                    char_height, Path(font).name if font else None, 0,
+                    color, bg_color or "000000",
+                )
+            )
+            self.preview.set_image(
+                png, "image/png", kind="text", mode="text", text=text,
+                effect=TEXT_EFFECT_CODES.get(animation), effect_code=animation, speed=speed, rainbow_mode=rainbow_mode,
+                color=color, bg_color=bg_color or "000000",
+            )
+        except Exception as err:  # noqa: BLE001 - cosmetic
+            _LOGGER.debug("Could not build the text preview: %s", err)
 
     async def display_text_pypixelcolor(
         self,
@@ -1871,6 +1970,11 @@ class BleLedPixelAPI:
                 _LOGGER.error("Failed to send pypixelcolor text plan")
                 return False
 
+            await self._record_text_mode(
+                still_current, text, color, bg_color, font, animation, speed,
+                rainbow_mode, char_height, base_info,
+            )
+
             _LOGGER.info(
                 "Pypixelcolor text sent: '%s' (color=%s, bg=%s, font=%s, anim=%d, speed=%d, frames=%d)",
                 text,
@@ -1940,6 +2044,11 @@ class BleLedPixelAPI:
             if not success:
                 _LOGGER.error("Failed to send emoji %r to the panel", emoji)
                 return False
+
+            self._record_image(
+                still_current, png_data, "image/png", kind="image", mode="emoji",
+                bg_color=bg_color,
+            )
 
             _LOGGER.info("Emoji %r displayed (%dx%d)", emoji, width, height)
             return True
