@@ -670,6 +670,32 @@ out is easy and undoing it needs physical access to the power supply.
 - Text mode lays its text out in the panel firmware, so its preview is this
   integration's own rendering of the same words: close, not identical.
 
+## [2.4.2] - 2026-11-16
+
+First stable release of the 2.4.2 line: everything from the two betas below.
+Panels at the edge of Bluetooth range reconnect much more reliably, and there is
+a new Orientation select and a new event.
+
+### Added
+
+- **Orientation select** to turn the picture by 0, 90, 180 or 270 degrees. The
+  panel does the turning, so its own clock faces and effects follow. Square
+  panels offer all four, other shapes 0 and 180, as the vendor app does.
+- **`ble_led_pixel_connected` event**, fired with the panel's `address` whenever
+  a link comes up (also at start-up), so an automation can send its frame the
+  moment a panel is back instead of polling. By cmarqu.
+
+### Fixed
+
+- **A panel that was never connected is connected by the reconnect watcher**
+  instead of failing every few minutes until a reload. By cmarqu.
+- **Reconnecting starts as soon as the link drops**, not with the next
+  advertisement that reaches Home Assistant. By cmarqu.
+- **No guessed 64x16 size any more.** A panel that did not report its size is
+  asked again instead of being stuck on a wrong default. A size entered under
+  *Override panel dimensions* is still used when the panel does not answer. By
+  cmarqu.
+
 ## [2.4.2-beta.2] - 2026-11-13
 
 ### Added
