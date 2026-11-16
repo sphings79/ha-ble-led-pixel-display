@@ -35,8 +35,15 @@ KIND_PLACEHOLDER = "placeholder"
 # cannot grow the entity attributes without bound.
 META_KEYS = (
     "mode", "text", "effect", "effect_code", "speed", "rainbow_mode",
-    "color", "bg_color", "label",
+    "color", "bg_color", "label", "strip",
 )
+
+# Effects that move the text across the panel, and so need the whole line as a
+# picture of its own rather than just the first view of it.
+SCROLL_EFFECTS = (1, 2, 3, 4)
+# A line longer than this (as base64) is not sent along; the card then shows
+# the still picture instead of a scroll.
+MAX_STRIP_BYTES = 150_000
 
 
 def fit_image(data: bytes, width: int, height: int, method: str) -> tuple[bytes, str]:
@@ -78,6 +85,122 @@ def fit_image(data: bytes, width: int, height: int, method: str) -> tuple[bytes,
         out = io.BytesIO()
         place(img).save(out, format="PNG")
         return out.getvalue(), "image/png"
+
+
+def _rgb(value: str | None, default: tuple[int, int, int]) -> tuple[int, int, int]:
+    """A 6-digit hex colour (with or without #) as a tuple, or `default`."""
+    try:
+        raw = bytes.fromhex((value or "").lstrip("#"))
+    except ValueError:
+        return default
+    return (raw[0], raw[1], raw[2]) if len(raw) == 3 else default
+
+
+def render_text_strip(
+    text: str,
+    color: str,
+    bg_color: str | None,
+    font_config: Any,
+    char_height: int,
+):
+    """Draw a line of text the way text mode lays it out, as one wide picture.
+
+    Text mode sends the panel one bitmap per character, each in a cell of half
+    or full width, so this repeats that rule instead of measuring the line as a
+    whole. A font that declares variable width is laid out as one line.
+    Inline colour tags colour single characters as they do on the panel.
+    """
+    import unicodedata
+
+    from PIL import Image, ImageDraw, ImageFont
+    from pypixelcolor.commands.send_text.color_utils import (
+        has_color_tags, parse_colored_text, strip_color_tags,
+    )
+    from pypixelcolor.commands.send_text.image_processing import apply_pixel_threshold
+
+    fg = _rgb(color, (255, 255, 255))
+    bg = _rgb(bg_color, (0, 0, 0))
+    font_size = font_config.font_size if font_config.font_size is not None else char_height
+    font = ImageFont.truetype(font_config.path, font_size)
+    offset = tuple(font_config.offset)
+    threshold = font_config.pixel_threshold
+
+    if font_config.var_width:
+        clean = strip_color_tags(text) if has_color_tags(text) else text
+        mask = Image.new("L", (max(1, len(clean)) * char_height, char_height), 0)
+        ImageDraw.Draw(mask).text(offset, clean, fill=255, font=font)
+        mask = apply_pixel_threshold(mask, threshold)
+        bbox = mask.getbbox()
+        width = (bbox[2] + 2) if bbox else 1
+        cells = [(mask.crop((0, 0, width, char_height)), fg)]
+    else:
+        clean, char_colors = parse_colored_text(text, color)
+        half = 16 if char_height >= 32 else 8
+        full = 2 * half
+        cells = []
+        for index, char in enumerate(clean):
+            probe = Image.new("L", (100, char_height), 0)
+            box = ImageDraw.Draw(probe).textbbox((0, 0), char, font=font)
+            wide = (
+                unicodedata.east_asian_width(char) in ("W", "F")
+                or (box[2] - box[0]) > int(half * 1.25)
+            )
+            cell = Image.new("L", (full if wide else half, char_height), 0)
+            ImageDraw.Draw(cell).text(offset, char, fill=255, font=font)
+            cell = apply_pixel_threshold(cell, threshold)
+            char_color = fg
+            if char_colors is not None and index < len(char_colors):
+                char_color = _rgb(char_colors[index], fg)
+            cells.append((cell, char_color))
+
+    total = sum(cell.size[0] for cell, _ in cells) or 1
+    strip = Image.new("RGB", (total, char_height), bg)
+    x = 0
+    for cell, cell_color in cells:
+        strip.paste(Image.new("RGB", cell.size, cell_color), (x, 0), cell)
+        x += cell.size[0]
+    return strip
+
+
+def build_text_preview(
+    text: str,
+    color: str,
+    bg_color: str | None,
+    font: str | None,
+    char_height: int,
+    width: int,
+    height: int,
+    animation: int,
+) -> tuple[bytes, str | None]:
+    """The text-mode preview: (first view as PNG, whole line as base64 PNG or None).
+
+    The first view is what the panel shows when the content arrives, so a
+    plain picture card (or the entity's thumbnail) is right for every effect.
+    The whole line is only produced for the effects that move the text. Runs
+    in the executor.
+    """
+    from PIL import Image
+    from pypixelcolor.commands.send_text.font_utils import resolve_font_config
+
+    from .device.text import resolve_text_font
+
+    font_config = resolve_font_config(resolve_text_font(font, char_height))
+    strip = render_text_strip(text, color, bg_color, font_config, char_height)
+
+    first = Image.new("RGB", (width, height), _rgb(bg_color, (0, 0, 0)))
+    first.paste(strip.crop((0, 0, min(strip.size[0], width), char_height)),
+                (0, (height - char_height) // 2))
+    out = io.BytesIO()
+    first.save(out, format="PNG")
+
+    line = None
+    if animation in SCROLL_EFFECTS:
+        buf = io.BytesIO()
+        strip.save(buf, format="PNG")
+        encoded = base64.b64encode(buf.getvalue()).decode()
+        if len(encoded) <= MAX_STRIP_BYTES:
+            line = encoded
+    return out.getvalue(), line
 
 
 class PanelPreview:

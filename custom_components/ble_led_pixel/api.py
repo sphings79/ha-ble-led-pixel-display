@@ -1833,30 +1833,46 @@ class BleLedPixelAPI:
         self, still_current, text, color, bg_color, font, animation, speed,
         rainbow_mode, char_height, base_info,
     ) -> None:
-        """Preview of a text-mode send: a still picture plus the effect to apply.
+        """Preview of a text-mode send: the first view plus what the card animates.
 
         The panel lays this text out itself, so the picture is this
-        integration's own rendering of the same words -- close, not identical.
+        integration's own rendering of the same words, cell by cell the way
+        text mode sends them -- close, not identical.
         """
         try:
             if still_current is not None and not still_current():
                 return
-            from .common import strip_inline_color_tags
-            from .display.text_renderer import render_text_to_png
+            from .preview import build_text_preview
 
             width, height = self._resolved_dimensions(base_info)
-            shown = strip_inline_color_tags(text, where="the preview")
-            png = await self._hass.async_add_executor_job(
-                partial(
-                    render_text_to_png, shown, width, height, False,
-                    char_height, Path(font).name if font else None, 0,
-                    color, bg_color or "000000",
+            try:
+                png, line = await self._hass.async_add_executor_job(
+                    build_text_preview, text, color, bg_color,
+                    resolve_font_for_library(font), char_height,
+                    width, height, animation,
                 )
-            )
+            except Exception as err:  # noqa: BLE001 - fall back to a still picture
+                _LOGGER.debug("Text preview fell back to the plain renderer: %s", err)
+                from .common import strip_inline_color_tags
+                from .display.text_renderer import render_text_to_png
+
+                png = await self._hass.async_add_executor_job(
+                    partial(
+                        render_text_to_png,
+                        strip_inline_color_tags(text, where="the preview"),
+                        width, height, False, char_height, None, 0,
+                        color, bg_color or "000000",
+                    )
+                )
+                line = None
+            # The render awaited: a newer request may have taken over since.
+            if still_current is not None and not still_current():
+                return
             self.preview.set_image(
                 png, "image/png", kind="text", mode="text", text=text,
-                effect=TEXT_EFFECT_CODES.get(animation), effect_code=animation, speed=speed, rainbow_mode=rainbow_mode,
-                color=color, bg_color=bg_color or "000000",
+                effect=TEXT_EFFECT_CODES.get(animation), effect_code=animation,
+                speed=speed, rainbow_mode=rainbow_mode,
+                color=color, bg_color=bg_color or "000000", strip=line,
             )
         except Exception as err:  # noqa: BLE001 - cosmetic
             _LOGGER.debug("Could not build the text preview: %s", err)

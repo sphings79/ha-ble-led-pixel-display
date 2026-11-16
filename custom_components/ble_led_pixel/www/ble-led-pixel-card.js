@@ -58,13 +58,134 @@ function t(hass, key) {
   return (TEXTS[lang] || TEXTS.en)[key] || TEXTS.en[key] || key;
 }
 
+
+// ---------------------------------------------------------------------------
+// Effects
+//
+// The panel's firmware animates text itself and does not document how, so
+// these are close imitations, not copies. What is known: the effect codes, the
+// 0-100 speed byte and the text as a line of per-character cells. What is
+// assumed is marked below, and every assumption is a constant here to tune.
+// ---------------------------------------------------------------------------
+
+const EFFECT = { FIXED: 0, LEFT: 1, RIGHT: 2, UP: 3, DOWN: 4, BLINK: 5, BREATHE: 6 };
+
+// Assumed: a higher speed value scrolls faster, from slow to about 66 px/s.
+function scrollSpeed(speed) {
+  const value = Number.isFinite(Number(speed)) ? Number(speed) : 80;
+  return 6 + Math.max(0, Math.min(100, value)) * 0.6;
+}
+
+// Assumed: blinking is a fixed 2 Hz and ignores the speed byte.
+const BLINK_HALF_PERIOD = 0.5;
+function blinkOn(t) {
+  return Math.floor(t / BLINK_HALF_PERIOD) % 2 === 0;
+}
+
+// Assumed: breathing is a 3 s sine between 15 % and full brightness.
+const BREATHE_PERIOD = 3;
+function breatheFactor(t) {
+  return 0.15 + 0.85 * (0.5 + 0.5 * Math.cos((2 * Math.PI * t) / BREATHE_PERIOD));
+}
+
+function hexToRgb(hex) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || "");
+  if (!m) return [0, 0, 0];
+  const n = parseInt(m[1], 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function fillColor(out, rgb) {
+  for (let i = 0; i < out.length; i += 4) {
+    out[i] = rgb[0];
+    out[i + 1] = rgb[1];
+    out[i + 2] = rgb[2];
+    out[i + 3] = 255;
+  }
+}
+
+// Copy `src` ({width, height, data}) into `out` (cols x rows) with its top-left
+// corner at (ox, oy). Anything outside the panel is clipped.
+function blit(out, cols, rows, src, ox, oy) {
+  for (let sy = 0; sy < src.height; sy++) {
+    const y = oy + sy;
+    if (y < 0 || y >= rows) continue;
+    for (let sx = 0; sx < src.width; sx++) {
+      const x = ox + sx;
+      if (x < 0 || x >= cols) continue;
+      const i = (sy * src.width + sx) * 4;
+      const o = (y * cols + x) * 4;
+      out[o] = src.data[i];
+      out[o + 1] = src.data[i + 1];
+      out[o + 2] = src.data[i + 2];
+      out[o + 3] = 255;
+    }
+  }
+}
+
+/*
+ * One frame of a panel, `t` seconds after its content arrived.
+ *   base  - the first view the integration sent (any size; placed top-left)
+ *   strip - the whole line of text, only for the scrolling effects
+ * Returns {pixels: Uint8ClampedArray (cols * rows * 4), factor: brightness}.
+ */
+function composeFrame({ cols, rows, base, strip, effect, speed, bg, t }) {
+  const pixels = new Uint8ClampedArray(cols * rows * 4);
+  const background = hexToRgb(bg);
+  const showBase = () => {
+    fillColor(pixels, background);
+    if (base) blit(pixels, cols, rows, base, 0, 0);
+  };
+  let factor = 1;
+
+  const scrolling =
+    strip && (effect === EFFECT.LEFT || effect === EFFECT.RIGHT ||
+              effect === EFFECT.UP || effect === EFFECT.DOWN);
+  if (scrolling) {
+    fillColor(pixels, background);
+    const pace = scrollSpeed(speed) * t;
+    const mid = Math.floor((rows - strip.height) / 2);
+    if (effect === EFFECT.LEFT || effect === EFFECT.RIGHT) {
+      const span = cols + strip.width;
+      const d = Math.floor(pace % span);
+      const x = effect === EFFECT.LEFT ? cols - d : d - strip.width;
+      blit(pixels, cols, rows, strip, x, mid);
+    } else {
+      const span = rows + strip.height;
+      const d = Math.floor(pace % span);
+      const y = effect === EFFECT.UP ? rows - d : d - strip.height;
+      blit(pixels, cols, rows, strip, 0, y);
+    }
+  } else if (effect === EFFECT.BLINK) {
+    if (blinkOn(t)) showBase();
+    else fillColor(pixels, background);
+  } else {
+    showBase();
+    if (effect === EFFECT.BREATHE) factor = breatheFactor(t);
+  }
+  return { pixels, factor };
+}
+
+// Which effects move: the scrolls need the whole line, blinking and breathing
+// work on the first view. Snowflake and anything unknown stay still, because
+// how the firmware draws them is not known.
+function isAnimated(effect, hasStrip) {
+  if (effect === EFFECT.BLINK || effect === EFFECT.BREATHE) return true;
+  return hasStrip && effect >= EFFECT.LEFT && effect <= EFFECT.DOWN;
+}
+
 class BleLedPixelCard extends HTMLElement {
   constructor() {
     super();
     this._config = null;
     this._hass = null;
     this._loadedKey = null;
-    this._source = null; // {width, height, data: Uint8ClampedArray}
+    this._source = null; // first view: {width, height, data: Uint8ClampedArray}
+    this._strip = null; // whole line of text for scrolling effects
+    this._stripKey = null;
+    this._t0 = 0; // when the current content arrived (ms)
+    this._raf = 0;
+    this._lastPaint = 0;
     this._wanted = null;
     this._width = 0;
     this._observer = null;
@@ -109,8 +230,8 @@ class BleLedPixelCard extends HTMLElement {
   }
 
   connectedCallback() {
-    if (this._observer || !this._canvasHost) return;
-    this._observeSize();
+    if (!this._observer && this._canvasHost) this._observeSize();
+    this._draw();
   }
 
   disconnectedCallback() {
@@ -118,6 +239,7 @@ class BleLedPixelCard extends HTMLElement {
       this._observer.disconnect();
       this._observer = null;
     }
+    this._stopLoop();
   }
 
   _build() {
@@ -181,9 +303,41 @@ class BleLedPixelCard extends HTMLElement {
     const key = picture ? `${picture}|${state.state}` : null;
     if (key && key !== this._loadedKey) {
       this._loadedKey = key;
+      this._t0 = performance.now(); // an effect starts over with new content
       this._load(picture, state.state, key);
     }
+    this._loadStrip(state.attributes.strip);
     this._render();
+  }
+
+  // The whole line of text, sent as a base64 PNG for the scrolling effects.
+  async _loadStrip(encoded) {
+    if (!encoded) {
+      this._strip = null;
+      this._stripKey = null;
+      return;
+    }
+    if (encoded === this._stripKey) return;
+    this._stripKey = encoded;
+    try {
+      const response = await fetch(`data:image/png;base64,${encoded}`);
+      const bitmap = await createImageBitmap(await response.blob());
+      if (encoded !== this._stripKey) return;
+      const scratch = document.createElement("canvas");
+      scratch.width = bitmap.width;
+      scratch.height = bitmap.height;
+      const ctx = scratch.getContext("2d", { willReadFrequently: true });
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(bitmap, 0, 0);
+      this._strip = {
+        width: bitmap.width,
+        height: bitmap.height,
+        data: ctx.getImageData(0, 0, bitmap.width, bitmap.height).data,
+      };
+      this._draw();
+    } catch (err) {
+      this._strip = null;
+    }
   }
 
   async _load(picture, stamp, key) {
@@ -222,7 +376,35 @@ class BleLedPixelCard extends HTMLElement {
     this._draw();
   }
 
-  _draw() {
+  _stopLoop() {
+    if (this._raf) cancelAnimationFrame(this._raf);
+    this._raf = 0;
+  }
+
+  _startLoop() {
+    if (this._raf || !this.isConnected) return;
+    const tick = (now) => {
+      this._raf = 0;
+      if (!this.isConnected) return;
+      const attrs = (this._state() && this._state().attributes) || {};
+      if (!this._animated(attrs)) return;
+      this._raf = requestAnimationFrame(tick);
+      if (document.hidden || now - this._lastPaint < 33) return; // ~30 fps
+      this._lastPaint = now;
+      this._draw(true);
+    };
+    this._raf = requestAnimationFrame(tick);
+  }
+
+  _animated(attrs) {
+    return (
+      attrs.kind === "text" &&
+      attrs.connected !== false &&
+      isAnimated(Number(attrs.effect_code), !!this._strip)
+    );
+  }
+
+  _draw(fromLoop) {
     if (!this._canvas || !this._config) return;
     const state = this._state();
     const attrs = (state && state.attributes) || {};
@@ -239,6 +421,43 @@ class BleLedPixelCard extends HTMLElement {
       return;
     }
 
+    const animated = this._animated(attrs);
+    if (animated) this._startLoop();
+    else this._stopLoop();
+
+    let frame = null;
+    let factor = 1;
+    if ((kind === "image" || kind === "text") && this._source) {
+      const seconds = animated ? (performance.now() - this._t0) / 1000 : 0;
+      ({ pixels: frame, factor } = composeFrame({
+        cols,
+        rows,
+        base: this._source,
+        strip: this._strip,
+        effect: kind === "text" ? Number(attrs.effect_code) : EFFECT.FIXED,
+        speed: attrs.speed,
+        bg: attrs.bg_color,
+        t: seconds,
+      }));
+    }
+    this._paint(canvas, frame, factor, cols, rows);
+
+    if (fromLoop) return; // the note and badge only change with the state
+    let note = "";
+    if (kind === "none") note = t(hass, "nothing");
+    else if (kind === "placeholder") {
+      const label = attrs.label || "other";
+      note = t(hass, label);
+      if (label === "slot" && attrs.text) note += ` ${attrs.text}`;
+    }
+    this._showNote(note);
+    const offline = attrs.connected === false;
+    this._badge.textContent = t(hass, "offline");
+    this._badge.classList.toggle("hidden", !offline);
+    this._canvasHost.classList.toggle("dim", offline);
+  }
+
+  _paint(canvas, frame, factor, cols, rows) {
     const gap = Math.max(0, Number(this._config.gap) || 0);
     const available = Math.max(40, this._width - (this._config.frame !== false ? 28 : 24));
     let pixel = Number(this._config.pixel_size) || 0;
@@ -248,25 +467,31 @@ class BleLedPixelCard extends HTMLElement {
     const cssH = rows * pixel;
     canvas.style.width = `${cssW}px`;
     canvas.style.height = `${cssH}px`;
-    canvas.width = Math.round(cssW * dpr);
-    canvas.height = Math.round(cssH * dpr);
+    const wantW = Math.round(cssW * dpr);
+    const wantH = Math.round(cssH * dpr);
+    if (canvas.width !== wantW || canvas.height !== wantH) {
+      canvas.width = wantW;
+      canvas.height = wantH;
+    }
     const ctx = canvas.getContext("2d");
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, cssW, cssH);
 
-    const showPicture = kind === "image" || kind === "text";
-    const src = showPicture ? this._source : null;
     const round = this._config.shape !== "square";
     const dot = Math.max(1, pixel - gap);
     const radius = dot / 2;
     for (let y = 0; y < rows; y++) {
       for (let x = 0; x < cols; x++) {
         let color = "#151515";
-        if (src && x < src.width && y < src.height) {
-          const i = (y * src.width + x) * 4;
-          const r = src.data[i], g = src.data[i + 1], b = src.data[i + 2];
-          if (r + g + b > 30) color = `rgb(${r},${g},${b})`;
+        if (frame) {
+          const i = (y * cols + x) * 4;
+          const r = frame[i], g = frame[i + 1], b = frame[i + 2];
+          if (r + g + b > 30) {
+            color = factor === 1
+              ? `rgb(${r},${g},${b})`
+              : `rgb(${Math.round(r * factor)},${Math.round(g * factor)},${Math.round(b * factor)})`;
+          }
         }
         ctx.fillStyle = color;
         const px = x * pixel + (pixel - dot) / 2;
@@ -280,19 +505,6 @@ class BleLedPixelCard extends HTMLElement {
         }
       }
     }
-
-    let note = "";
-    if (kind === "none") note = t(hass, "nothing");
-    else if (kind === "placeholder") {
-      const label = attrs.label || "other";
-      note = t(hass, label);
-      if (label === "slot" && attrs.text) note += ` ${attrs.text}`;
-    }
-    this._showNote(note);
-    const offline = attrs.connected === false;
-    this._badge.textContent = t(hass, "offline");
-    this._badge.classList.toggle("hidden", !offline);
-    this._canvasHost.classList.toggle("dim", offline);
   }
 
   _showNote(text) {
@@ -378,5 +590,10 @@ window.customCards.push({
   description: "Shows what a BLE LED pixel panel is displaying.",
   preview: true,
 });
+
+// Lets the effect maths be tested without a browser.
+globalThis.__bleLedPixelCard = {
+  composeFrame, isAnimated, scrollSpeed, blinkOn, breatheFactor, EFFECT,
+};
 
 console.info(`%c BLE-LED-PIXEL-CARD %c ${VERSION} `, "background:#222;color:#0f0", "");

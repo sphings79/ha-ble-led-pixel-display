@@ -600,6 +600,26 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.5.0-beta.3] - 2026-11-16
+
+### Added
+
+- **The card animates text effects.** Scroll left, scroll right, scroll up,
+  scroll down, blinking and breathing now move on the card. For the scrolls the
+  integration sends the whole line of text, laid out character by character in
+  the half- and full-width cells that text mode sends to the panel, with inline
+  colour tags honoured. The card also starts an effect over whenever new
+  content arrives, as the panel does.
+
+### Known limits
+
+- The panel's firmware does the real animation and does not document it, so
+  these are imitations. Scroll speed, the blink rate and the breathing rhythm
+  are estimates; snowflake and the rainbow setting are not shown. The values sit
+  in one place at the top of the card file, so they can be tuned once they have
+  been compared with a real panel.
+- A GIF (an animated layout or image file) shows its first frame only.
+
 ## [2.5.0-beta.2] - 2026-11-16
 
 ### Fixed

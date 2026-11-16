@@ -329,8 +329,9 @@ Gezeigt wird, was Home Assistant zuletzt erfolgreich an das Panel gesendet hat, 
 - Eine Änderung über die Hersteller-App oder eine Fernbedienung wird nicht angezeigt: Das Panel meldet seinen Inhalt nicht zurück.
 - Uhr, gespeicherte Slots, Voreinstellungen, Anzeigetafel, Countdown und Stoppuhr zeichnet das Panel selbst; die Karte zeigt dafür eine Beschriftung statt eines Bildes.
 - Ein Panel, das offline ist, wird markiert und abgedunkelt.
-- Text-Effekte (Laufschrift und Ähnliches) erscheinen vorerst als Standbild.
-- Im Text-Modus legt das Panel den Text selbst aus, die Vorschau ist daher nah dran, aber nicht identisch.
+- Text-Effekte werden animiert: Laufschrift nach links, rechts, oben und unten, Blinken und Atmen. Die Firmware des Panels führt die Animation aus und beschreibt sie nicht, die Karte ahmt sie deshalb nach: Lauftempo, Blinkrate (2 pro Sekunde) und Atemrhythmus (3 Sekunden) sind Schätzwerte, Schneeflocke bleibt ein Standbild. Die Regenbogen-Einstellung wird nicht gezeigt.
+- Im Text-Modus legt das Panel den Text selbst aus, die Vorschau ist daher nah dran, aber nicht identisch: Die Zeichen sitzen in halb- oder ganzbreiten Zellen, wie das Panel sie bekommt, die genaue Position eines kurzen Textes kann aber abweichen.
+- Ein GIF (animiertes Layout oder Bilddatei) zeigt nur das erste Bild.
 
 ## Installation
 

@@ -319,3 +319,100 @@ def test_card_is_registered_once_and_never_raises():
         http = None  # no http component: must only be logged
 
     asyncio.run(card.async_register_card(Broken()))
+
+
+# --- text-mode preview: the line the card scrolls -----------------------------
+
+def _decode(data):
+    return Image.open(io.BytesIO(data)).convert("RGB")
+
+
+def test_text_preview_first_view_matches_the_panel():
+    png_bytes, line = preview_module.build_text_preview(
+        "Hi", "ff0000", "000010", None, 16, 64, 16, 0
+    )
+    first = _decode(png_bytes)
+    assert first.size == (64, 16)
+    assert line is None  # a fixed text needs no moving line
+    assert first.getpixel((63, 15)) == (0, 0, 16)  # background colour
+    reds = [(x, y) for x in range(64) for y in range(16) if first.getpixel((x, y)) == (255, 0, 0)]
+    assert reds and min(x for x, _ in reds) < 8  # starts at the left edge
+
+
+def test_text_preview_is_centred_vertically_on_a_taller_panel():
+    png_bytes, _ = preview_module.build_text_preview("Hi", "ffffff", None, None, 16, 64, 32, 0)
+    first = _decode(png_bytes)
+    lit_rows = {y for x in range(64) for y in range(32) if first.getpixel((x, y)) != (0, 0, 0)}
+    assert lit_rows and min(lit_rows) >= 8 and max(lit_rows) < 24
+
+
+@pytest.mark.parametrize("effect, expects_line", [(0, False), (1, True), (2, True), (3, True), (4, True), (5, False), (6, False), (7, False)])
+def test_only_the_scrolling_effects_get_the_whole_line(effect, expects_line):
+    _, line = preview_module.build_text_preview("Hello world", "ffffff", None, None, 16, 32, 16, effect)
+    assert (line is not None) is expects_line
+
+
+def test_the_line_is_laid_out_cell_by_cell_with_inline_colours():
+    import base64
+
+    _, line = preview_module.build_text_preview(
+        "[#00ff00]A[/]B", "ff0000", None, None, 16, 32, 16, 1
+    )
+    strip = _decode(base64.b64decode(line))
+    assert strip.size == (16, 16)  # two half-width cells of 8
+    left = {strip.getpixel((x, y)) for x in range(8) for y in range(16)}
+    right = {strip.getpixel((x, y)) for x in range(8, 16) for y in range(16)}
+    assert (0, 255, 0) in left and (255, 0, 0) not in left
+    assert (255, 0, 0) in right and (0, 255, 0) not in right
+
+
+def test_a_wide_character_takes_a_full_width_cell():
+    import base64
+
+    _, line = preview_module.build_text_preview("日", "ffffff", None, None, 16, 32, 16, 1)
+    assert _decode(base64.b64decode(line)).size[0] == 16
+
+
+def test_a_very_long_line_is_not_sent_along(monkeypatch):
+    monkeypatch.setattr(preview_module, "MAX_STRIP_BYTES", 100)
+    _, line = preview_module.build_text_preview("Hello world", "ffffff", None, None, 16, 32, 16, 1)
+    assert line is None
+
+
+def test_text_mode_records_the_line_for_a_scroll():
+    api = make_real_api()
+    api._hass.async_add_executor_job = _text_mode_executor
+    assert asyncio.run(api.display_text_pypixelcolor("Hello world", animation=1, speed=70))
+    assert api.preview.meta["effect"] == "Scroll left"
+    assert api.preview.meta["strip"]
+    assert Image.open(io.BytesIO(api.preview.image)).size == (64, 16)
+
+
+def test_text_preview_falls_back_to_a_still_picture(monkeypatch):
+    api = make_real_api()
+    api._hass.async_add_executor_job = _text_mode_executor
+
+    def broken(*args, **kwargs):
+        raise RuntimeError("no font")
+
+    monkeypatch.setattr(preview_module, "build_text_preview", broken)
+    assert asyncio.run(api.display_text_pypixelcolor("Hello", animation=1))
+    assert api.preview.kind == "text"
+    assert "strip" not in api.preview.meta
+    assert Image.open(io.BytesIO(api.preview.image)).size == (64, 16)
+
+
+def test_the_card_effects_hold_up_in_node():
+    import shutil
+    import subprocess
+    from pathlib import Path
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    root = Path(__file__).resolve().parent.parent
+    result = subprocess.run(
+        [node, "--test", "tests/js/card_effects.test.mjs"],
+        cwd=root, capture_output=True, text=True, timeout=60,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

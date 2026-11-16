@@ -324,8 +324,9 @@ It shows what Home Assistant last sent to the panel successfully, including what
 - A change made with the vendor app or a remote is not shown: the panel does not report its content.
 - The clock, stored slots, presets, scoreboard, countdown and stopwatch are drawn by the panel itself, so the card shows a label instead of a picture.
 - A panel that is offline is marked and dimmed.
-- Text effects (scrolling and the like) are shown as a still picture for now.
-- In text mode the panel lays the text out itself, so the preview is close, not identical.
+- Text effects are animated: scroll left, right, up and down, blinking and breathing. The panel's firmware does the real animation and does not document it, so the card imitates it: scroll speed, the blink rate (2 per second) and the breathing rhythm (3 seconds) are estimates, and snowflake stays a still picture. The rainbow setting is not shown.
+- In text mode the panel lays the text out itself, so the preview is close, not identical: characters sit in half- or full-width cells as the panel receives them, but the exact position of a short text may differ.
+- A GIF (an animated layout or image file) shows its first frame only.
 
 ## Installation
 
