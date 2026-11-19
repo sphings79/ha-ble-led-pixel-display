@@ -236,7 +236,16 @@ class BluetoothClient:
             if AckManager is not None:
                 self._ack_mgr = AckManager()
 
-            await self._client.start_notify(NOTIFY_UUID, self._dispatch_notification)
+            # If notifications can't be enabled (e.g. BlueZ has a
+            # stale GATT tree: "StartNotify ... doesn't exist"), the link is up
+            # but no ACK can ever arrive. Leaving _connected set made
+            # is_connected true, so the reconnect loop stopped and every send
+            # failed with "no ack" until a reload. Drop the half-open link.
+            try:
+                await self._client.start_notify(NOTIFY_UUID, self._dispatch_notification)
+            except BaseException:
+                await self._drop_half_open_link()
+                raise
             _LOGGER.info("Successfully connected to LED panel")
             return True
 
@@ -247,11 +256,28 @@ class BluetoothClient:
             _LOGGER.error("Unexpected error connecting to %s: %s", self._address, err)
             raise BleLedPixelConnectionError(f"Connection failed: {err}") from err
 
+    async def _drop_half_open_link(self) -> None:
+        """Forget a link whose notifications could not be enabled."""
+        self._connected = False
+        self._ack_mgr = None
+        client, self._client = self._client, None
+        if client is None:
+            return
+        try:
+            await client.disconnect()
+        except Exception as err:
+            _LOGGER.debug("Error dropping half-open link to %s: %s", self._address, err)
+
     async def disconnect(self) -> None:
         """Disconnect from the device."""
         if self._client and self._connected:
             try:
-                await self._client.stop_notify(NOTIFY_UUID)
+                # A failing stop_notify (e.g. "No notify session
+                # started" on a half-open link) must not skip the disconnect.
+                try:
+                    await self._client.stop_notify(NOTIFY_UUID)
+                except BleakError as err:
+                    _LOGGER.debug("stop_notify on %s failed: %s", self._address, err)
                 await self._client.disconnect()
                 _LOGGER.debug("Disconnected from LED panel")
             except BleakError as err:
