@@ -56,6 +56,9 @@ BRANDS: dict[str, str] = {
 
     # Confirmed: 64x20, device type 133, sold unbranded on eBay
     "000105": "Generic",
+
+    # Reported in issue #14: VAETTLO, sold on Amazon (US), 32x32, device type 129
+    "003401": "VAETTLO",
 }
 
 
