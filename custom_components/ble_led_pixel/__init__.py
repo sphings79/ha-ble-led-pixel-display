@@ -21,6 +21,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.start import async_at_started
 from homeassistant.helpers.typing import ConfigType
 
+from .card import async_register_card
 from .api import BleLedPixelAPI, BleLedPixelConnectionError, BleLedPixelTimeoutError
 from . import brands
 from .const import DOMAIN, CONF_ADDRESS, CONF_NAME, OPT_REMOTE_BRANDS
@@ -31,7 +32,7 @@ from .unknown_panel import async_report_unknown_panel, report_info_for
 _LOGGER = logging.getLogger(__name__)
 
 # Platforms supported by this integration
-PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.TEXT, Platform.SENSOR, Platform.SELECT, Platform.NUMBER, Platform.BUTTON, Platform.LIGHT]
+PLATFORMS: list[Platform] = [Platform.SWITCH, Platform.TEXT, Platform.SENSOR, Platform.SELECT, Platform.NUMBER, Platform.BUTTON, Platform.LIGHT, Platform.IMAGE]
 
 # Longest the initial connect may hold up setup. Home Assistant's start-up
 # waits for every integration, so an unresponsive panel must not stall it;
@@ -61,6 +62,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await hass.async_add_executor_job(build_font_index)
 
     async_setup_services(hass)
+    await async_register_card(hass)
     return True
 
 
@@ -191,6 +193,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "connect as soon as it advertises", address, err,
             )
 
+    # What the panel showed before the restart, for the dashboard card.
+    await api.preview.async_load()
+
     # Store API instance in hass.data
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = api
@@ -264,6 +269,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Disconnect from device
         api: BleLedPixelAPI = hass.data[DOMAIN].pop(entry.entry_id)
         api.stop_identity_watch()
+        await api.preview.async_save_now()
         await api.stop_watcher()
         try:
             await api.disconnect()

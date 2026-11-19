@@ -21,7 +21,9 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "bluetooth"
+    "bluetooth",
+    "http",
+    "frontend"
   ],
   "documentation": "https://github.com/sphings79/ha-ble-led-pixel-display",
   "integration_type": "device",
@@ -36,5 +38,5 @@
     "pypixelcolor>=0.5.0,<0.6",
     "resvg_py>=0.3.0"
   ],
-  "version": "2.4.2"
+  "version": "2.5.0"
 }

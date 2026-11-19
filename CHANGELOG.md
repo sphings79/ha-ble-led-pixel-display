@@ -600,6 +600,99 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.5.0] - 2026-11-19
+
+First stable release of the 2.5.0 line: everything from the five betas below.
+Every panel gets a `Preview` image entity and a dashboard card that shows what
+the panel displays, drawn as LEDs, with animated text effects.
+
+### Added
+
+- **Brand VAETTLO** for product id `003401` (32x32, device type 129, sold on
+  Amazon US). Reported by meeowgler (#14).
+
+## [2.5.0-beta.5] - 2026-11-16
+
+### Fixed
+
+- **The Preview picture was far too small outside the card.** The image entity
+  served the panel's own pixels (32x32 on a square panel), so an ordinary
+  picture card showed a thumbnail. It now serves the picture enlarged by a whole
+  factor to about 256 pixels on its long side, without smoothing, so the pixels
+  stay sharp (32x32 becomes 256x256, 64x16 becomes 256x64). The dashboard card
+  reads the exact panel pixels back out of it, so it looks the same as before.
+  Reported by cmarqu (#12).
+
+## [2.5.0-beta.4] - 2026-11-16
+
+### Added
+
+- **The card's frame width is configurable** (`frame_width`, in px, 0 for no
+  frame; default 6). It replaces the on/off switch `frame`; a card that still
+  has `frame: false` keeps showing no frame.
+
+### Fixed
+
+- **The frame looked cut off with a name above it.** The dark frame was the
+  card's whole lower half, so it ran square into the title and round into the
+  card's corners. It is now a rounded bezel around the panel alone, with the
+  title above it.
+
+## [2.5.0-beta.3] - 2026-11-16
+
+### Added
+
+- **The card animates text effects.** Scroll left, scroll right, scroll up,
+  scroll down, blinking and breathing now move on the card. For the scrolls the
+  integration sends the whole line of text, laid out character by character in
+  the half- and full-width cells that text mode sends to the panel, with inline
+  colour tags honoured. The card also starts an effect over whenever new
+  content arrives, as the panel does.
+
+### Known limits
+
+- The panel's firmware does the real animation and does not document it, so
+  these are imitations. Scroll speed, the blink rate and the breathing rhythm
+  are estimates; snowflake and the rainbow setting are not shown. The values sit
+  in one place at the top of the card file, so they can be tuned once they have
+  been compared with a real panel.
+- A GIF (an animated layout or image file) shows its first frame only.
+
+## [2.5.0-beta.2] - 2026-11-16
+
+### Fixed
+
+- **The dashboard card file was missing from beta.1.** A `.gitignore` rule for
+  Home Assistant's own `www/` folder also swallowed the card's folder inside the
+  integration, so the card never reached the release. It is included now; use
+  this beta rather than beta.1.
+
+## [2.5.0-beta.1] - 2026-11-16
+
+### Added
+
+- **Dashboard card that shows what the panel displays.** Every panel gets a
+  `Preview` image entity holding the last content Home Assistant sent to it
+  successfully, and the integration ships the matching `ble-led-pixel-card`
+  itself: nothing to install, no resource to add. Pick it in the card picker,
+  choose the panel's preview entity, and it draws the content as LEDs (round or
+  square, pixel size, gap and frame are options). Text, text rendered as a
+  picture, icons, emoji, layouts, bundled pictures and image files are all
+  covered, including whatever an automation sends.
+- The clock, stored slots, presets, scoreboard, countdown and stopwatch are drawn
+  by the panel itself and have no picture, so the card shows a label instead.
+- A panel that is offline is marked as such; the picture stays dimmed.
+- The last picture is kept across restarts.
+
+### Known limits
+
+- The card shows what Home Assistant sent. A change made with the vendor app
+  or a remote is not visible, because the panel does not report its content.
+- Text effects (scrolling and the like) are not animated yet; the card shows
+  the still picture. Animation follows in a later beta.
+- Text mode lays its text out in the panel firmware, so its preview is this
+  integration's own rendering of the same words: close, not identical.
+
 ## [2.4.2] - 2026-11-16
 
 First stable release of the 2.4.2 line: everything from the two betas below.

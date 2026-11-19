@@ -64,6 +64,7 @@ Jedes Panel, das sich als `LED_BLE_*` mit der Service-UUID `0000fa01-0000-1000-8
 | **B.K. Light** | Bei Action. Auf der Verpackung steht „LED pixel board" (Artikel **ACT1026**, 13×13 cm, 32×32) bzw. „LED fun screen" (Artikel **ACT1025**, 37×9 cm, 64×16); die Shop-Bezeichnung ist je nach Land übersetzt, in den Niederlanden etwa „Led-pixelbord" (Artikel **3217439**) und „Led-pixel scherm" (Artikel **3217438**). Produkt-ID `000702`. |
 | **HYPERLITE** | Produkt-IDs `002501`–`002509`, `002513`, `002514`. Bei Amazon als programmierbare Laufschrift verkauft. |
 | **EZYEVY** | Produkt-IDs `002510`–`002512`. Bei Amazon, unter anderem ein 76×11 Zoll großes Ladenschild. |
+| **VAETTLO** | Produkt-ID `003401`. Bei Amazon (US) als 32×32 LED-Pixel-Art-Display verkauft, gesteuert über die iPixel-Color-App (Gerätetyp 129). Gemeldet in Issue #14. |
 | **BGLight** | Gleiches Protokoll |
 | Generische „iPixel Color"-Panels | Alles, wo die Hersteller-App iPixel Color heißt |
 
@@ -314,6 +315,28 @@ triggers:
       address: "AA:BB:CC:DD:EE:FF"
 ```
 
+### Dashboard-Karte: sehen, was das Panel anzeigt
+
+Jedes Panel bekommt eine **Vorschau**-Bildentität, und die passende Karte bringt die Integration gleich mit: nichts zu installieren, keine Ressource einzutragen. Karte hinzufügen, nach **BLE LED Pixel Display** suchen und die Vorschau-Entität des Panels wählen. Der Inhalt wird als LEDs gezeichnet; Form, Pixelgröße, Abstand und Rahmen stellst du im Karten-Editor ein.
+
+```yaml
+type: custom:ble-led-pixel-card
+entity: image.wohnzimmer_panel_vorschau
+shape: round
+frame_width: 6
+```
+
+Optionen: `shape` (`round` oder `square`), `pixel_size` (0 passt sich der Karte an), `gap` (Abstand der LEDs), `frame_width` (dunkler Rahmen um das Panel in px, 0 für keinen) und `name` (Titel über dem Panel).
+
+Gezeigt wird, was Home Assistant zuletzt erfolgreich an das Panel gesendet hat, auch was deine Automationen senden. Grenzen:
+
+- Eine Änderung über die Hersteller-App oder eine Fernbedienung wird nicht angezeigt: Das Panel meldet seinen Inhalt nicht zurück.
+- Uhr, gespeicherte Slots, Voreinstellungen, Anzeigetafel, Countdown und Stoppuhr zeichnet das Panel selbst; die Karte zeigt dafür eine Beschriftung statt eines Bildes.
+- Ein Panel, das offline ist, wird markiert und abgedunkelt.
+- Text-Effekte werden animiert: Laufschrift nach links, rechts, oben und unten, Blinken und Atmen. Die Firmware des Panels führt die Animation aus und beschreibt sie nicht, die Karte ahmt sie deshalb nach: Lauftempo, Blinkrate (2 pro Sekunde) und Atemrhythmus (3 Sekunden) sind Schätzwerte, Schneeflocke bleibt ein Standbild. Die Regenbogen-Einstellung wird nicht gezeigt.
+- Im Text-Modus legt das Panel den Text selbst aus, die Vorschau ist daher nah dran, aber nicht identisch: Die Zeichen sitzen in halb- oder ganzbreiten Zellen, wie das Panel sie bekommt, die genaue Position eines kurzen Textes kann aber abweichen.
+- Ein GIF (animiertes Layout oder Bilddatei) zeigt nur das erste Bild.
+
 ## Installation
 
 ### Marketplace (Home Assistant 2026.11 und neuer)
@@ -365,6 +388,7 @@ Normalerweise findet Home Assistant es von selbst und bietet es unter **Einstell
 | **Auto Update** | `switch` | **Vorher [Flackern vermeiden](#flackern-vermeiden-wie-updates-wirklich-funktionieren) lesen** |
 | **Update Display** | `button` | Überträgt den gespeicherten Zustand ans Panel |
 | **Sync Time** | `button` | Stellt die Geräteuhr |
+| **Vorschau** | `image` | Was das Panel zeigt, für die [Dashboard-Karte](#dashboard-karte-sehen-was-das-panel-anzeigt) |
 | Device Type, Display Width, Display Height, MCU-/WiFi-Version | `sensor` | Diagnose |
 
 ## Anzeigemodi
@@ -657,4 +681,4 @@ Inoffizielle, von der Community gebaute Integration. Nicht verbunden mit, unters
 
 ---
 
-<sub>Home Assistant LED-Matrix · Bluetooth-LE-Pixeldisplay · BGLight Home Assistant · B.K. Light LED Pixel Board Action · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color Integration · LED_BLE · 64x16 Pixel-Panel · Marketplace Custom Integration · HACS Custom Integration · Sensorwert auf LED-Panel anzeigen · animiertes GIF auf LED-Matrix · Material Design Icon auf Display · Lauftext-Ticker · Energie-Dashboard Wandanzeige · PV-Erzeugung anzeigen · Batterie-Ladestand Panel · ohne Cloud · lokales Bluetooth · pypixelcolor</sub>
+<sub>Home Assistant LED-Matrix · Bluetooth-LE-Pixeldisplay · BGLight Home Assistant · B.K. Light LED Pixel Board Action · VAETTLO LED Pixel Art Display · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color Integration · LED_BLE · 64x16 Pixel-Panel · Marketplace Custom Integration · HACS Custom Integration · Sensorwert auf LED-Panel anzeigen · animiertes GIF auf LED-Matrix · Material Design Icon auf Display · Lauftext-Ticker · Energie-Dashboard Wandanzeige · PV-Erzeugung anzeigen · Batterie-Ladestand Panel · ohne Cloud · lokales Bluetooth · pypixelcolor</sub>
