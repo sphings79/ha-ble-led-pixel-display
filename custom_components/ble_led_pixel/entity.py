@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import CONNECTION_BLUETOOTH, DeviceInfo
 
 from .const import DOMAIN
 
@@ -35,4 +35,5 @@ def panel_device_info(api: "BleLedPixelAPI", address: str, name: str) -> DeviceI
         manufacturer=brand or "LED_BLE",
         model="LED Pixel Panel",
         sw_version="1.0",
+        connections={(CONNECTION_BLUETOOTH, address)},
     )
