@@ -600,6 +600,17 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.5.0] - 2026-11-19
+
+First stable release of the 2.5.0 line: everything from the five betas below.
+Every panel gets a `Preview` image entity and a dashboard card that shows what
+the panel displays, drawn as LEDs, with animated text effects.
+
+### Added
+
+- **Brand VAETTLO** for product id `003401` (32x32, device type 129, sold on
+  Amazon US). Reported by meeowgler (#14).
+
 ## [2.5.0-beta.5] - 2026-11-16
 
 ### Fixed

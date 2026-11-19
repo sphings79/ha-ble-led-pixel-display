@@ -63,6 +63,7 @@ Any panel that advertises as `LED_BLE_*` with service UUID `0000fa01-0000-1000-8
 | **B.K. Light** | Sold at Action. Packaging reads "LED pixel board" (article **ACT1026**, 13×13 cm, 32×32) and "LED fun screen" (article **ACT1025**, 37×9 cm, 64×16); shop listings are localised, e.g. "Led-pixelbord" (article **3217439**) and "Led-pixel scherm" (article **3217438**) in the Netherlands. Product id `000702`. |
 | **HYPERLITE** | Product ids `002501`–`002509`, `002513`, `002514`. Sold on Amazon as programmable scrolling signs. |
 | **EZYEVY** | Product ids `002510`–`002512`. Sold on Amazon, including a 76×11 inch shop sign. |
+| **VAETTLO** | Product id `003401`. Sold on Amazon (US) as a 32×32 LED pixel art display, driven by the iPixel Color app (device type 129). Reported in issue #14. |
 | **BGLight** | Same protocol |
 | Generic "iPixel Color" panels | Whatever the vendor app is called iPixel Color |
 
@@ -675,4 +676,4 @@ Unofficial, community-built integration. Not affiliated with, endorsed by, or su
 
 ---
 
-<sub>Home Assistant LED matrix · Bluetooth LE pixel display · BGLight Home Assistant · B.K. Light LED Pixel Board Action · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color integration · LED_BLE · 64x16 pixel panel · Marketplace custom integration · HACS custom integration · display sensor value on LED panel · animated GIF on LED matrix · Material Design Icon on display · scrolling text ticker · energy dashboard wall display · PV production display · battery state of charge panel · no cloud · local Bluetooth · pypixelcolor</sub>
+<sub>Home Assistant LED matrix · Bluetooth LE pixel display · BGLight Home Assistant · B.K. Light LED Pixel Board Action · VAETTLO LED Pixel Art Display · Led-pixelbord Action · Led-pixel scherm · LED fun screen · iPixel Color integration · LED_BLE · 64x16 pixel panel · Marketplace custom integration · HACS custom integration · display sensor value on LED panel · animated GIF on LED matrix · Material Design Icon on display · scrolling text ticker · energy dashboard wall display · PV production display · battery state of charge panel · no cloud · local Bluetooth · pypixelcolor</sub>
