@@ -600,6 +600,25 @@ out is easy and undoing it needs physical access to the power supply.
   stored on the config entry the first time it is seen and reused when the
   panel is quiet.
 
+## [2.5.1] - 2026-11-22
+
+### Fixed
+
+- **A half-open Bluetooth link no longer counts as connected.** When
+  `start_notify` failed after the link was up (BlueZ errors such as
+  `StartNotify ... doesn't exist` or `GATT Protocol Error: Unlikely Error`),
+  `is_connected` still reported the link as up. The reconnect loop and the
+  advertisement watcher stopped and every send failed until the entry was
+  reloaded. The link is now dropped and the reconnect loop keeps trying.
+  `disconnect()` no longer skips `client.disconnect()` when `stop_notify`
+  fails. Reported and fixed by cmarqu (#15).
+
+### Changed
+
+- The device now carries its Bluetooth address as a connection, which fills the
+  empty `Device` column in Settings > Devices & services > Bluetooth >
+  Connections and in the Bluetooth network map. Contributed by dfsx1 (#13).
+
 ## [2.5.0] - 2026-11-19
 
 First stable release of the 2.5.0 line: everything from the five betas below.
